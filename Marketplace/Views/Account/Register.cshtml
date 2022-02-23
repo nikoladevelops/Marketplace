@@ -1,0 +1,26 @@
+﻿@model Marketplace.ViewModels.RegisterViewModel
+
+<form class="form-control" method="post" asp-action="Register" asp-controller="Account">
+    <h3 class="text-center">Register</h3>
+    <div class="form-group mb-3">
+        <label asp-for=Username></label>
+        <input class="form-control" asp-for=Username placeholder="Username"/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=Email></label>
+        <input class="form-control" asp-for=Email placeholder="Email"/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=Password></label>
+        <input class="form-control" asp-for=Password placeholder="Password"/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=ConfirmPassword></label>
+        <input class="form-control" asp-for=ConfirmPassword placeholder="Confirm Password"/>
+    </div>
+    <div class="form-group mb-3">
+        <input class="form-check-input " asp-for=AgreeToTerms/>
+        <label asp-for="AgreeToTerms" class="form-check-label"></label>
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+</form>
