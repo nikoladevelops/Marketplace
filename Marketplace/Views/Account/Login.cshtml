@@ -1,17 +1,12 @@
-﻿@model Marketplace.ViewModels.RegisterViewModel
+﻿@model Marketplace.ViewModels.LoginViewModel
 
-<form class="form-control" method="post" asp-action="Register" asp-controller="Account">
-    <h3 class="text-center">Register</h3>
+<form class="form-control" method="post" asp-action="Login" asp-controller="Account">
+    <h3 class="text-center">Log in</h3>
     <div asp-validation-summary="All"></div>  
     <div class="form-group mb-3">
         <label asp-for=Username></label>
         <input class="form-control" asp-for=Username placeholder="Username"/>
         <span asp-validation-for=Username></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for=Email></label>
-        <input class="form-control" asp-for=Email placeholder="Email"/>
-        <span asp-validation-for=Email></span>
     </div>
     <div class="form-group mb-3">
         <label asp-for=Password></label>
@@ -24,9 +19,9 @@
         <span asp-validation-for=ConfirmPassword></span>
     </div>
     <div class="form-group mb-3">
-        <input type="checkbox" class="form-check-input " asp-for=AgreeToTerms/>
-        <label asp-for="AgreeToTerms"></label><br />
-        <span asp-validation-for=AgreeToTerms></span>
+        <input class="form-check-input " asp-for=RememberMe/>
+        <label asp-for="RememberMe" class="form-check-label"></label>
+        <span asp-validation-for=RememberMe></span>
     </div>
-    <button type="submit" class="btn btn-primary">Register</button>
+    <button type="submit" class="btn btn-primary">Log in</button>
 </form>

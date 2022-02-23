@@ -2,16 +2,11 @@
 
 namespace Marketplace.ViewModels
 {
-    public class RegisterViewModel
+    public class LoginViewModel
     {
         [Required]
         [StringLength(15,ErrorMessage ="Username can NOT be more than 15 characters long.")]
         public string Username { get; set; }
-
-        [Required]
-        [StringLength(100,ErrorMessage = "Email can NOT be more than 100 characters long.")]
-        [DataType(DataType.EmailAddress)]
-        public string Email { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "Password can NOT be more than 100 characters long.")]
@@ -25,8 +20,7 @@ namespace Marketplace.ViewModels
         [Compare("Password",ErrorMessage ="Password and confirmation password don't match.")]
         public string ConfirmPassword { get; set; }
 
-        [Range(typeof(bool), "true", "true", ErrorMessage = "You have to agree to our terms and conditions!")]
-        [Display(Name ="I agree to the terms and conditions.")]
-        public bool AgreeToTerms { get; set; }
+        [Display(Name ="Remember Me")]
+        public bool RememberMe { get; set; }
     }
 }
