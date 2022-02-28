@@ -1,4 +1,5 @@
 ﻿using Marketplace.Models;
+using Marketplace.Utility;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,14 +11,12 @@ namespace Marketplace.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         public AccountController(ApplicationDbContext context, UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager)
+            SignInManager<IdentityUser> signInManager)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
-            _roleManager = roleManager;
         }
         public IActionResult Register() 
         {
@@ -34,19 +33,14 @@ namespace Marketplace.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new IdentityUser()
-                {
-                    UserName = viewModel.Username
-                };
-
-                var result = await _signInManager.PasswordSignInAsync(user.UserName, viewModel.Password, false, false);
+                var result = await _signInManager.PasswordSignInAsync(viewModel.Username, viewModel.Password, viewModel.RememberMe, false);
 
                 if (result.Succeeded)
                 {
-                    return RedirectToAction("Index");
+                    return RedirectToAction("Index","Home");
                 }
 
-                return View(viewModel);
+                ModelState.AddModelError(string.Empty, "Invalid log in attempt.");
             }
 
             return View(viewModel);
@@ -65,8 +59,10 @@ namespace Marketplace.Controllers
                 };
 
                 var result = await _userManager.CreateAsync(user, viewModel.Password);
+
                 if (result.Succeeded)
                 {
+                    await _userManager.AddToRoleAsync(user, Roles.Seller);
                     await _context.SaveChangesAsync();
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToAction("Index","Home");
