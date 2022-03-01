@@ -3,6 +3,7 @@ using Marketplace.Utility;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Marketplace.Controllers
 {
@@ -82,6 +83,11 @@ namespace Marketplace.Controllers
         {
             await _signInManager.SignOutAsync();
             return RedirectToAction("Index", "Home");
+        }
+
+        public IActionResult MyProfile()
+        {
+            return View();
         }
     }
 }
