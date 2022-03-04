@@ -8,5 +8,6 @@ namespace Marketplace.Models
         {
 
         }
+        public DbSet<AdvertisementModel> Advertisements { get; set; }
     }
 }
