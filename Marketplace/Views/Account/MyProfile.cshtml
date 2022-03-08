@@ -1,31 +1,44 @@
-﻿@*@model IEnumerable<Marketplace.Models.Advertisement>*@
-
+﻿@model IEnumerable<Marketplace.Models.AdvertisementModel>
+@{
+}
 <h3>Profile Picture</h3>
 <h3>Description</h3>
-<button class="btn btn-primary mb-4">Create An Advertisement</button> @*this should redirect to CreateAdvertisement view*@
-<h3>My Advertisements</h3>
-@for (int i=0;i<10;i++)
-{
-<div class="container .container-fluid">
-      
-    <div class="row">
-        @for (var j = 0; j < 4; j++)
-        {
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img src="~/product.jpg" class="card-img-top">
-                <div class="card-body text-center">
-                    <h5 class="card-title">Example for a producadsfgsafgasdt</h5>
-                </div>
-                <div class="card-footer text-center ">
-                    <h3>50лв</h3>
-                    <button class="btn btn-dark">INFO</button>
-                    <button class="btn btn-warning">EDIT</button>
-                    <button class="btn btn-danger">DELETE</button>
-                </div>
-            </div>
-        }
-    </div>
-</div>
-//TODO learn how to save images in db and how to retrieve them properly-> maybe compressed? Advertisements table that contains the userguid fk, id primary key,advertisement picture in binary, description nvarchar, title nvarchar and price idk what type + Create An Advertisement html page (containing BROWSE for img -> what types do u accept/ how big should it be max/min etc)+ ViewModel for creating an advertisement + UserProfile table + UserProfile view model + fix displaying stuff here dont bother fixing authorization issues just yet
+<a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
 
+@if (@Model.Count()==0)
+{
+    <h3>You have no advertisements. Consider creating one.</h3>
+}
+else
+{
+<h3>My Advertisements</h3>
+    @for (int i=0;i<10;i++)
+    {
+        <div class="container .container-fluid">
+      
+            <div class="row">
+                 @for (int j=0;j<3;j++)
+                 {
+                    @foreach (var ad in @Model)
+                    {
+                        <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                            <img src="data:image/png;base64,@ad.Image" class="card-img-top item-img">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">@ad.Title</h5>
+                            </div>
+                            <div class="card-footer text-center ">
+                                <h3>@ad.Price EUR</h3>
+                                <button class="btn btn-dark">SHOW</button>
+                                <button class="btn btn-warning">EDIT</button>
+                                <button class="btn btn-danger">DELETE</button>
+                            </div>
+                        </div>
+                    }
+                   }
+            </div>
+        </div>
+    }
+}
+@section Scripts
+{
 }

@@ -1,6 +1,7 @@
 ﻿using Marketplace.Models;
 using Marketplace.Utility;
 using Marketplace.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -79,15 +80,40 @@ namespace Marketplace.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> LogOut()
         {
             await _signInManager.SignOutAsync();
             return RedirectToAction("Index", "Home");
         }
 
+        [Authorize]
         public IActionResult MyProfile()
         {
-            return View();
+            var currentUserAllAds = _context.Advertisements
+                .Where(x => x.UserId == User.FindFirst(ClaimTypes.NameIdentifier).Value)
+                .Select(x=>new AdvertisementViewModel() 
+                {
+                    Id=x.Id,
+                    Title=x.Title,
+                    Description=x.Description,
+                    Price=x.Price,
+                    Location=x.Location,
+                    CategoryId=x.CategoryId
+                    //Image= new FormFile().,
+
+                })
+                .ToList();
+
+            return View(currentUserAllAds);
+        }
+        private IFormFile ByteArrayToImage(byte[] byteArray) 
+        {
+            using (var ms = new MemoryStream(byteArray))
+            {
+                return Image.FromStream(ms);
+            }
         }
     }
+
 }
