@@ -44,7 +44,7 @@ namespace Marketplace.Controllers
             
             var advertisement = new AdvertisementModel()
             {
-                Image = GetByteArrayFromImage(viewModel.Image),
+                Image = await GetByteArrayFromImage(viewModel.Image),
                 Title = viewModel.Title,
                 Description = viewModel.Description,
                 Price = viewModel.Price,
@@ -59,11 +59,11 @@ namespace Marketplace.Controllers
             return RedirectToAction("MyProfile","Account");
         }
 
-        private byte[] GetByteArrayFromImage(IFormFile file)
+        private static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
         {
             using (var target = new MemoryStream())
             {
-                file.CopyTo(target);
+                await file.CopyToAsync(target);
                 return target.ToArray();
             }
         }

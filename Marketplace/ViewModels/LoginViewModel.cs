@@ -13,13 +13,6 @@ namespace Marketplace.ViewModels
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
-        [Required]
-        [Display(Name ="Confirm Password")]
-        [StringLength(100)]
-        [DataType(DataType.Password)]
-        [Compare("Password",ErrorMessage ="Password and confirmation password don't match.")]
-        public string ConfirmPassword { get; set; }
-
         [Display(Name ="Remember Me")]
         public bool RememberMe { get; set; }
     }

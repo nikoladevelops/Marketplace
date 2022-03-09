@@ -92,27 +92,19 @@ namespace Marketplace.Controllers
         {
             var currentUserAllAds = _context.Advertisements
                 .Where(x => x.UserId == User.FindFirst(ClaimTypes.NameIdentifier).Value)
-                .Select(x=>new AdvertisementViewModel() 
+                .Select(x => new AdvertisementViewModel()
                 {
-                    Id=x.Id,
-                    Title=x.Title,
-                    Description=x.Description,
-                    Price=x.Price,
-                    Location=x.Location,
-                    CategoryId=x.CategoryId
-                    //Image= new FormFile().,
-
+                    Id = x.Id,
+                    Title = x.Title,
+                    Description = x.Description,
+                    Price = x.Price,
+                    Location = x.Location,
+                    CategoryId = x.CategoryId,
+                    ImageInBase64 = Convert.ToBase64String(x.Image)
                 })
                 .ToList();
 
             return View(currentUserAllAds);
-        }
-        private IFormFile ByteArrayToImage(byte[] byteArray) 
-        {
-            using (var ms = new MemoryStream(byteArray))
-            {
-                return Image.FromStream(ms);
-            }
         }
     }
 

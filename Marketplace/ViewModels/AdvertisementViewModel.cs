@@ -38,7 +38,7 @@ namespace Marketplace.ViewModels
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public string? ImageSrcWhenDisplaying { get; set; }
+        public string? ImageInBase64 { get; set; }
 
     }
 }
