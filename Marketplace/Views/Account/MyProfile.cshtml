@@ -1,4 +1,5 @@
-﻿@model IEnumerable<Marketplace.ViewModels.AdvertisementViewModel>
+﻿@using Marketplace.ViewModels
+@model IEnumerable<Marketplace.ViewModels.AdvertisementViewModel>
 @{
     var countAds = @Model.Count();
 }
@@ -12,28 +13,24 @@
 }
 else
 {
-<h3>My Advertisements</h3>
+    <h3>My Advertisements</h3>
     
-        <div class="container .container-fluid">
-        @if (countAds%4==0) // this is how I know that the user needs 4 columns
+    <div class="container">
+        @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
         {
-            for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
+            <div class="row">
+            @for (var j = 0; j < 4; j++) // I want 4 columns on current row
             {
-                <div class="row">
-                    @for (var j = 0; j < 4; j++) // I want 4 columns ...
-                    {
-                        var currentAd = Model.ElementAt(i+j);
-                        <partial name="_AdvertisementColumnPartial" model=currentAd />
-                    }
-                </div>
-            }
-        }
-        else
-        {
-            
-        }
-        </div>
+                @if (i+j==countAds) // stop displaying if we've reached the end
+                {
+                    break;
+                }
 
-        //TODO Display advertisements correctly
+                var currentAd = Model.ElementAt(i+j);
+                <partial name="_AdvertisementColumnPartial" model=currentAd />
+            }
+            </div>
+        }
+    </div>
     
 }
