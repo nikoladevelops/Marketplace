@@ -1,27 +1,6 @@
 ﻿@model IEnumerable<Marketplace.ViewModels.AdvertisementViewModel>
 @{
     var countAds = @Model.Count();
-
-    var countRows = 0;
-    var countCols = 0;
-
-    if (countAds >= 4)
-    {
-        countCols = 4;
-    }
-    else
-    {
-        countCols = countAds;
-    }
-
-    if (countAds % 4 == 0)
-    {
-        countRows = countAds / 4;
-    }
-    else
-    {
-        countRows = (int)Math.Ceiling(countAds / 4.0);
-    }
 }
 <h3>Profile Picture</h3>
 <h3>Description</h3>
@@ -35,28 +14,25 @@ else
 {
 <h3>My Advertisements</h3>
     
-       @* <div class="container .container-fluid">
-                <div class="row">
-            @foreach (var ad in @Model)
+        <div class="container .container-fluid">
+        @if (countAds%4==0) // this is how I know that the user needs 4 columns
+        {
+            for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
             {
-                        <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                                <img src="data:image;base64,@ad.ImageInBase64" class="card-img-top item-img">
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">@ad.Title</h5>
-                                </div>
-                                <div class="card-footer text-center ">
-                                    <h3>@ad.Price EUR</h3>
-                                    <button class="btn btn-dark">SHOW</button>
-                                    <button class="btn btn-warning">EDIT</button>
-                                    <button class="btn btn-danger">DELETE</button>
-                                </div>
-
-                    
+                <div class="row">
+                    @for (var j = 0; j < 4; j++) // I want 4 columns ...
+                    {
+                        var currentAd = Model.ElementAt(i+j);
+                        <partial name="_AdvertisementColumnPartial" model=currentAd />
+                    }
                 </div>
             }
-                        </div>
-        
-        </div>*@
+        }
+        else
+        {
+            
+        }
+        </div>
 
         //TODO Display advertisements correctly
     

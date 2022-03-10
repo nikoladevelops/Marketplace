@@ -1,0 +1,15 @@
+﻿@model Marketplace.ViewModels.AdvertisementViewModel;
+
+<div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+    <img src="data:image;base64,@Model.ImageInBase64" class="card-img-top item-img">
+
+    <div class="card-body text-center">
+        <h5 class="card-title">@Model.Title</h5>
+    </div>
+    <div class="card-footer text-center ">
+        <h3>@Model.Price EUR</h3>
+        <button class="btn btn-dark">SHOW</button>
+        <button class="btn btn-warning">EDIT</button>
+        <button class="btn btn-danger">DELETE</button>
+    </div>
+</div>
