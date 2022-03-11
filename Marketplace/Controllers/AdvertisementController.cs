@@ -31,7 +31,7 @@ namespace Marketplace.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create(AdvertisementViewModel viewModel, IEnumerable<SelectListItem> dropDown)
+        public async Task<IActionResult> Create(AdvertisementViewModel viewModel)
         {
             if (!ModelState.IsValid) 
             {

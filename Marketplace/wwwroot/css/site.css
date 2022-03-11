@@ -16,3 +16,6 @@ html {
 body {
   margin-bottom: 60px;
 }
+.field-validation-error {
+    color: #dc3545;
+}

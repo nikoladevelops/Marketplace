@@ -1,14 +1,35 @@
 ﻿@model Marketplace.ViewModels.AdvertisementViewModel
 
-<form class="form-control" method="post" asp-action="Create" asp-controller="Advertisement" enctype='multipart/form-data'>
+<form class="form-control border border-primary" method="post" asp-action="Create" asp-controller="Advertisement" enctype='multipart/form-data'>
     <h3 class="text-center">Create An Advertisement</h3>
     <div asp-validation-summary=All ></div>
-    <div class="form-group mb-3">
+
+    <div class="container">
+        <div class="row">
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <img src="~/plusSign.png" class="card-img-top" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <img src="~/plusSign.png" class="card-img-top" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <img src="~/plusSign.png" class="card-img-top" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <img src="~/plusSign.png" class="card-img-top" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+            </div>
+        </div>
+        @*TODO implement img selection/browse img functionality + add something to distinguish between the primary image that is required and the aditional images that are not required*@
+        @*TODO save the primary image in Advertisement table, while all aditional images in the new table AdvertisementImages@
+        @*TODO implement delete/edit/show image + views@
+
+    </div>
+    @*<div class="form-group mb-3">
         <label asp-for=Image></label><br />
         <img class="mb-3 border border-primary" src="#" hidden alt="img" id="adImage"/>
         <input asp-for=Image type="file" onchange="readURL(this)" accept="image/jpeg, image/png" class="form-control"/>
         <span asp-validation-for=Image></span>
-    </div>
+    </div>*@
     <div class="form-group mb-3">
         <label asp-for=Title></label>
         <input class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
@@ -16,7 +37,7 @@
     </div>
     <div class="form-group mb-3">
         <label asp-for=Description></label>
-        <textarea class="form-control" asp-for=Description rows="3"></textarea>
+        <textarea class="form-control" asp-for=Description rows="3" placeholder="Please add description here"></textarea>
         <span asp-validation-for=Description></span>
     </div>
     <div class="form-group mb-3">
@@ -53,5 +74,14 @@
                 $('#adImage').removeAttr('hidden');
             }
         }
+    </script>
+    <script>
+    function lowerImageOpacity(x) {
+        x.style.opacity = "0.6";
+    }
+
+    function increaseImageOpacity(x) {
+        x.style.opacity = "1";
+    }
     </script>
 }

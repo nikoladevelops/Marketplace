@@ -40,5 +40,8 @@ namespace Marketplace.ViewModels
 
         public string? ImageInBase64 { get; set; }
 
+        public IEnumerable<IFormFile>? AdditionalImages { get; set; }
+        public IEnumerable<string>? AdditionalImagesInBase64 { get; set; }
+
     }
 }
