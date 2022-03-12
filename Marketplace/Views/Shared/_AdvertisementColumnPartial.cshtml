@@ -1,6 +1,5 @@
 ﻿@model Marketplace.ViewModels.AdvertisementViewModel;
 
-
 <img src="data:image;base64,@Model.ImageInBase64" class="card-img-top">
 
 <div class="card-body text-center">
@@ -9,6 +8,6 @@
 <div class="card-footer text-center ">
     <h6 class="font-s">@Model.Price EUR</h6>
     <button class="btn btn-sm btn-dark">SHOW</button>
-    <button class="btn btn-sm btn-warning">EDIT</button>
+    <a class="btn btn-sm btn-warning" asp-action="Edit" asp-controller="Advertisement" asp-route-id="@Model.Id">EDIT</a>
     <button class="btn btn-sm btn-danger">DELETE</button>
 </div>

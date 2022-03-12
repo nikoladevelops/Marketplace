@@ -1,24 +1,46 @@
 ﻿@model Marketplace.ViewModels.AdvertisementViewModel
+@{
+    var countAdditionalImages = @Model.AdditionalImagesInBase64.Count();
 
-<form class="form-control border border-primary" method="post" asp-action="Create" asp-controller="Advertisement" enctype='multipart/form-data'>
-    <h3 class="text-center mb-3">Create An Advertisement</h3>
+    string firstSrc = "/plusSign.png";
+    var secondSrc = "/plusSign.png";
+    var thirdSrc = "/plusSign.png";
+
+    if (countAdditionalImages==1)
+    {
+        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
+    }
+
+    if (countAdditionalImages==2)
+    {
+        secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
+    }
+
+    if (countAdditionalImages==3)
+    {
+        thirdSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(2);
+    }
+}
+
+<form class="form-control border border-primary" method="post" asp-action="Edit" asp-controller="Advertisement" enctype='multipart/form-data'>
+    <h3 class="text-center mb-3">Edit An Advertisement</h3>
     <div class="container">
         <div class="row">
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="mainImage" src="~/plusSign.png" class="card-img" onclick="triggerInputBrowse('mainImageInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <img id="mainImage" src="data:image;base64,@Model.ImageInBase64" class="card-img" onclick="triggerInputBrowse('mainImageInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
                 <input asp-for="Image" id="mainImageInput" style="display:none" type="file" onchange="readURL(this,'mainImage')" accept="image/jpeg, image/png" class="form-control"/>
                 <span class="text-center" asp-validation-for=Image></span>
             </div>
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="firstAdditional" src="~/plusSign.png" class="card-img" onclick="triggerInputBrowse('firstAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <img id="firstAdditional" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('firstAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
                 <input asp-for="AdditionalImages" id="firstAdditionalInput" style="display:none" type="file" onchange="readURL(this,'firstAdditional')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="secondAdditional" src="~/plusSign.png" class="card-img" onclick="triggerInputBrowse('secondAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <img id="secondAdditional" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('secondAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
                 <input asp-for="AdditionalImages" id="secondAdditionalInput" style="display:none" type="file" onchange="readURL(this,'secondAdditional')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="thirdAdditional" src="~/plusSign.png" class="card-img" onclick="triggerInputBrowse('thirdAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <img id="thirdAdditional" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('thirdAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
                 <input asp-for="AdditionalImages" id="thirdAdditionalInput" style="display:none" type="file" onchange="readURL(this,'thirdAdditional')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
         </div>
@@ -50,7 +72,7 @@
         </select>
         <span asp-validation-for=CategoryId class=text-danger></span>
     </div>
-    <button type="submit" class="btn btn-primary">Create</button>
+    <button type="submit" class="btn btn-primary">Edit</button>
 </form>
 
 @section Scripts

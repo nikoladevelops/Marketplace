@@ -7,7 +7,7 @@ namespace Marketplace.ViewModels
     {
         public int Id { get; set; }
 
-        [Required]
+        [Required(ErrorMessage ="Primary image is required.")]
         public IFormFile Image { get; set; }
 
         [Required]
@@ -23,7 +23,7 @@ namespace Marketplace.ViewModels
         [DataType(DataType.Currency)]
         public double Price { get; set; }
 
-        [Required(ErrorMessage = "You need to specify where you are located")]
+        [Required(ErrorMessage = "You need to specify where you are located.")]
         [StringLength(15,MinimumLength =4)]
         public string Location { get; set; }
 

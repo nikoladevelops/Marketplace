@@ -56,6 +56,19 @@ namespace Marketplace.Controllers
             await _context.Advertisements.AddAsync(advertisement);
             await _context.SaveChangesAsync();
 
+            foreach (var img in viewModel.AdditionalImages)
+            {
+                var advertisementImages = new AdvertisementImages()
+                {
+                    Image = await GetByteArrayFromImage(img),
+                    AdvertisementId = advertisement.Id
+                };
+
+                await _context.AdvertisementImages.AddAsync(advertisementImages);
+            }
+
+            await _context.SaveChangesAsync();
+
             return RedirectToAction("MyProfile","Account");
         }
 
@@ -66,6 +79,42 @@ namespace Marketplace.Controllers
                 await file.CopyToAsync(target);
                 return target.ToArray();
             }
+        }
+
+        public IActionResult Edit(int id)
+        {
+            //TODO MAKE IT SO THAT THE USER THAT IS LOGGED IN CAN EDIT ONLY THEIR OWN ADS
+            
+            var categoryDropDown = _context.Categories
+                    .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
+                    .ToList();
+
+            var additionalImages = _context.AdvertisementImages
+                .Where(x => x.AdvertisementId == id)
+                .Select(x => Convert.ToBase64String(x.Image))
+                .ToList();
+
+            var ad = _context.Advertisements
+                .Select(x => new AdvertisementViewModel() {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Description = x.Description,
+                    Price = x.Price,
+                    Location = x.Location,
+                    CategoryId = x.CategoryId,
+                    ImageInBase64 = Convert.ToBase64String(x.Image),
+                    AdditionalImagesInBase64 = additionalImages,
+                    CategoryDropDown = categoryDropDown
+                })
+                .FirstOrDefault(x=>x.Id==id);
+
+            if (ad==null)
+            {
+                return BadRequest();
+            }
+
+
+            return View("Edit",ad);
         }
     }
 }
