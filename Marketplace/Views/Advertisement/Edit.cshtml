@@ -10,14 +10,12 @@
     {
         firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
     }
-
-    if (countAdditionalImages==2)
+    else if (countAdditionalImages==2)
     {
         firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
         secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
     }
-
-    if (countAdditionalImages==3)
+    else if (countAdditionalImages==3)
     {
         firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
         secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
