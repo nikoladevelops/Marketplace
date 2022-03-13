@@ -2,7 +2,7 @@
 @{
     var countAdditionalImages = @Model.AdditionalImagesInBase64.Count();
 
-    string firstSrc = "/plusSign.png";
+    var firstSrc = "/plusSign.png";
     var secondSrc = "/plusSign.png";
     var thirdSrc = "/plusSign.png";
 
@@ -13,11 +13,14 @@
 
     if (countAdditionalImages==2)
     {
+        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
         secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
     }
 
     if (countAdditionalImages==3)
     {
+        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
+        secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
         thirdSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(2);
     }
 }
@@ -89,7 +92,6 @@
                 };
 
                 reader.readAsDataURL(input.files[0]);
-
             }
         }
     </script>
