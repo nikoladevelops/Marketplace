@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.ViewModels
@@ -39,9 +40,7 @@ namespace Marketplace.ViewModels
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
         public string? ImageInBase64 { get; set; }
-
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
         public IEnumerable<string>? AdditionalImagesInBase64 { get; set; }
-
     }
 }

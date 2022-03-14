@@ -22,10 +22,20 @@ namespace Marketplace.Controllers
         }
         public IActionResult Register() 
         {
+            if (_signInManager.IsSignedIn(User))
+            {
+                return RedirectToAction("MyProfile");
+            }
+
             return View();
         }
         public IActionResult Login()
         {
+            if (_signInManager.IsSignedIn(User))
+            {
+                return RedirectToAction("MyProfile");
+            }
+
             return View();
         }
 

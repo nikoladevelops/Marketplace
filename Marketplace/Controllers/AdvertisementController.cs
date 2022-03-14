@@ -15,7 +15,7 @@ namespace Marketplace.Controllers
             _context = context;
         }
 
-        
+        [Authorize]
         public IActionResult Create()
         {
             var viewModel = new AdvertisementViewModel()
@@ -56,15 +56,18 @@ namespace Marketplace.Controllers
             await _context.Advertisements.AddAsync(advertisement);
             await _context.SaveChangesAsync();
 
-            foreach (var img in viewModel.AdditionalImages)
+            if (viewModel.AdditionalImages!=null)
             {
-                var advertisementImages = new AdvertisementImages()
+                foreach (var img in viewModel.AdditionalImages)
                 {
-                    Image = await GetByteArrayFromImage(img),
-                    AdvertisementId = advertisement.Id
-                };
+                    var advertisementImages = new AdvertisementImages()
+                    {
+                        Image = await GetByteArrayFromImage(img),
+                        AdvertisementId = advertisement.Id
+                    };
 
-                await _context.AdvertisementImages.AddAsync(advertisementImages);
+                    await _context.AdvertisementImages.AddAsync(advertisementImages);
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -81,18 +84,10 @@ namespace Marketplace.Controllers
             }
         }
 
+        [Authorize]
         public IActionResult Edit(int id)
         {
-            //TODO MAKE IT SO THAT THE USER THAT IS LOGGED IN CAN EDIT ONLY THEIR OWN ADS
-            
-            var categoryDropDown = _context.Categories
-                    .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                    .ToList();
-
-            var additionalImages = _context.AdvertisementImages
-                .Where(x => x.AdvertisementId == id)
-                .Select(x => Convert.ToBase64String(x.Image))
-                .ToList();
+            var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var ad = _context.Advertisements
                 .Select(x => new AdvertisementViewModel() {
@@ -103,18 +98,80 @@ namespace Marketplace.Controllers
                     Location = x.Location,
                     CategoryId = x.CategoryId,
                     ImageInBase64 = Convert.ToBase64String(x.Image),
-                    AdditionalImagesInBase64 = additionalImages,
-                    CategoryDropDown = categoryDropDown
+                    UserId = x.UserId
                 })
                 .FirstOrDefault(x=>x.Id==id);
 
-            if (ad==null)
+            if (ad==null || currentLoggedInUserId!=ad.UserId)
             {
-                return BadRequest();
+                return NotFound();
             }
 
+            var categoryDropDown = _context.Categories
+                    .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
+                    .ToList();
 
+            var additionalImages = _context.AdvertisementImages
+                .Where(x => x.AdvertisementId == id)
+                .Select(x => Convert.ToBase64String(x.Image))
+                .ToList();
+
+            ad.CategoryDropDown = categoryDropDown;
+            ad.AdditionalImagesInBase64 = additionalImages;
             return View("Edit",ad);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Edit(AdvertisementViewModel viewModel) 
+        {
+            // viewmodel.ImageInByte64 is null and viewmodel.Image is null if a user doesn't click to change the primary image
+            // need a workaround
+
+            if (!ModelState.IsValid)
+            {
+                return View(viewModel);
+            }
+
+            var advertisement = _context.Advertisements.FirstOrDefault(x => x.Id == viewModel.Id);
+            var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (advertisement==null || currentLoggedInUserId!=advertisement.UserId)
+            {
+                return NotFound();
+            }
+
+            advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
+            advertisement.Title = viewModel.Title;
+            advertisement.Description = viewModel.Description;
+            advertisement.Price = viewModel.Price;
+            advertisement.Location = viewModel.Location;
+            advertisement.CategoryId = viewModel.CategoryId;
+
+            await _context.SaveChangesAsync();
+
+            var imgs = _context.AdvertisementImages
+                .Where(x => x.AdvertisementId == advertisement.Id)
+                .ToList();
+
+            _context.AdvertisementImages.RemoveRange(imgs);
+
+            foreach (var img in viewModel.AdditionalImages)
+            {
+                var advertisementImages = new AdvertisementImages()
+                {
+                    Image = await GetByteArrayFromImage(img),
+                    AdvertisementId = advertisement.Id
+                };
+
+                await _context.AdvertisementImages.AddAsync(advertisementImages);
+            }
+
+            await _context.SaveChangesAsync();
+
+            //temporary
+            return RedirectToAction("MyProfile", "Account");
         }
     }
 }
