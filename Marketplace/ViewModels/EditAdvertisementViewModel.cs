@@ -4,12 +4,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.ViewModels
 {
-    public class AdvertisementViewModel
+    public class EditAdvertisementViewModel
     {
         public int Id { get; set; }
-
-        [Required(ErrorMessage ="Primary image is required.")]
-        public IFormFile Image { get; set; }
+        public IFormFile? Image { get; set; }
 
         [Required]
         [StringLength(35,MinimumLength = 3)]
@@ -39,8 +37,10 @@ namespace Marketplace.ViewModels
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public string? ImageInBase64 { get; set; }
+        public byte[]? ImageInBytes { get; set; }
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
-        public IEnumerable<string>? AdditionalImagesInBase64 { get; set; }
+        public IList<byte[]>? AdditionalImagesInBytes { get; set; }
+        public IEnumerable<string>? Base64AdditionalImages { get; set; }
+
     }
 }

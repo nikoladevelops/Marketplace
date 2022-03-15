@@ -1,25 +1,28 @@
-﻿@model Marketplace.ViewModels.AdvertisementViewModel
+﻿@model Marketplace.ViewModels.EditAdvertisementViewModel
 @{
-    var countAdditionalImages = @Model.AdditionalImagesInBase64.Count();
 
     var firstSrc = "/plusSign.png";
     var secondSrc = "/plusSign.png";
     var thirdSrc = "/plusSign.png";
 
-    if (countAdditionalImages==1)
+    if (@Model.AdditionalImagesInBytes != null)
     {
-        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
-    }
-    else if (countAdditionalImages==2)
-    {
-        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
-        secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
-    }
-    else if (countAdditionalImages==3)
-    {
-        firstSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(0);
-        secondSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(1);
-        thirdSrc = "data:image;base64,"+@Model.AdditionalImagesInBase64.ElementAt(2);
+        var countAdditionalImages = @Model.AdditionalImagesInBytes.Count();
+        if (countAdditionalImages==1)
+        {
+            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+        }
+        else if (countAdditionalImages==2)
+        {
+            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+            secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+        }
+        else if (countAdditionalImages==3)
+        {
+            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+            secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+            thirdSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(2));
+        }
     }
 }
 
@@ -28,21 +31,21 @@
     <div class="container">
         <div class="row">
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="mainImage" src="data:image;base64,@Model.ImageInBase64" class="card-img" onclick="triggerInputBrowse('mainImageInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="Image" id="mainImageInput" style="display:none" type="file" onchange="readURL(this,'mainImage')" accept="image/jpeg, image/png" class="form-control"/>
+                <img id="mainImage" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="triggerInputBrowse('mainImageInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="Image" id="mainImageInput" style="display:none" type="file" onchange="readURL(this,'mainImage','0')" accept="image/jpeg, image/png" class="form-control"/>
                 <span class="text-center" asp-validation-for=Image></span>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="firstAdditional" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('firstAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="firstAdditionalInput" style="display:none" type="file" onchange="readURL(this,'firstAdditional')" accept="image/jpeg, image/png" class="form-control"/>
+            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <img id="firstAdditional" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('firstAdditionalInput',)" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="AdditionalImages" id="firstAdditionalInput" style="display:none" type="file" onchange="readURL(this,'firstAdditional','1')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
                 <img id="secondAdditional" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('secondAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="secondAdditionalInput" style="display:none" type="file" onchange="readURL(this,'secondAdditional')" accept="image/jpeg, image/png" class="form-control"/>
+                <input asp-for="AdditionalImages" id="secondAdditionalInput" style="display:none" type="file" onchange="readURL(this,'secondAdditional','2')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
                 <img id="thirdAdditional" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('thirdAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="thirdAdditionalInput" style="display:none" type="file" onchange="readURL(this,'thirdAdditional')" accept="image/jpeg, image/png" class="form-control"/>
+                <input asp-for="AdditionalImages" id="thirdAdditionalInput" style="display:none" type="file" onchange="readURL(this,'thirdAdditional','3')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
         </div>
     </div>
@@ -74,20 +77,20 @@
         <span asp-validation-for=CategoryId class=text-danger></span>
     </div>
     <button type="submit" class="btn btn-primary">Edit</button>
+    <input asp-for="ImageInBytes" type="hidden"/>
+    @if (@Model.AdditionalImagesInBytes!=null)
+    {
+        @for (var i = 0; i < @Model.AdditionalImagesInBytes.Count(); i++)
+        {
+            <input asp-for="AdditionalImagesInBytes[i]" type="hidden"/>
+        }
+    }
 </form>
 
 @section Scripts
 {
     <script>
-        window.onload=function()
-        {
-            // 
-            //
-        }
-
-    </script>
-    <script>
-        function readURL(input,imageId) {
+        function readURL(input,imageId, editedIndex) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
 
@@ -99,6 +102,7 @@
 
                 reader.readAsDataURL(input.files[0]);
             }
+           
         }
     </script>
     <script>

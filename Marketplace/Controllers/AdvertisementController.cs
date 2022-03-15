@@ -18,7 +18,7 @@ namespace Marketplace.Controllers
         [Authorize]
         public IActionResult Create()
         {
-            var viewModel = new AdvertisementViewModel()
+            var viewModel = new CreateAdvertisementViewModel()
             {
                 CategoryDropDown = _context.Categories
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
@@ -31,7 +31,7 @@ namespace Marketplace.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create(AdvertisementViewModel viewModel)
+        public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel)
         {
             if (!ModelState.IsValid) 
             {
@@ -60,7 +60,7 @@ namespace Marketplace.Controllers
             {
                 foreach (var img in viewModel.AdditionalImages)
                 {
-                    var advertisementImages = new AdvertisementImages()
+                    var advertisementImages = new AdvertisementImageModel()
                     {
                         Image = await GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
@@ -90,19 +90,20 @@ namespace Marketplace.Controllers
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var ad = _context.Advertisements
-                .Select(x => new AdvertisementViewModel() {
+                .Select(x => new EditAdvertisementViewModel()
+                {
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
                     Price = x.Price,
                     Location = x.Location,
                     CategoryId = x.CategoryId,
-                    ImageInBase64 = Convert.ToBase64String(x.Image),
+                    ImageInBytes = x.Image,
                     UserId = x.UserId
                 })
-                .FirstOrDefault(x=>x.Id==id);
+                .FirstOrDefault(x => x.Id == id);
 
-            if (ad==null || currentLoggedInUserId!=ad.UserId)
+            if (ad == null || currentLoggedInUserId != ad.UserId)
             {
                 return NotFound();
             }
@@ -113,22 +114,21 @@ namespace Marketplace.Controllers
 
             var additionalImages = _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
-                .Select(x => Convert.ToBase64String(x.Image))
+                .Select(x => x.Image)
                 .ToList();
 
             ad.CategoryDropDown = categoryDropDown;
-            ad.AdditionalImagesInBase64 = additionalImages;
-            return View("Edit",ad);
+            ad.AdditionalImagesInBytes = additionalImages;
+
+
+            return View("Edit", ad);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Edit(AdvertisementViewModel viewModel) 
+        public async Task<IActionResult> Edit(EditAdvertisementViewModel viewModel)
         {
-            // viewmodel.ImageInByte64 is null and viewmodel.Image is null if a user doesn't click to change the primary image
-            // need a workaround
-
             if (!ModelState.IsValid)
             {
                 return View(viewModel);
@@ -137,12 +137,16 @@ namespace Marketplace.Controllers
             var advertisement = _context.Advertisements.FirstOrDefault(x => x.Id == viewModel.Id);
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (advertisement==null || currentLoggedInUserId!=advertisement.UserId)
+            if (advertisement == null || currentLoggedInUserId != advertisement.UserId)
             {
                 return NotFound();
             }
 
-            advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
+            if (viewModel.Image!=null)
+            {
+                // if the user has selected another image change it to the new one, otherwise don't
+                advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
+            }
             advertisement.Title = viewModel.Title;
             advertisement.Description = viewModel.Description;
             advertisement.Price = viewModel.Price;
@@ -155,22 +159,25 @@ namespace Marketplace.Controllers
                 .Where(x => x.AdvertisementId == advertisement.Id)
                 .ToList();
 
-            _context.AdvertisementImages.RemoveRange(imgs);
 
-            foreach (var img in viewModel.AdditionalImages)
+            if (viewModel.AdditionalImages != null)
             {
-                var advertisementImages = new AdvertisementImages()
-                {
-                    Image = await GetByteArrayFromImage(img),
-                    AdvertisementId = advertisement.Id
-                };
+                _context.AdvertisementImages.RemoveRange(imgs);
 
-                await _context.AdvertisementImages.AddAsync(advertisementImages);
+                foreach (var img in viewModel.AdditionalImages)
+                {
+                    var advertisementImage = new AdvertisementImageModel()
+                    {
+                        Image = await GetByteArrayFromImage(img),
+                        AdvertisementId = advertisement.Id
+                    };
+
+                    await _context.AdvertisementImages.AddAsync(advertisementImage);
+                }
             }
 
             await _context.SaveChangesAsync();
 
-            //temporary
             return RedirectToAction("MyProfile", "Account");
         }
     }

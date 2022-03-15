@@ -10,6 +10,6 @@ namespace Marketplace.Models
         }
         public DbSet<AdvertisementModel> Advertisements { get; set; }
         public DbSet<CategoryModel> Categories { get; set; }
-        public DbSet<AdvertisementImages> AdvertisementImages { get; set; }
+        public DbSet<AdvertisementImageModel> AdvertisementImages { get; set; }
     }
 }

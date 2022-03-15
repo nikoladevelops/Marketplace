@@ -102,7 +102,7 @@ namespace Marketplace.Controllers
         {
             var currentUserAllAds = _context.Advertisements
                 .Where(x => x.UserId == User.FindFirst(ClaimTypes.NameIdentifier).Value)
-                .Select(x => new AdvertisementViewModel()
+                .Select(x => new CreateAdvertisementViewModel()
                 {
                     Id = x.Id,
                     Title = x.Title,

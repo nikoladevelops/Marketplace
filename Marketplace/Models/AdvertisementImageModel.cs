@@ -1,6 +1,6 @@
 ﻿namespace Marketplace.Models
 {
-    public class AdvertisementImages
+    public class AdvertisementImageModel
     {
         public int Id { get; set; }
         public int AdvertisementId { get; set; }
