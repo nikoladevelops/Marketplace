@@ -142,11 +142,7 @@ namespace Marketplace.Controllers
                 return NotFound();
             }
 
-            if (viewModel.Image!=null)
-            {
-                // if the user has selected another image change it to the new one, otherwise don't
-                advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
-            }
+            advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
             advertisement.Title = viewModel.Title;
             advertisement.Description = viewModel.Description;
             advertisement.Price = viewModel.Price;
@@ -159,7 +155,6 @@ namespace Marketplace.Controllers
                 .Where(x => x.AdvertisementId == advertisement.Id)
                 .ToList();
 
-
             if (viewModel.AdditionalImages != null)
             {
                 _context.AdvertisementImages.RemoveRange(imgs);
@@ -171,7 +166,7 @@ namespace Marketplace.Controllers
                         Image = await GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
                     };
-
+                    
                     await _context.AdvertisementImages.AddAsync(advertisementImage);
                 }
             }

@@ -8,20 +8,21 @@
     if (@Model.AdditionalImagesInBytes != null)
     {
         var countAdditionalImages = @Model.AdditionalImagesInBytes.Count();
-        if (countAdditionalImages==1)
+
+        switch (countAdditionalImages)
         {
-            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
-        }
-        else if (countAdditionalImages==2)
-        {
-            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
-            secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
-        }
-        else if (countAdditionalImages==3)
-        {
-            firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
-            secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
-            thirdSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(2));
+            case 1:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                break;
+            case 2:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+                break;
+            case 3:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+                thirdSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(2));
+                break;
         }
     }
 }
@@ -31,21 +32,21 @@
     <div class="container">
         <div class="row">
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="mainImage" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="triggerInputBrowse('mainImageInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="Image" id="mainImageInput" style="display:none" type="file" onchange="readURL(this,'mainImage','0')" accept="image/jpeg, image/png" class="form-control"/>
+                <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="Image" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','0')" accept="image/jpeg, image/png" class="form-control"/>
                 <span class="text-center" asp-validation-for=Image></span>
             </div>
             <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="firstAdditional" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('firstAdditionalInput',)" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="firstAdditionalInput" style="display:none" type="file" onchange="readURL(this,'firstAdditional','1')" accept="image/jpeg, image/png" class="form-control"/>
+                <img id="image2" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('imageInput2',)" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="AdditionalImages" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','1')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
             <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="secondAdditional" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('secondAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="secondAdditionalInput" style="display:none" type="file" onchange="readURL(this,'secondAdditional','2')" accept="image/jpeg, image/png" class="form-control"/>
+                <img id="image3" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('imageInput3')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="AdditionalImages" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','2')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
             <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="thirdAdditional" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('thirdAdditionalInput')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="thirdAdditionalInput" style="display:none" type="file" onchange="readURL(this,'thirdAdditional','3')" accept="image/jpeg, image/png" class="form-control"/>
+                <img id="image4" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('imageInput4')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input asp-for="AdditionalImages" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','3')" accept="image/jpeg, image/png" class="form-control"/>
             </div>
         </div>
     </div>
@@ -90,6 +91,45 @@
 @section Scripts
 {
     <script>
+        window.onload=function()
+        {
+            let plusSignUrl = window.location.protocol + "//" + window.location.host+"/plusSign.png";
+            
+            for(let i=1;i<=4;i++){
+                let currentImageSrc = document.querySelector('#image'+i).src;
+                
+                if(currentImageSrc===plusSignUrl){
+                    continue;
+                }
+
+                let currentInput = document.querySelector('#imageInput'+i);
+                ConvertBase64ToFile(currentImageSrc,currentInput);
+            }
+        }
+
+    </script>
+    <script>
+        function ConvertBase64ToFile(base64url,input) {
+            var file = dataURLtoFile(base64url, "name.png");
+            let container = new DataTransfer();
+            container.items.add(file);
+            input.files = container.files;
+        }
+        function dataURLtoFile(dataurl, filename) {
+            var arr = dataurl.split(','),
+            mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]),
+            n = bstr.length,
+            u8arr = new Uint8Array(n);
+
+            while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+            }
+
+            return new File([u8arr], filename, { type: mime });
+        }
+    </script>
+    <script>
         function readURL(input,imageId, editedIndex) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
@@ -102,7 +142,6 @@
 
                 reader.readAsDataURL(input.files[0]);
             }
-           
         }
     </script>
     <script>

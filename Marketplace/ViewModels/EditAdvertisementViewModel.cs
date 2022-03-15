@@ -7,7 +7,9 @@ namespace Marketplace.ViewModels
     public class EditAdvertisementViewModel
     {
         public int Id { get; set; }
-        public IFormFile? Image { get; set; }
+
+        [Required(ErrorMessage = "Primary image is required.")]
+        public IFormFile Image { get; set; }
 
         [Required]
         [StringLength(35,MinimumLength = 3)]
@@ -40,7 +42,6 @@ namespace Marketplace.ViewModels
         public byte[]? ImageInBytes { get; set; }
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
         public IList<byte[]>? AdditionalImagesInBytes { get; set; }
-        public IEnumerable<string>? Base64AdditionalImages { get; set; }
 
     }
 }
