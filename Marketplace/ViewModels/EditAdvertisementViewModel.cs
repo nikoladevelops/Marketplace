@@ -35,12 +35,12 @@ namespace Marketplace.ViewModels
         [Range(1,9, ErrorMessage = "You need to select a category.")]
         public int CategoryId { get; set; }
 
-        public string? Email { get; set; }
-
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public byte[]? ImageInBytes { get; set; }
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
+
+        public byte[]? ImageInBytes { get; set; }
+
         public IList<byte[]>? AdditionalImagesInBytes { get; set; }
 
     }

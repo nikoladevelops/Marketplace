@@ -8,7 +8,7 @@ namespace Marketplace.ViewModels
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage ="Primary image is required.")]
+        [Required(ErrorMessage = "Primary image is required.")]
         public IFormFile Image { get; set; }
 
         [Required]
@@ -28,20 +28,14 @@ namespace Marketplace.ViewModels
         [StringLength(15,MinimumLength =4)]
         public string Location { get; set; }
 
-        public string? UserId { get; set; }
-
         // hardcoded value 9 for amount of categories available
         [Required(ErrorMessage = "You need to select a category.")]
         [Range(1,9, ErrorMessage = "You need to select a category.")]
         public int CategoryId { get; set; }
 
-        public string? Email { get; set; }
-
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public string? ImageInBase64 { get; set; }
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
-        public IEnumerable<string>? AdditionalImagesInBase64 { get; set; }
 
     }
 }

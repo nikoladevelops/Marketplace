@@ -102,15 +102,12 @@ namespace Marketplace.Controllers
         {
             var currentUserAllAds = _context.Advertisements
                 .Where(x => x.UserId == User.FindFirst(ClaimTypes.NameIdentifier).Value)
-                .Select(x => new CreateAdvertisementViewModel()
+                .Select(x => new MyProfileAdvertisementViewModel()
                 {
                     Id = x.Id,
                     Title = x.Title,
-                    Description = x.Description,
                     Price = x.Price,
-                    Location = x.Location,
-                    CategoryId = x.CategoryId,
-                    ImageInBase64 = Convert.ToBase64String(x.Image)
+                    ImageInBase64=Convert.ToBase64String(x.Image)
                 })
                 .ToList();
 
