@@ -29,24 +29,44 @@
 
 <form class="form-control border border-primary" method="post" asp-action="Edit" asp-controller="Advertisement" enctype='multipart/form-data'>
     <h3 class="text-center mb-3">Edit An Advertisement</h3>
+            <span class="text-center p-3" asp-validation-for=Image></span>
     <div class="container">
         <div class="row">
             <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="Image" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','0')" accept="image/jpeg, image/png" class="form-control"/>
-                <span class="text-center" asp-validation-for=Image></span>
+                <div class="card-body">
+                    <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                    <input asp-for="Image" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','button1')" accept="image/jpeg, image/png" class="form-control"/>
+                </div>
+                <div class="card-footer text-center">
+                    <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1')" class="btn btn-danger disabled">Delete</button>
+                </div>
             </div>
-            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="image2" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('imageInput2',)" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','1')" accept="image/jpeg, image/png" class="form-control"/>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image2" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('imageInput2')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                    <input asp-for="AdditionalImages" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','button2')" accept="image/jpeg, image/png" class="form-control"/>
+                </div>
+                <div class="card-footer text-center">
+                    <button id="button2" type="button" onclick="deleteImage(this,'image2','imageInput2')" class="btn btn-danger disabled">Delete</button>
+                </div>
             </div>
-            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="image3" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('imageInput3')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','2')" accept="image/jpeg, image/png" class="form-control"/>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image3" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('imageInput3')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                    <input asp-for="AdditionalImages" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','button3')" accept="image/jpeg, image/png" class="form-control"/>
+                </div>
+                <div class="card-footer text-center">
+                    <button id="button3" type="button" onclick="deleteImage(this,'image3','imageInput3')" class="btn btn-danger disabled">Delete</button>
+                </div>
             </div>
-            <div class="willBeDeleted card col-sm border border-primary rounded p-0 mb-3 mx-1">
-                <img id="image4" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('imageInput4')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                <input asp-for="AdditionalImages" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','3')" accept="image/jpeg, image/png" class="form-control"/>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image4" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('imageInput4')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                    <input asp-for="AdditionalImages" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','button4')" accept="image/jpeg, image/png" class="form-control"/>
+                </div>
+                <div class="card-footer text-center">
+                    <button id="button4" type="button" onclick="deleteImage(this,'image4','imageInput4')" class="btn btn-danger disabled">Delete</button>
+                </div>
             </div>
         </div>
     </div>

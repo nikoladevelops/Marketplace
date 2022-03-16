@@ -139,10 +139,10 @@ namespace Marketplace.Controllers
                 .Where(x => x.AdvertisementId == advertisement.Id)
                 .ToList();
 
+            _context.AdvertisementImages.RemoveRange(imgs);
+
             if (viewModel.AdditionalImages != null)
             {
-                _context.AdvertisementImages.RemoveRange(imgs);
-
                 foreach (var img in viewModel.AdditionalImages)
                 {
                     var advertisementImage = new AdvertisementImageModel()

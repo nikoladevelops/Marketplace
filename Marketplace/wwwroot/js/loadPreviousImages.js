@@ -10,6 +10,9 @@
 
         let currentInput = document.querySelector('#imageInput' + i);
         ConvertBase64ToFile(currentImageSrc, currentInput);
+
+        let button = document.querySelector('#button' + i);
+        button.classList.remove("disabled");
     }
 }
 
