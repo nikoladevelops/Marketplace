@@ -20,9 +20,7 @@ namespace Marketplace.Controllers
         {
             var viewModel = new CreateAdvertisementViewModel()
             {
-                CategoryDropDown = _context.Categories
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToList()
+                CategoryDropDown = LoadCategoryDropDown()
             };
             
             return View(viewModel);
@@ -35,16 +33,14 @@ namespace Marketplace.Controllers
         {
             if (!ModelState.IsValid) 
             {
-                viewModel.CategoryDropDown = _context.Categories
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToList();
+                viewModel.CategoryDropDown = LoadCategoryDropDown();
 
                 return View(viewModel);
             }
             
             var advertisement = new AdvertisementModel()
             {
-                Image = await GetByteArrayFromImage(viewModel.Image),
+                ImageData = await GetByteArrayFromImage(viewModel.Image),
                 Title = viewModel.Title,
                 Description = viewModel.Description,
                 Price = viewModel.Price,
@@ -62,7 +58,7 @@ namespace Marketplace.Controllers
                 {
                     var advertisementImages = new AdvertisementImageModel()
                     {
-                        Image = await GetByteArrayFromImage(img),
+                        ImageData = await GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
                     };
 
@@ -73,15 +69,6 @@ namespace Marketplace.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("MyProfile","Account");
-        }
-
-        private static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
-        {
-            using (var target = new MemoryStream())
-            {
-                await file.CopyToAsync(target);
-                return target.ToArray();
-            }
         }
 
         [Authorize]
@@ -98,7 +85,7 @@ namespace Marketplace.Controllers
                     Price = x.Price,
                     Location = x.Location,
                     CategoryId = x.CategoryId,
-                    ImageInBytes = x.Image,
+                    ImageInBytes = x.ImageData,
                     UserId = x.UserId
                 })
                 .FirstOrDefault(x => x.Id == id);
@@ -108,16 +95,12 @@ namespace Marketplace.Controllers
                 return NotFound();
             }
 
-            var categoryDropDown = _context.Categories
-                    .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                    .ToList();
-
             var additionalImages = _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
-                .Select(x => x.Image)
+                .Select(x => x.ImageData)
                 .ToList();
 
-            ad.CategoryDropDown = categoryDropDown;
+            ad.CategoryDropDown = LoadCategoryDropDown();
             ad.AdditionalImagesInBytes = additionalImages;
 
 
@@ -131,6 +114,7 @@ namespace Marketplace.Controllers
         {
             if (!ModelState.IsValid)
             {
+                viewModel.CategoryDropDown = LoadCategoryDropDown();
                 return View(viewModel);
             }
 
@@ -142,7 +126,7 @@ namespace Marketplace.Controllers
                 return NotFound();
             }
 
-            advertisement.Image = await GetByteArrayFromImage(viewModel.Image);
+            advertisement.ImageData = await GetByteArrayFromImage(viewModel.Image);
             advertisement.Title = viewModel.Title;
             advertisement.Description = viewModel.Description;
             advertisement.Price = viewModel.Price;
@@ -163,7 +147,7 @@ namespace Marketplace.Controllers
                 {
                     var advertisementImage = new AdvertisementImageModel()
                     {
-                        Image = await GetByteArrayFromImage(img),
+                        ImageData = await GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
                     };
                     
@@ -174,6 +158,21 @@ namespace Marketplace.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("MyProfile", "Account");
+        }
+        private static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
+        {
+            using (var target = new MemoryStream())
+            {
+                await file.CopyToAsync(target);
+                return target.ToArray();
+            }
+        }
+
+        private IEnumerable<SelectListItem> LoadCategoryDropDown() 
+        {
+            return _context.Categories
+                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
+                .ToList();
         }
     }
 }

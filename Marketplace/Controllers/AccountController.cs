@@ -11,10 +11,10 @@ namespace Marketplace.Controllers
     public class AccountController:Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
-        public AccountController(ApplicationDbContext context, UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager)
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        public AccountController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager)
         {
             _context = context;
             _userManager = userManager;
@@ -64,7 +64,7 @@ namespace Marketplace.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new IdentityUser()
+                var user = new ApplicationUser()
                 {
                     UserName = viewModel.Username,
                     Email = viewModel.Email
@@ -107,7 +107,7 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64=Convert.ToBase64String(x.Image)
+                    ImageInBase64=Convert.ToBase64String(x.ImageData)
                 })
                 .ToList();
 

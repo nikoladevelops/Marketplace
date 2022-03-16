@@ -4,6 +4,7 @@ using Marketplace.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Marketplace.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220316080711_ExtendIdentityUser")]
+    partial class ExtendIdentityUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +24,7 @@ namespace Marketplace.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
-            modelBuilder.Entity("Marketplace.Models.AdvertisementAdditionalImageModel", b =>
+            modelBuilder.Entity("Marketplace.Models.AdvertisementImageModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -33,7 +35,7 @@ namespace Marketplace.Migrations
                     b.Property<int>("AdvertisementId")
                         .HasColumnType("int");
 
-                    b.Property<byte[]>("ImageData")
+                    b.Property<byte[]>("Image")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
@@ -59,7 +61,7 @@ namespace Marketplace.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<byte[]>("ImageData")
+                    b.Property<byte[]>("Image")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
 
@@ -310,7 +312,7 @@ namespace Marketplace.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Marketplace.Models.AdvertisementAdditionalImageModel", b =>
+            modelBuilder.Entity("Marketplace.Models.AdvertisementImageModel", b =>
                 {
                     b.HasOne("Marketplace.Models.AdvertisementModel", "Advertisement")
                         .WithMany()

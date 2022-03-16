@@ -2,14 +2,15 @@
 using Microsoft.EntityFrameworkCore;
 namespace Marketplace.Models
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
-        public ApplicationDbContext(DbContextOptions options):base(options)    
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options):base(options)    
         {
 
         }
         public DbSet<AdvertisementModel> Advertisements { get; set; }
         public DbSet<CategoryModel> Categories { get; set; }
         public DbSet<AdvertisementImageModel> AdvertisementImages { get; set; }
+
     }
 }
