@@ -97,7 +97,9 @@
         </select>
         <span asp-validation-for=CategoryId class=text-danger></span>
     </div>
-    <button type="submit" class="btn btn-primary">Edit</button>
+    <button type="submit" class="btn btn-primary border border-dark rounded">Update</button>
+    <a class="btn btn btn-light border border-dark rounded" asp-action="MyProfile" asp-controller="Account">Cancel</a>
+   
     <input asp-for="ImageInBytes" type="hidden"/>
     @if (@Model.AdditionalImagesInBytes!=null)
     {
