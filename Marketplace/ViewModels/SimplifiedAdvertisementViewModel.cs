@@ -1,6 +1,6 @@
 ﻿namespace Marketplace.ViewModels
 {
-    public class MyProfileAdvertisementViewModel
+    public class SimplifiedAdvertisementViewModel
     {
         public int Id { get; set; }
         public string Title { get; set; }

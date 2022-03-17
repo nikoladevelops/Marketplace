@@ -74,7 +74,7 @@ namespace Marketplace.Controllers
 
                 if (result.Succeeded)
                 {
-                    await _userManager.AddToRoleAsync(user, Roles.Seller);
+                    await _userManager.AddToRoleAsync(user, Helper.SellerRole);
                     await _context.SaveChangesAsync();
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToAction("Index","Home");
@@ -98,11 +98,13 @@ namespace Marketplace.Controllers
         }
 
         [Authorize]
-        public IActionResult MyProfile()
+        public IActionResult MyProfile(bool hasError)
         {
+            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+
             var currentUserAllAds = _context.Advertisements
-                .Where(x => x.UserId == User.FindFirst(ClaimTypes.NameIdentifier).Value)
-                .Select(x => new MyProfileAdvertisementViewModel()
+                .Where(x => x.UserId == currentLoggedInUserId)
+                .Select(x => new SimplifiedAdvertisementViewModel()
                 {
                     Id = x.Id,
                     Title = x.Title,
@@ -111,7 +113,49 @@ namespace Marketplace.Controllers
                 })
                 .ToList();
 
+            var currentUserData = _context.Users
+                .Where(x => x.Id == currentLoggedInUserId)
+                .Select(x => new
+                {
+                    ProfilePicture = x.ProfilePicture,
+                    Description = x.Description
+                })
+                .Single();
+
+            ViewBag.ProfilePicture=currentUserData.ProfilePicture;
+            ViewBag.Description=currentUserData.Description;
+
+            if (hasError)
+            {
+                ViewBag.ErrorMessage = "Description can NOT be more than 250 characters";
+            }
             return View(currentUserAllAds);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Update(string description, IFormFile profilePicture)
+        {
+            if (description!=null && description.Length>250)
+            {
+                return RedirectToAction("MyProfile","Account",new { hasError = true });
+            }
+
+            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+            var currentUser = _context.Users.First(x => x.Id == currentLoggedInUserId);
+            currentUser.Description=description;
+            if (profilePicture!=null)
+            {
+                currentUser.ProfilePicture = await Helper.GetByteArrayFromImage(profilePicture);
+            }
+            else
+            {
+                currentUser.ProfilePicture = null;
+            }
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("MyProfile","Account");
         }
     }
 

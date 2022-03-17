@@ -1,10 +1,18 @@
 ﻿window.onload = function () {
     let plusSignUrl = window.location.protocol + "//" + window.location.host + "/plusSign.png";
+    let noProfilePictureUrl = window.location.protocol + "//" + window.location.host + "/noProfilePicture.png";
 
     for (let i = 1; i <= 4; i++) {
-        let currentImageSrc = document.querySelector('#image' + i).src;
+        let imgElement = document.querySelector('#image' + i);
 
-        if (currentImageSrc === plusSignUrl) {
+        if (imgElement === null) {
+            continue;
+        }
+
+        let currentImageSrc = imgElement.src;
+
+
+        if (currentImageSrc === plusSignUrl || currentImageSrc === noProfilePictureUrl) {
             continue;
         }
 

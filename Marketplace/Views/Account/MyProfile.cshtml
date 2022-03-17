@@ -1,19 +1,60 @@
 ﻿@using Marketplace.ViewModels
-@model IEnumerable<Marketplace.ViewModels.MyProfileAdvertisementViewModel>
+@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
 @{
     var countAds = @Model.Count();
+    var profilePictureSrc = "/noProfilePicture.png";
+    var description = "No description. Consider adding one.";
+
+    if(ViewBag.ProfilePicture != null)
+    {
+        profilePictureSrc = "data:image;base64,"+Convert.ToBase64String(@ViewBag.ProfilePicture);
+    }
+
+    if(ViewBag.Description != null)
+    {
+        description = @ViewBag.Description;
+    }
 }
+
+<form class="form-control border border-primary" method="post" asp-action="Update" asp-controller="Account" enctype='multipart/form-data'>
 <h3>Profile Picture</h3>
+<div class="container">
+    <div class="row">
+        <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+            <div class="card-body">
+                <img id="image1" src="@profilePictureSrc" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
+                <input name="profilePicture" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','button1')" accept="image/jpeg, image/png" class="form-control"/>
+            </div>
+            <div class="card-footer text-center">
+                <button id="changeProfileImage" type="button" onclick="triggerInputBrowse('imageInput1')" class="btn btn-sm btn-primary">Change</button>
+                <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1')" class="btn btn-sm btn-danger disabled">Delete</button>
+            </div>
+    </div>
+</div>
 <h3>Description</h3>
-<a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
+        @if (ViewBag.Description == null)
+        {
+            <textarea name="description" placeholder="@description" class="form-control mb-3"></textarea>
+        }
+        else
+        {
+            <textarea name="description" class="form-control mb-3">@description</textarea>
+        }
+        <div class="text-center mb-3">
+            <span class="text-center mb-3 field-validation-error">@ViewBag.ErrorMessage</span>
+        </div>
+<button class="btn btn-success mb-3" type="submit">Update Profile</button>
+</form>
 
 @if (countAds==0)
 {
     <h3>You have no advertisements. Consider creating one.</h3>
+    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
 }
 else
 {
     <h3>My Advertisements</h3>
+    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
     
     <div class="container">
         @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
@@ -25,8 +66,22 @@ else
                 {
                     var ad = Model.ElementAt(i+j);
 
-                    <div class="card col-sm-5 border border-primary rounded p-0 mb-3 mx-1">
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
                         <partial name="_AdvertisementColumnPartial" model=ad />
+                    </div>
+                    break;
+                }
+
+                @if (i+j==countAds-2 && j==0) // when we have 2 ads on one row, display them a certain way
+                {
+                    var ad1 = Model.ElementAt(i+j);
+                    var ad2 = Model.ElementAt(i+j+1);
+
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+                        <partial name="_AdvertisementColumnPartial" model=ad1 />
+                    </div>
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+                        <partial name="_AdvertisementColumnPartial" model=ad2 />
                     </div>
                     break;
                 }
@@ -44,5 +99,48 @@ else
             </div>
         }
     </div>
-    
+
+
+<!-- Modal -->
+<form method="post" name="deleteAdForm" asp-action="Delete" asp-controller="Advertisement">
+<div class="modal fade" id="deleteAdModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
+        
+      </div>
+      <div class="modal-body">
+        <p>You are about to delete one of your advertisements - "<span class="adToDeleteTitle"></span>". Are you sure about that?</p>
+      </div>
+      <div class="modal-footer">
+        <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
+        <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+}
+
+@section Scripts
+{
+    <script defer src=~/js/loadPreviousImages.js></script>
+    <script src="~/js/imageManipulation.js"></script>
+    <script defer>
+        let deleteFormActionUrl = document.deleteAdForm.action;
+
+        function showDeleteAdModal(title,id) {
+            $('.adToDeleteTitle').text(title);
+
+            document.deleteAdForm.action=deleteFormActionUrl+"/"+id;
+
+            $('#deleteAdModal').modal('show');
+        }
+        function hideDeleteAdModal()
+        {
+            $('#deleteAdModal').modal('hide');
+            document.deleteAdForm.action=deleteFormActionUrl;
+        }
+    </script>
 }

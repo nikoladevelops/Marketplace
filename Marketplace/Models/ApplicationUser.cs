@@ -4,8 +4,8 @@ namespace Marketplace.Models
 {
     public class ApplicationUser:IdentityUser
     {
-        public byte[] ProfilePicture { get; set; }
+        public byte[]? ProfilePicture { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
     }
 }

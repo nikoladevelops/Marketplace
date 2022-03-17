@@ -1,4 +1,5 @@
 ﻿using Marketplace.Models;
+using Marketplace.Utility;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,7 +41,7 @@ namespace Marketplace.Controllers
             
             var advertisement = new AdvertisementModel()
             {
-                ImageData = await GetByteArrayFromImage(viewModel.Image),
+                ImageData = await Helper.GetByteArrayFromImage(viewModel.Image),
                 Title = viewModel.Title,
                 Description = viewModel.Description,
                 Price = viewModel.Price,
@@ -58,7 +59,7 @@ namespace Marketplace.Controllers
                 {
                     var advertisementImages = new AdvertisementImageModel()
                     {
-                        ImageData = await GetByteArrayFromImage(img),
+                        ImageData = await Helper.GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
                     };
 
@@ -126,7 +127,7 @@ namespace Marketplace.Controllers
                 return NotFound();
             }
 
-            advertisement.ImageData = await GetByteArrayFromImage(viewModel.Image);
+            advertisement.ImageData = await Helper.GetByteArrayFromImage(viewModel.Image);
             advertisement.Title = viewModel.Title;
             advertisement.Description = viewModel.Description;
             advertisement.Price = viewModel.Price;
@@ -147,7 +148,7 @@ namespace Marketplace.Controllers
                 {
                     var advertisementImage = new AdvertisementImageModel()
                     {
-                        ImageData = await GetByteArrayFromImage(img),
+                        ImageData = await Helper.GetByteArrayFromImage(img),
                         AdvertisementId = advertisement.Id
                     };
                     
@@ -159,20 +160,32 @@ namespace Marketplace.Controllers
 
             return RedirectToAction("MyProfile", "Account");
         }
-        private static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
-        {
-            using (var target = new MemoryStream())
-            {
-                await file.CopyToAsync(target);
-                return target.ToArray();
-            }
-        }
-
+        
         private IEnumerable<SelectListItem> LoadCategoryDropDown() 
         {
             return _context.Categories
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
                 .ToList();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var ad = _context.Advertisements.Where(x=>x.Id==id)
+                .SingleOrDefault();
+
+            if (ad == null || currentLoggedInUserId != ad.UserId)
+            {
+                return NotFound();
+            }
+            _context.Advertisements.Remove(ad);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("MyProfile","Account");
         }
     }
 }
