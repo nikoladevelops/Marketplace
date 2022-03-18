@@ -191,11 +191,11 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    Price = x.Price,
+                    Price = x.Price + " EUR",
                     Location = x.Location,
                     ImageInBytes = x.ImageData,
                     UserId = x.UserId,
-                    DateCreatedOn=x.DateCreatedOn,
+                    DateCreatedOn=x.DateCreatedOn.ToShortDateString(),
                     CategoryName=x.CategoryId.ToString()
                 })
                 .FirstOrDefault(x => x.Id == id);

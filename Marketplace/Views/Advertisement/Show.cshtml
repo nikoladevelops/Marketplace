@@ -1,6 +1,5 @@
 ﻿@model Marketplace.ViewModels.ShowAdvertisementViewModel
 @{
-
     var firstSrc = "/plusSign.png";
     var secondSrc = "/plusSign.png";
     var thirdSrc = "/plusSign.png";
@@ -37,25 +36,27 @@
 
     <h3 class="text-center mb-3">View An Advertisement</h3>
     <div class="container">
-        <div class="row">
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+        <div class="row justify-content-md-center">
+            <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
                 <div class="card-body">
-                    <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img">
+                    <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="zoomImage(this)">
                 </div>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+        </div>
+        <div class="row justify-content-md-center">
+            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
                 <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img">
+                    <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
                 </div>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
                 <div class="card-body">
-                    <img id="image3" src="@secondSrc" class="card-img">
+                    <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
                 </div>
             </div>
-            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
                 <div class="card-body">
-                    <img id="image4" src="@thirdSrc" class="card-img">
+                    <img id="image4" src="@thirdSrc" class="card-img" onclick="zoomImage(this)">
                 </div>
             </div>
         </div>
@@ -63,27 +64,27 @@
     
     <div class="form-group mb-3">
         <label asp-for=Title></label>
-        <input class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
+        <input readonly class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
     </div>
     <div class="form-group mb-3">
         <label asp-for=Description></label>
-        <textarea class="form-control" asp-for=Description rows="3"></textarea>
+        <textarea readonly class="form-control" asp-for=Description rows="3"></textarea>
     </div>
     <div class="form-group mb-3">
         <label asp-for=Price></label>
-        <input class="form-control" asp-for=Price/>
+        <input readonly class="form-control" asp-for=Price/>
     </div>
     <div class="form-group mb-3">
         <label asp-for=Location></label>
-        <input class="form-control" asp-for=Location/>
+        <input readonly class="form-control" asp-for=Location/>
     </div>
     <div class="form-group mb-3">
         <label asp-for="CategoryName"></label>
-        <input asp-for="CategoryName" />
+        <input readonly class="form-control" asp-for="CategoryName" />
     </div>
     <div class="form-group mb-3">
         <label asp-for="DateCreatedOn"></label>
-        <input asp-for="DateCreatedOn" />
+        <input readonly class="form-control" asp-for="DateCreatedOn" />
     </div>
 
 <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
@@ -91,6 +92,41 @@
         <img id="image1" src="@profilePictureSrc" class="card-img">
     </div>
     <div class="card-footer text-center">
-        <input asp-for="UserName"/>
+        <input readonly class="form-control text-center" asp-for="UserName"/>
     </div>
 </div>
+
+
+<div class="modal fade" id="zoomImageModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+          <p></p>
+          <button onclick="closeZoomImageModal()" type="button" class="close" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+        <img id="modalImage" src=""/>
+      <div class="modal-body">
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        function zoomImage(image)
+        {
+            let modalImage = document.querySelector("#modalImage");
+
+            modalImage.src=image.src;
+
+            $('#zoomImageModal').modal('show');
+        }
+        function closeZoomImageModal()
+        {
+            $('#zoomImageModal').modal('hide');
+        }
+    </script>
+}

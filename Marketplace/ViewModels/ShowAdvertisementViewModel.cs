@@ -10,7 +10,7 @@ namespace Marketplace.ViewModels
 
         public string Description { get; set; }
 
-        public double Price { get; set; }
+        public string Price { get; set; }
 
         public string Location { get; set; }
 
@@ -19,8 +19,8 @@ namespace Marketplace.ViewModels
         [Display(Name ="Category")]
         public string CategoryName { get; set; }
 
-        [Display(Name ="Date Created: ")]
-        public DateTime DateCreatedOn { get; set; }
+        [Display(Name ="Date Created")]
+        public string DateCreatedOn { get; set; }
 
         public byte[]? ImageInBytes { get; set; }
 
