@@ -183,7 +183,6 @@ namespace Marketplace.Controllers
             return RedirectToAction("MyProfile","Account");
         }
 
-        [Authorize]
         public IActionResult Show(int id)
         {
             var ad = _context.Advertisements
