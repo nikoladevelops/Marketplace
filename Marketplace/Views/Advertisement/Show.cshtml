@@ -1,0 +1,96 @@
+﻿@model Marketplace.ViewModels.ShowAdvertisementViewModel
+@{
+
+    var firstSrc = "/plusSign.png";
+    var secondSrc = "/plusSign.png";
+    var thirdSrc = "/plusSign.png";
+
+    var profilePictureSrc = "/noProfilePicture.png";
+
+    if (@Model.AdditionalImagesInBytes != null)
+    {
+        var countAdditionalImages = @Model.AdditionalImagesInBytes.Count();
+
+        switch (countAdditionalImages)
+        {
+            case 1:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                break;
+            case 2:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+                break;
+            case 3:
+                firstSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(0));
+                secondSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(1));
+                thirdSrc = "data:image;base64,"+Convert.ToBase64String(@Model.AdditionalImagesInBytes.ElementAt(2));
+                break;
+        }
+    }
+
+    if(ViewBag.ProfilePicture != null)
+    {
+        profilePictureSrc = "data:image;base64,"+Convert.ToBase64String(@Model.ProfilePicture);
+    }
+}
+
+
+    <h3 class="text-center mb-3">View An Advertisement</h3>
+    <div class="container">
+        <div class="row">
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img">
+                </div>
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image2" src="@firstSrc" class="card-img">
+                </div>
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image3" src="@secondSrc" class="card-img">
+                </div>
+            </div>
+            <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <div class="card-body">
+                    <img id="image4" src="@thirdSrc" class="card-img">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-group mb-3">
+        <label asp-for=Title></label>
+        <input class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=Description></label>
+        <textarea class="form-control" asp-for=Description rows="3"></textarea>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=Price></label>
+        <input class="form-control" asp-for=Price/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for=Location></label>
+        <input class="form-control" asp-for=Location/>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for="CategoryName"></label>
+        <input asp-for="CategoryName" />
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for="DateCreatedOn"></label>
+        <input asp-for="DateCreatedOn" />
+    </div>
+
+<div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
+    <div class="card-body">
+        <img id="image1" src="@profilePictureSrc" class="card-img">
+    </div>
+    <div class="card-footer text-center">
+        <input asp-for="UserName"/>
+    </div>
+</div>

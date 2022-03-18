@@ -62,7 +62,7 @@ else
             <div class="row">
             @for (var j = 0; j < 4; j++) // I want 4 columns on current row
             {
-                @if (i+j==countAds-1 && j==0) // when we have 1 ad on one row, display it a certain way
+                @if (i+j==countAds-1 && j==0) // when we have 1 ad on last row, display it a certain way
                 {
                     var ad = Model.ElementAt(i+j);
 
@@ -72,7 +72,7 @@ else
                     break;
                 }
 
-                @if (i+j==countAds-2 && j==0) // when we have 2 ads on one row, display them a certain way
+                @if (i+j==countAds-2 && j==0) // when we have 2 ads on last row, display them a certain way
                 {
                     var ad1 = Model.ElementAt(i+j);
                     var ad2 = Model.ElementAt(i+j+1);
@@ -137,6 +137,7 @@ else
 
             $('#deleteAdModal').modal('show');
         }
+
         function hideDeleteAdModal()
         {
             $('#deleteAdModal').modal('hide');

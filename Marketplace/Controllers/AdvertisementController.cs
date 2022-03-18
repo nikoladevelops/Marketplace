@@ -48,6 +48,7 @@ namespace Marketplace.Controllers
                 Location=viewModel.Location,
                 UserId = User.FindFirst(ClaimTypes.NameIdentifier).Value,
                 CategoryId=viewModel.CategoryId,
+                DateCreatedOn=DateTime.UtcNow
             };
 
             await _context.Advertisements.AddAsync(advertisement);
@@ -161,13 +162,6 @@ namespace Marketplace.Controllers
             return RedirectToAction("MyProfile", "Account");
         }
         
-        private IEnumerable<SelectListItem> LoadCategoryDropDown() 
-        {
-            return _context.Categories
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToList();
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
@@ -175,7 +169,8 @@ namespace Marketplace.Controllers
         {
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var ad = _context.Advertisements.Where(x=>x.Id==id)
+            var ad = _context.Advertisements
+                .Where(x=>x.Id==id)
                 .SingleOrDefault();
 
             if (ad == null || currentLoggedInUserId != ad.UserId)
@@ -187,5 +182,69 @@ namespace Marketplace.Controllers
 
             return RedirectToAction("MyProfile","Account");
         }
+
+        [Authorize]
+        public IActionResult Show(int id)
+        {
+            var ad = _context.Advertisements
+                .Select(x => new ShowAdvertisementViewModel()
+                {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Description = x.Description,
+                    Price = x.Price,
+                    Location = x.Location,
+                    ImageInBytes = x.ImageData,
+                    UserId = x.UserId,
+                    DateCreatedOn=x.DateCreatedOn,
+                    CategoryName=x.CategoryId.ToString()
+                })
+                .FirstOrDefault(x => x.Id == id);
+
+            if (ad == null)
+            {
+                return NotFound();
+            }
+
+            var additionalImages = _context.AdvertisementImages
+                .Where(x => x.AdvertisementId == id)
+                .Select(x => x.ImageData)
+                .ToList();
+
+            var adOwnerData = _context.Users
+                .Where(x => x.Id == ad.UserId)
+                .Select(x => new 
+                { 
+                    UserName = x.UserName,
+                    ProfilePicture = x.ProfilePicture 
+                })
+                .Single();
+
+
+            ad.CategoryName = GetCategoryName(int.Parse(ad.CategoryName));
+            ad.AdditionalImagesInBytes = additionalImages;
+            ad.UserName = adOwnerData.UserName;
+            ad.ProfilePicture=adOwnerData.ProfilePicture;
+
+            return View("Show", ad);
+        }
+
+        private IEnumerable<SelectListItem> LoadCategoryDropDown() 
+        {
+            return _context.Categories
+                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
+                .ToList();
+        }
+
+        private string GetCategoryName(int categoryId) 
+        {
+            var categoryName = _context.Categories
+                .Where(x=>x.Id==categoryId)
+                .Select(x=>x.Name)
+                .Single();
+
+            return categoryName;
+        }
+
     }
 }
