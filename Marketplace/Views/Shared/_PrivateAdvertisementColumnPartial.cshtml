@@ -8,6 +8,4 @@
 <div class="card-footer text-center ">
     <h6 class="font-s">@Model.Price EUR</h6>
     <a class="btn btn-sm btn-dark" asp-action="Show" asp-controller="Advertisement" asp-route-id="@Model.Id">SHOW</a>
-    <a class="btn btn-sm btn-warning" asp-action="Edit" asp-controller="Advertisement" asp-route-id="@Model.Id">EDIT</a>
-    <a class="btn btn-sm btn-danger" onclick="showDeleteAdModal('@Model.Title',@Model.Id)">DELETE</a>
 </div>

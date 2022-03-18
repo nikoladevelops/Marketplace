@@ -1,0 +1,93 @@
+﻿@using Marketplace.ViewModels
+@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
+@{
+    var countAds = @Model.Count();
+    var profilePictureSrc = "/noProfilePicture.png";
+    var description = "This user has no description.";
+
+    if(ViewBag.ProfilePicture != null)
+    {
+        profilePictureSrc = "data:image;base64,"+Convert.ToBase64String(@ViewBag.ProfilePicture);
+    }
+
+    if(ViewBag.Description != null)
+    {
+        description = @ViewBag.Description;
+    }
+}
+
+<h3>Profile Picture</h3>
+<div class="container">
+    <div class="row">
+        <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+            <div class="card-body">
+                <img id="image1" src="@profilePictureSrc" class="card-img">
+            </div>
+    </div>
+</div>
+<h3>Description</h3>
+        @if (ViewBag.Description == null)
+        {
+            <textarea readonly name="description" placeholder="@description" class="form-control mb-3"></textarea>
+        }
+        else
+        {
+            <textarea readonly name="description" class="form-control mb-3">@description</textarea>
+        }
+        <div class="text-center mb-3">
+            <span class="text-center mb-3 field-validation-error">@ViewBag.ErrorMessage</span>
+        </div>
+
+@if (countAds==0)
+{
+    <h3>This user has no advertisements.</h3>
+}
+else
+{
+    <h3>User Advertisements</h3>
+
+    <div class="container">
+        @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
+        {
+            <div class="row">
+            @for (var j = 0; j < 4; j++) // I want 4 columns on current row
+            {
+                @if (i+j==countAds-1 && j==0) // when we have 1 ad on last row, display it a certain way
+                {
+                    var ad = Model.ElementAt(i+j);
+
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+                        <partial name="_PrivateAdvertisementColumnPartial" model=ad />
+                    </div>
+                    break;
+                }
+
+                @if (i+j==countAds-2 && j==0) // when we have 2 ads on last row, display them a certain way
+                {
+                    var ad1 = Model.ElementAt(i+j);
+                    var ad2 = Model.ElementAt(i+j+1);
+
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+                        <partial name="_PrivateAdvertisementColumnPartial" model=ad1 />
+                    </div>
+                    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+                        <partial name="_PrivateAdvertisementColumnPartial" model=ad2 />
+                    </div>
+                    break;
+                }
+
+                @if (i+j==countAds) // stop displaying if we've reached the end
+                {
+                    break;
+                }
+
+                var currentAd = Model.ElementAt(i+j);
+                <div class="card col-sm border border-primary rounded p-0 mb-3 mx-1">
+                <partial name="_PrivateAdvertisementColumnPartial" model=currentAd />
+                </div>
+            }
+            </div>
+        }
+    </div>
+
+}

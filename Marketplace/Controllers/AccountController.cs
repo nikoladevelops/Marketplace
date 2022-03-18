@@ -131,6 +131,7 @@ namespace Marketplace.Controllers
             }
             return View(currentUserAllAds);
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
@@ -156,6 +157,36 @@ namespace Marketplace.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction("MyProfile","Account");
+        }
+
+        [Route("/Users/{username}")]
+        public IActionResult Profile(string username)
+        {
+            var user = _context.Users
+               .SingleOrDefault(x => x.UserName == username);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var userAds = _context.Advertisements
+                .Where(x => x.UserId == user.Id)
+                .Select(x => new SimplifiedAdvertisementViewModel()
+                {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Price = x.Price,
+                    ImageInBase64 = Convert.ToBase64String(x.ImageData)
+                })
+                .ToList();
+
+           
+
+            ViewBag.ProfilePicture = user.ProfilePicture;
+            ViewBag.Description = user.Description;
+
+            return View(userAds);
         }
     }
 
