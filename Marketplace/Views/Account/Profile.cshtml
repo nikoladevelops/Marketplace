@@ -16,13 +16,27 @@
     }
 }
 
-<h3>Profile Picture</h3>
 <div class="container">
     <div class="row">
-        <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
-            <div class="card-body">
-                <img id="image1" src="@profilePictureSrc" class="card-img">
+        <div class="card col-3 p-0 mb-3 mx-1 border-0">
+            <h3>Profile Picture</h3>
+            <div class="border border-primary rounded">
+                <div class="card-body">
+                    <img id="image1" src="@profilePictureSrc" class="card-img">
+                </div>
             </div>
+        </div>
+    @if (@ViewBag.PhoneNumber != null)
+    {
+    <div class="card col-8 p-0 mb-3 mx-1 border-0">
+        <h3>Contact Info</h3>
+        <div class="border border-primary rounded text-center p-3">
+            <label>Phone number</label>
+            <input readonly value="@ViewBag.PhoneNumber" class="form-control text-center"/>
+        </div>
+    </div>
+        
+    }
     </div>
 </div>
 <h3>Description</h3>

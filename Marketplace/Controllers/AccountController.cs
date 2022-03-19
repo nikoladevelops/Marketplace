@@ -217,6 +217,7 @@ namespace Marketplace.Controllers
 
             ViewBag.ProfilePicture = user.ProfilePicture;
             ViewBag.Description = user.Description;
+            ViewBag.PhoneNumber = user.PhoneNumber;
 
             return View(userAds);
         }
