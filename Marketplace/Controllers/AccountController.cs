@@ -98,7 +98,7 @@ namespace Marketplace.Controllers
         }
 
         [Authorize]
-        public IActionResult MyProfile(bool hasError)
+        public IActionResult MyAdvertisements(bool hasError)
         {
             var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
 
@@ -113,47 +113,79 @@ namespace Marketplace.Controllers
                 })
                 .ToList();
 
-            var currentUserData = _context.Users
+            return View(currentUserAllAds);
+        }
+
+        [Authorize]
+        public IActionResult MyProfile()
+        {
+            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+
+            var currentUserDataVM = _context.Users
                 .Where(x => x.Id == currentLoggedInUserId)
-                .Select(x => new
+                .Select(x => new MyProfileViewModel()
                 {
-                    ProfilePicture = x.ProfilePicture,
-                    Description = x.Description
+                    ProfilePictureInBytes = x.ProfilePicture,
+                    Description = x.Description,
+                    PhoneNumber = x.PhoneNumber,
+                    PhoneNumberAgreement = x.PhoneNumber == null ? false : true
                 })
                 .Single();
 
-            ViewBag.ProfilePicture=currentUserData.ProfilePicture;
-            ViewBag.Description=currentUserData.Description;
-
-            if (hasError)
-            {
-                ViewBag.ErrorMessage = "Description can NOT be more than 250 characters";
-            }
-            return View(currentUserAllAds);
+            return View(currentUserDataVM);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Update(string description, IFormFile profilePicture)
+        public async Task<IActionResult> Update(MyProfileViewModel viewModel)
         {
-            if (description!=null && description.Length>250)
+            if (!ModelState.IsValid)
             {
-                return RedirectToAction("MyProfile","Account",new { hasError = true });
+                return View("MyProfile",viewModel);
             }
 
             var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
 
             var currentUser = _context.Users.First(x => x.Id == currentLoggedInUserId);
-            currentUser.Description=description;
-            if (profilePicture!=null)
+            currentUser.Description=viewModel.Description;
+            
+            if (viewModel.PhoneNumber!=null)
             {
-                currentUser.ProfilePicture = await Helper.GetByteArrayFromImage(profilePicture);
+                if (viewModel.PhoneNumberAgreement)
+                {
+                    //verify that it's actually a phone number
+                    bool isInvalidLength = viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8;
+                    bool hasSymbols = !(int.TryParse(viewModel.PhoneNumber, out int num));
+
+                    if (isInvalidLength || hasSymbols)
+                    {
+                        ViewBag.PhoneError = "The phone number is incorrect.";
+                        return View("MyProfile", viewModel);
+                    }
+                    
+                    currentUser.PhoneNumber = viewModel.PhoneNumber;
+                }
+                else
+                {
+                    ViewBag.AgreementError = "You need to click the checkbox";
+                    return View("MyProfile", viewModel);
+                }
+            }
+            else
+            {
+                currentUser.PhoneNumber = null;
+            }
+
+            if (viewModel.ProfilePicture!=null)
+            {
+                currentUser.ProfilePicture = await Helper.GetByteArrayFromImage(viewModel.ProfilePicture);
             }
             else
             {
                 currentUser.ProfilePicture = null;
             }
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction("MyProfile","Account");

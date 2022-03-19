@@ -30,5 +30,8 @@ namespace Marketplace.ViewModels
         public byte[]? ProfilePicture { get; set; }
         //the username of who owns the ad
         public string UserName { get; set; }
+
+        public string Email { get; set; }
+        public string? PhoneNumber { get; set; }
     }
 }

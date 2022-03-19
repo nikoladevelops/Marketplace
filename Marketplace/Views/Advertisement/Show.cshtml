@@ -33,66 +33,83 @@
     }
 }
 
+@*TODO Make it look good haha*@
 
-    <h3 class="text-center mb-3">View An Advertisement</h3>
+<h3 class="text-center mb-3">View An Advertisement</h3>
+<div class="row justify-content-md-center">
+    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+        <div class="card-body">
+            <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="zoomImage(this)">
+        </div>
+    </div>
+</div>
+
+<div class="container">
+<div class="row justify-content-md-center">
+    <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
+        <div class="card-body">
+            <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+        </div>
+    </div>
+    <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
+        <div class="card-body">
+            <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
+        </div>
+    </div>
+    <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
+        <div class="card-body">
+            <img id="image4" src="@thirdSrc" class="card-img" onclick="zoomImage(this)">
+        </div>
+    </div>
+</div>
+</div>
     <div class="container">
-        <div class="row justify-content-md-center">
-            <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="zoomImage(this)">
-                </div>
+        <div class="row">
+        <div class="col-8">
+            <div class="form-group mb-3">
+                <label asp-for=Title></label>
+                <input readonly class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for=Description></label>
+                <textarea readonly class="form-control" asp-for=Description rows="3"></textarea>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for=Price></label>
+                <input readonly class="form-control" asp-for=Price/>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for=Location></label>
+                <input readonly class="form-control" asp-for=Location/>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="CategoryName"></label>
+                <input readonly class="form-control" asp-for="CategoryName" />
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="DateCreatedOn"></label>
+                <input readonly class="form-control" asp-for="DateCreatedOn" />
             </div>
         </div>
-        <div class="row justify-content-md-center">
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+        <div class="col-4">
+            <div class="container">
+                <h4 class="text-center">User</h4>
+                <div onclick="goToProfile()" onmouseover="doEffects()" onmouseout="removeEffects()" class="card border border-primary">
+                    <div class="card-body">
+                        <img id="image1" src="@profilePictureSrc" class="card-img">
+                    </div>
+                    <div class="text-center">
+                        <input readonly class="form-control text-center" asp-for="UserName"/>
+                    </div>
+                    <a id="visitProfile" asp-action="@Model.UserName" asp-controller="Users"></a>
                 </div>
             </div>
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
-                </div>
-            </div>
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image4" src="@thirdSrc" class="card-img" onclick="zoomImage(this)">
-                </div>
+            <div class="container">
+                <h4 class="text-center">Contact Info</h4>
+                <p class="">@Model.Email</p>
+                <p class="">@Model.PhoneNumber</p>
             </div>
         </div>
-    </div>
-    
-    <div class="form-group mb-3">
-        <label asp-for=Title></label>
-        <input readonly class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for=Description></label>
-        <textarea readonly class="form-control" asp-for=Description rows="3"></textarea>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for=Price></label>
-        <input readonly class="form-control" asp-for=Price/>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for=Location></label>
-        <input readonly class="form-control" asp-for=Location/>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="CategoryName"></label>
-        <input readonly class="form-control" asp-for="CategoryName" />
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="DateCreatedOn"></label>
-        <input readonly class="form-control" asp-for="DateCreatedOn" />
-    </div>
-
-<div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-    <div class="card-body">
-        <img id="image1" src="@profilePictureSrc" class="card-img">
-    </div>
-    <div class="card-footer text-center">
-        <input readonly class="form-control text-center" asp-for="UserName"/>
     </div>
 </div>
 
@@ -127,6 +144,23 @@
         function closeZoomImageModal()
         {
             $('#zoomImageModal').modal('hide');
+        }
+    </script>
+    <script>
+        function goToProfile(userId)
+        {
+            var link = document.querySelector("#visitProfile").href;
+            window.open(link, '_blank');
+        }
+        function doEffects()
+        {
+            let x = document.querySelector("#image1");
+            console.log("mouseIn");
+        }
+        function removeEffects()
+        {
+            let x = document.querySelector("#image1");
+            console.log("mouseOut");
         }
     </script>
 }

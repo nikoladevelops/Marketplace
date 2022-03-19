@@ -70,7 +70,7 @@ namespace Marketplace.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("MyProfile","Account");
+            return RedirectToAction("MyAdvertisements", "Account");
         }
 
         [Authorize]
@@ -159,7 +159,7 @@ namespace Marketplace.Controllers
 
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("MyProfile", "Account");
+            return RedirectToAction("MyAdvertisements", "Account");
         }
         
         [HttpPost]
@@ -180,7 +180,7 @@ namespace Marketplace.Controllers
             _context.Advertisements.Remove(ad);
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("MyProfile","Account");
+            return RedirectToAction("MyAdvertisements","Account");
         }
 
         public IActionResult Show(int id)
@@ -215,7 +215,9 @@ namespace Marketplace.Controllers
                 .Select(x => new 
                 { 
                     UserName = x.UserName,
-                    ProfilePicture = x.ProfilePicture 
+                    ProfilePicture = x.ProfilePicture ,
+                    Email=x.Email,
+                    PhoneNumber = x.PhoneNumber
                 })
                 .Single();
 
@@ -224,6 +226,8 @@ namespace Marketplace.Controllers
             ad.AdditionalImagesInBytes = additionalImages;
             ad.UserName = adOwnerData.UserName;
             ad.ProfilePicture=adOwnerData.ProfilePicture;
+            ad.Email = adOwnerData.Email;
+            ad.PhoneNumber = adOwnerData.PhoneNumber;
 
             return View("Show", ad);
         }
