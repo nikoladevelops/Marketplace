@@ -34,54 +34,64 @@
 }
 
 <h3 class="text-center mb-3">View An Advertisement</h3>
+
+<div class="container">
 <div class="row justify-content-md-center">
-    <div class="card col-sm-3 border border-primary rounded p-0 mb-3 mx-1">
+    <div class="card col-4 border border-primary rounded p-0 mb-3 mx-1">
         <div class="card-body">
             <img id="image1" src="data:image;base64,@Convert.ToBase64String(@Model.ImageInBytes)" class="card-img" onclick="zoomImage(this)">
         </div>
     </div>
-</div>
-
-<div class="container">
-<div class="row justify-content-md-center">
     @if (Model.AdditionalImagesInBytes != null)
     {
         if (Model.AdditionalImagesInBytes.Count() == 1)
         {
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
         }
         if(Model.AdditionalImagesInBytes.Count() == 2)
         {
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 rounded p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
         }
         if(Model.AdditionalImagesInBytes.Count() == 3)
         {
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image2" src="@firstSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 rounded p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image3" src="@secondSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
-            <div class="card col-sm-2 border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image4" src="@thirdSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card col-2 border-0 p-0 mb-3 mx-1">
+                <div class="border border-primary rounded">
+                    <div class="card-body">
+                        <img id="image4" src="@thirdSrc" class="card-img" onclick="zoomImage(this)">
+                    </div>
                 </div>
             </div>
         }
@@ -119,7 +129,6 @@
         <div class="col-4">
             <div class="container">
                 <h4 class="text-center">Seller</h4>
-                @*TODO make the effects work + display phone number on profile pages if it isnt null*@
                 <div class="card border border-primary">
                     <div class="card-body">
                         <img id="image1" src="@profilePictureSrc" class="card-img">
