@@ -1,8 +1,41 @@
-﻿@{
+﻿@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
+@{
     ViewData["Title"] = "Home Page";
+    var countAds = @Model.Count();
 }
 
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>
+
+
+@if (countAds==0)
+{
+    <h3>No advertisements matching your search result.</h3>
+}
+else
+{
+    <h3>Advertisements</h3>
+
+    <div class="container">
+        @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
+        {
+            <div class="row">
+            @for (var j = 0; j < 4; j++) // I want 4 columns on current row
+            {
+                @if (i+j==countAds) // stop displaying if we've reached the end
+                {
+                    break;
+                }
+
+                var currentAd = Model.ElementAt(i+j);
+                <div class="card col-3 border border-primary rounded p-0 mb-3">
+                <partial name="_PrivateAdvertisementColumnPartial" model=currentAd />
+                </div>
+            }
+            </div>
+        }
+    </div>
+
+}

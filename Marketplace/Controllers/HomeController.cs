@@ -1,23 +1,88 @@
 ﻿using Marketplace.Models;
+using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace Marketplace.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
+        private readonly ApplicationDbContext _context;
+        public HomeController(ApplicationDbContext context)
         {
-            _logger = logger;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public IActionResult Index(int pageNumber=0, string filter="newest", string category="all", string searchTerm=null)
         {
-            return View();
-        }
+            filter = filter.ToLower();
+            category=category.ToLower();
 
+            List<SimplifiedAdvertisementViewModel> adsResult = null;
+            IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
+
+            var loadAdsPerPage = 3;
+
+            if (searchTerm!=null)
+            {
+                currentQuery = currentQuery
+                    .Where(x => x.Title.Contains(searchTerm) || x.Description.Contains(searchTerm));
+            }
+            
+            switch (category)
+            {
+                case "all":
+                    //no need to filter based on category
+                    break;
+                default:
+                    var allCategories = _context.Categories
+                    .Select(x => x.Name.ToLower())
+                    .ToList();
+
+                    var categoryExists = allCategories.Contains(category);
+
+                    if (categoryExists)
+                    {
+                        currentQuery = currentQuery
+                            .Include(x=>x.Category)
+                            .Where(x => x.Category.Name.ToLower() == category);
+                    }
+                    else
+                    {
+                        // no such caregory exists
+                        return NotFound();
+                    }
+                    break;
+            }
+
+            switch (filter)
+            {
+                case "newest":
+                    currentQuery = currentQuery
+                   .OrderByDescending(x => x.DateCreatedOn);
+                    break;
+                case "oldest":
+                    currentQuery = currentQuery
+                    .OrderBy(x => x.DateCreatedOn);
+                    break;
+                default: // just dont order then
+                    break;
+            }
+
+            adsResult = currentQuery
+                .Skip(pageNumber * loadAdsPerPage)
+                .Take(loadAdsPerPage)
+                .Select(x => new SimplifiedAdvertisementViewModel()
+                {
+                    Id = x.Id,
+                    Title = x.Title,
+                    Price = x.Price,
+                    ImageInBase64 = Convert.ToBase64String(x.ImageData),
+                }).ToList();
+
+            return View(adsResult);
+        }
         public IActionResult Privacy()
         {
             return View();
