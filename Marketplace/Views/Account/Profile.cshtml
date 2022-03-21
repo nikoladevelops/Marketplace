@@ -28,14 +28,25 @@
         </div>
     @if (@ViewBag.PhoneNumber != null)
     {
-    <div class="card col-8 p-0 mb-3 mx-1 border-0">
+        <div class="card col-8 p-0 mb-3 mx-1 border-0">
         <h3>Contact Info</h3>
-        <div class="border border-primary rounded text-center p-3">
-            <label>Phone number</label>
-            <input readonly value="@ViewBag.PhoneNumber" class="form-control text-center"/>
+            <div class="border border-primary rounded text-center p-3">
+                <label>Phone number</label>
+                <input readonly value="@ViewBag.PhoneNumber" class="form-control text-center mb-3"/>
+                <label>Email</label>
+                <input readonly value="@ViewBag.Email" class="form-control text-center"/>
+            </div>
         </div>
-    </div>
-        
+    }
+    else
+    {
+        <div class="card col-8 p-0 mb-3 mx-1 border-0">
+        <h3>Contact Info</h3>
+            <div class="border border-primary rounded text-center p-3">
+                <label>Email</label>
+                <input readonly value="@ViewBag.Email" class="form-control text-center"/>
+            </div>
+        </div> 
     }
     </div>
 </div>
@@ -48,9 +59,6 @@
         {
             <textarea readonly name="description" class="form-control mb-3">@description</textarea>
         }
-        <div class="text-center mb-3">
-            <span class="text-center mb-3 field-validation-error">@ViewBag.ErrorMessage</span>
-        </div>
 
 @if (countAds==0)
 {
