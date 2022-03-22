@@ -24,6 +24,7 @@ namespace Marketplace.Controllers
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
 
             var loadAdsPerPage = 3;
+            int categoryId = -1;
 
             if (searchTerm!=null)
             {
@@ -41,9 +42,8 @@ namespace Marketplace.Controllers
                     .Select(x => x.Name.ToLower())
                     .ToList();
 
-                    var categoryExists = allCategories.Contains(category);
-
-                    if (categoryExists)
+                    categoryId = allCategories.IndexOf(category);
+                    if (categoryId != -1)
                     {
                         currentQuery = currentQuery
                             .Include(x=>x.Category)
@@ -88,7 +88,9 @@ namespace Marketplace.Controllers
                 CategoryDropDown = _context.Categories
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
                 .ToList(),
-                Advertisements = adsResult
+                Advertisements = adsResult,
+                SearchTerm=searchTerm,
+                CategoryId=categoryId+1 // adding +1 so the indexes are correct because I've added an additional category 'All' in the drop down menu in the view
             };
 
             return View(homeVM);
