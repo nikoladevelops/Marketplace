@@ -1,14 +1,24 @@
-﻿@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
+﻿@model Marketplace.ViewModels.HomeViewModel
 @{
     ViewData["Title"] = "Home Page";
-    var countAds = @Model.Count();
+    var countAds = @Model.Advertisements.Count();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container m-0 p-0">
+    <div class="row p-0 m-0 mb-3 justify-content-center">
+        <div class="col-5 m-0 p-0">
+            <input id="searchBar" class="form-control border-1 border-primary" placeholder="Search"/>
+        </div>
+        <div class="col-2 m-0 p-0 mx-1">
+            <select id="categoryDropDown" asp-items="@Model.CategoryDropDown" class="form-control text-center border-1 border-primary">
+                <option value=-1>All</option>
+            </select>
+        </div>
+        <div class="col-1 m-0 p-0 text-center">
+            <a id="searchButton" href="#" onclick="return searchFor();" class="btn btn-primary">Search</a>
+        </div>
+    </div>
 </div>
-
 
 @if (countAds==0)
 {
@@ -29,7 +39,7 @@ else
                     break;
                 }
 
-                var currentAd = Model.ElementAt(i+j);
+                var currentAd = Model.Advertisements.ElementAt(i+j);
                 <div class="card col-3 border border-primary rounded p-0 mb-3">
                 <partial name="_PrivateAdvertisementColumnPartial" model=currentAd />
                 </div>
@@ -37,5 +47,41 @@ else
             </div>
         }
     </div>
+}
 
+@section Scripts
+{
+    <script>
+        function searchFor () {
+            let searchButton = document.querySelector("#searchButton");
+            let categoryDropDown = document.querySelector("#categoryDropDown");
+
+            let category = categoryDropDown.options[categoryDropDown.selectedIndex].text;
+            let searchTerm = document.querySelector("#searchBar").value;
+            searchTerm=searchTerm.trim();
+
+            searchButton.href="/?category="+category;
+
+            if(!(isNullOrWhitespace(searchTerm)))
+            {
+                searchButton.href+="&searchTerm="+searchTerm;
+            }
+            return true;
+        }
+
+        function isNullOrWhitespace(input) {
+            if (typeof input === 'undefined' || input == null) return true;
+
+            return input.replace(/\s/g, '').length < 1;
+        }
+    </script>
+    <script defer>
+        window.onload=function(){
+            $("#searchBar").on('keyup', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                document.querySelector("#searchButton").click();
+            }
+        });
+        }
+    </script>
 }

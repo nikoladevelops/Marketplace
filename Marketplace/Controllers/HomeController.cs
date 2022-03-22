@@ -1,6 +1,7 @@
 ﻿using Marketplace.Models;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
@@ -27,7 +28,7 @@ namespace Marketplace.Controllers
             if (searchTerm!=null)
             {
                 currentQuery = currentQuery
-                    .Where(x => x.Title.Contains(searchTerm) || x.Description.Contains(searchTerm));
+                    .Where(x => x.Title.Contains(searchTerm));
             }
             
             switch (category)
@@ -81,7 +82,16 @@ namespace Marketplace.Controllers
                     ImageInBase64 = Convert.ToBase64String(x.ImageData),
                 }).ToList();
 
-            return View(adsResult);
+
+            var homeVM = new HomeViewModel()
+            {
+                CategoryDropDown = _context.Categories
+                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
+                .ToList(),
+                Advertisements = adsResult
+            };
+
+            return View(homeVM);
         }
         public IActionResult Privacy()
         {
