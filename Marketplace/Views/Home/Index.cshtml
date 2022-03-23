@@ -15,7 +15,7 @@
             </select>
         </div>
         <div class="col-2 m-0 p-0 mx-1">
-            <select id="filterInput" asp-for="Filter" class="form-control text-center border-1 border-primary">
+            <select id="filterDropDown" asp-for="Filter" class="form-control text-center border-1 border-primary">
                 <option>New</option>
                 <option>Old</option>
                 <option>Cheapest</option>
@@ -26,10 +26,10 @@
             <input id="locationInput" asp-for="Location" class="form-control text-center border-1 border-primary" placeholder="Location"/>
         </div>
         <div class="col-2 m-0 p-0 mx-1">
-            <input class="form-control text-center border-1 border-primary" placeholder="Minimum Price"/>
+            <input id="minimumPriceInput" asp-for="MinimumPrice" class="form-control text-center border-1 border-primary" placeholder="Minimum Price"/>
         </div>
         <div class="col-2 m-0 p-0 mx-1">
-            <input class="form-control text-center border-1 border-primary" placeholder="Max Price"/>
+            <input id="maximumPriceInput" asp-for="MaximumPrice" class="form-control text-center border-1 border-primary" placeholder="Max Price"/>
         </div>
         <div class="col-1 m-0 p-0 text-center">
             <a id="searchButton" href="#" onclick="return searchFor();" class="btn btn-primary">Search</a>
@@ -72,17 +72,39 @@ else
         function searchFor () {
             let searchButton = document.querySelector("#searchButton");
             let categoryDropDown = document.querySelector("#categoryDropDown");
+            let filterDropDown = document.querySelector("#filterDropDown");
 
             let category = categoryDropDown.options[categoryDropDown.selectedIndex].text;
             let searchTerm = document.querySelector("#searchBar").value;
             searchTerm=searchTerm.trim();
+            let filter = filterDropDown.options[filterDropDown.selectedIndex].text;
+            let location = document.querySelector("#locationInput").value;
+            let minimumPrice = document.querySelector("#minimumPriceInput").value;
+            let maximumPrice = document.querySelector("#maximumPriceInput").value;
 
-            searchButton.href="/?category="+category;
+            searchButton.href="/?filter="+filter;
+            searchButton.href+="&category="+category;
 
             if(!(isNullOrWhitespace(searchTerm)))
             {
                 searchButton.href+="&searchTerm="+searchTerm;
             }
+
+            if(!(isNullOrWhitespace(location)))
+            {
+                searchButton.href+="&location="+location;
+            }
+
+            if(!(isNullOrWhitespace(minimumPrice)))
+            {
+                searchButton.href+="&minimumPrice="+minimumPrice;
+            }
+
+            if(!(isNullOrWhitespace(maximumPrice)))
+            {
+                searchButton.href+="&maximumPrice="+maximumPrice;
+            }
+
             return true;
         }
 

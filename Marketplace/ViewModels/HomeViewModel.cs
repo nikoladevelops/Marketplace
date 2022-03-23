@@ -8,8 +8,9 @@ namespace Marketplace.ViewModels
         public IEnumerable<SimplifiedAdvertisementViewModel> Advertisements { get; set; }
         public string SearchTerm { get; set; }
         public int CategoryId { get; set; }
-        public string Location { get; set; }
-
         public string Filter { get; set; }
+        public string Location { get; set; }
+        public string MinimumPrice { get; set; }
+        public string MaximumPrice { get; set; }
     }
 }

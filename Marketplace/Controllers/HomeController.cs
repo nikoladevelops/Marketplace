@@ -15,7 +15,7 @@ namespace Marketplace.Controllers
             _context = context;
         }
 
-        public IActionResult Index(int pageNumber=0, string filter="newest", string category="all", string searchTerm=null)
+        public IActionResult Index(int pageNumber=0, string filter="new", string category="all", string searchTerm=null, string location=null, double minimumPrice=1, double maximumPrice=1000000)
         {
             filter = filter.ToLower();
             category=category.ToLower();
@@ -31,6 +31,21 @@ namespace Marketplace.Controllers
                 currentQuery = currentQuery
                     .Where(x => x.Title.Contains(searchTerm));
             }
+
+            switch (location)
+            {
+                case null:
+                    // dont filter then
+                    break;
+                default:
+                    location = location.ToLower();
+                    currentQuery = currentQuery
+                        .Where(x => x.Location == location);
+                    break;
+            }
+
+            currentQuery = currentQuery
+                .Where(x => x.Price >= minimumPrice && x.Price <= maximumPrice);
             
             switch (category)
             {
@@ -59,13 +74,21 @@ namespace Marketplace.Controllers
 
             switch (filter)
             {
-                case "newest":
+                case "new":
                     currentQuery = currentQuery
-                   .OrderByDescending(x => x.DateCreatedOn);
+                        .OrderByDescending(x => x.DateCreatedOn);
                     break;
-                case "oldest":
+                case "old":
                     currentQuery = currentQuery
-                    .OrderBy(x => x.DateCreatedOn);
+                        .OrderBy(x => x.DateCreatedOn);
+                    break;
+                case "cheapest":
+                    currentQuery = currentQuery
+                        .OrderBy(x => x.Price);
+                        break;
+                case "most expensive":
+                    currentQuery = currentQuery
+                        .OrderByDescending(x => x.Price);
                     break;
                 default: // just dont order then
                     break;
