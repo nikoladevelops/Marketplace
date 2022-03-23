@@ -38,7 +38,7 @@ namespace Marketplace.Controllers
                     // dont filter then
                     break;
                 default:
-                    location = location.ToLower();
+                    location = location.ToLower().Trim();
                     currentQuery = currentQuery
                         .Where(x => x.Location == location);
                     break;
@@ -113,7 +113,8 @@ namespace Marketplace.Controllers
                 .ToList(),
                 Advertisements = adsResult,
                 SearchTerm=searchTerm,
-                CategoryId=categoryId+1 // adding +1 so the indexes are correct because I've added an additional category 'All' in the drop down menu in the view
+                CategoryId=categoryId+1, // adding +1 so the indexes are correct because I've added an additional category 'All' in the drop down menu in the view
+                PageNumber=pageNumber
             };
 
             return View(homeVM);

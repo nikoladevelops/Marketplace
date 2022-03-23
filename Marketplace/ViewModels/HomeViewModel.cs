@@ -12,5 +12,6 @@ namespace Marketplace.ViewModels
         public string Location { get; set; }
         public string MinimumPrice { get; set; }
         public string MaximumPrice { get; set; }
+        public int PageNumber { get; set; }
     }
 }

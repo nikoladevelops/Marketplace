@@ -64,12 +64,36 @@ else
             </div>
         }
     </div>
+    <div class="text-center">
+        @for (var i = 0; i <= 10; i++)
+        {
+            @if (i==@Model.PageNumber)
+            {
+                <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3">@i</a>
+                continue;
+            }
+            <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5">@i</a>
+        }
+    </div>
 }
 
 @section Scripts
 {
-    <script>
+    <script defer>
         function searchFor () {
+            searchButton.href="/?"+getSearchQuery();
+
+            return true;
+        }
+
+        function changePage(pageLinkElement)
+        {
+            pageLinkElement.href+="&"+getSearchQuery();
+            return true;
+        }
+
+        function getSearchQuery()
+        {
             let searchButton = document.querySelector("#searchButton");
             let categoryDropDown = document.querySelector("#categoryDropDown");
             let filterDropDown = document.querySelector("#filterDropDown");
@@ -82,30 +106,29 @@ else
             let minimumPrice = document.querySelector("#minimumPriceInput").value;
             let maximumPrice = document.querySelector("#maximumPriceInput").value;
 
-            searchButton.href="/?filter="+filter;
-            searchButton.href+="&category="+category;
+            searchQuery="filter="+filter;
+            searchQuery+="&category="+category;
 
             if(!(isNullOrWhitespace(searchTerm)))
             {
-                searchButton.href+="&searchTerm="+searchTerm;
+                searchQuery+="&searchTerm="+searchTerm;
             }
 
             if(!(isNullOrWhitespace(location)))
             {
-                searchButton.href+="&location="+location;
+                searchQuery+="&location="+location;
             }
 
             if(!(isNullOrWhitespace(minimumPrice)))
             {
-                searchButton.href+="&minimumPrice="+minimumPrice;
+                searchQuery+="&minimumPrice="+minimumPrice;
             }
 
             if(!(isNullOrWhitespace(maximumPrice)))
             {
-                searchButton.href+="&maximumPrice="+maximumPrice;
+                searchQuery+="&maximumPrice="+maximumPrice;
             }
-
-            return true;
+            return searchQuery;
         }
 
         function isNullOrWhitespace(input) {
