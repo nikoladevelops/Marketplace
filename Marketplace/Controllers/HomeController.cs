@@ -17,6 +17,11 @@ namespace Marketplace.Controllers
 
         public IActionResult Index(int pageNumber=0, string filter="new", string category="all", string? searchTerm=null, string? location=null, double minimumPrice=1, double maximumPrice=1000000)
         {
+            if (pageNumber < 0)
+            {
+                pageNumber = 0;
+            }
+
             filter = filter.ToLower();
             category=category.ToLower();
 

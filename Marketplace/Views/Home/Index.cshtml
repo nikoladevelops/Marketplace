@@ -65,6 +65,7 @@ else
         }
     </div>
     <div class="text-center">
+        <a href="/?pageNumber=" onclick="return backArrow(this, true);" class="h5">&#60;</a>
         @for (var i = 0; i < @Model.MaxCountPages; i++)
         {
             @if (i==@Model.PageNumber)
@@ -74,12 +75,38 @@ else
             }
             <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5">@i</a>
         }
+        <a href="/?pageNumber=" onclick="return backArrow(this, false);" class="h5">&#62;</a>
     </div>
 }
 
 @section Scripts
 {
     <script defer>
+        // These functions are dependant on some dom elements' href attributes. If you are looking to refactor be careful not to break existing logic
+        function backArrow(arrowElement, isBackArrow)
+        {
+            let currentPageHref = document.querySelector("#currentPage").href;
+            let currentPageId = currentPageHref.split("/?pageNumber=")[1];
+
+            if(isBackArrow)
+            {
+                currentPageId--;
+            }
+            else
+            {
+                currentPageId++;
+            }
+
+            if(currentPageId<0 || currentPageId >= @Model.MaxCountPages)
+            {
+                return false;
+            }
+
+            arrowElement.href+=currentPageId+"&"+getSearchQuery();
+            return true;
+        }
+
+
         function searchFor () {
             searchButton.href="/?"+getSearchQuery();
 
