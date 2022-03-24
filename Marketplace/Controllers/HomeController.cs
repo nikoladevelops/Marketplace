@@ -15,15 +15,15 @@ namespace Marketplace.Controllers
             _context = context;
         }
 
-        public IActionResult Index(int pageNumber=0, string filter="new", string category="all", string searchTerm=null, string location=null, double minimumPrice=1, double maximumPrice=1000000)
+        public IActionResult Index(int pageNumber=0, string filter="new", string category="all", string? searchTerm=null, string? location=null, double minimumPrice=1, double maximumPrice=1000000)
         {
             filter = filter.ToLower();
             category=category.ToLower();
 
-            List<SimplifiedAdvertisementViewModel> adsResult = null;
+            List<SimplifiedAdvertisementViewModel>? adsResult = null;
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
 
-            var loadAdsPerPage = 3;
+            int loadAdsPerPage = 3;
             int categoryId = -1;
 
             if (searchTerm!=null)
@@ -94,6 +94,8 @@ namespace Marketplace.Controllers
                     break;
             }
 
+            var countFilteredAds=currentQuery.Count();
+
             adsResult = currentQuery
                 .Skip(pageNumber * loadAdsPerPage)
                 .Take(loadAdsPerPage)
@@ -114,7 +116,8 @@ namespace Marketplace.Controllers
                 Advertisements = adsResult,
                 SearchTerm=searchTerm,
                 CategoryId=categoryId+1, // adding +1 so the indexes are correct because I've added an additional category 'All' in the drop down menu in the view
-                PageNumber=pageNumber
+                PageNumber=pageNumber,
+                MaxCountPages=(int)Math.Ceiling((double)countFilteredAds/loadAdsPerPage)
             };
 
             return View(homeVM);
