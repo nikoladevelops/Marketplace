@@ -65,7 +65,7 @@ else
         }
     </div>
     <div class="text-center">
-        <a href="/?pageNumber=" onclick="return backArrow(this, true);" class="h5">&#60;</a>
+        <a href="/?pageNumber=" onclick="return backArrow(this, true);" class="h3 text-decoration-none">&#60;</a>
         @{
             int maximumDisplayedPages = 10;
             int startingIndex = startingIndex = Model.PageNumber - (Model.PageNumber % maximumDisplayedPages);
@@ -80,13 +80,20 @@ else
             {
                 @if (i==@Model.PageNumber)
                 {
-                    <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3">@i</a>
+                    <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3 text-decoration-none">@i</a>
                     continue;
                 }
-                <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5">@i</a>
+                <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5 text-decoration-none">@i</a>
+            }
+
+            if (!(endingIndex >= Model.MaxCountPages))
+            {
+                var lastPageIndex = Model.MaxCountPages - 1;
+                <span class="h5">....</span>
+                <a href="/?pageNumber=@lastPageIndex" onclick="return changePage(this);" class="h5 text-decoration-none">@lastPageIndex</a> 
             }
         }
-        <a href="/?pageNumber=" onclick="return backArrow(this, false);" class="h5">&#62;</a>
+        <a href="/?pageNumber=" onclick="return backArrow(this, false);" class="h3 text-decoration-none">&#62;</a>
     </div>
 }
 
