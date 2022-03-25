@@ -66,14 +66,25 @@ else
     </div>
     <div class="text-center">
         <a href="/?pageNumber=" onclick="return backArrow(this, true);" class="h5">&#60;</a>
-        @for (var i = 0; i < @Model.MaxCountPages; i++)
-        {
-            @if (i==@Model.PageNumber)
+        @{
+            int maximumDisplayedPages = 10;
+            int startingIndex = startingIndex = Model.PageNumber - (Model.PageNumber % maximumDisplayedPages);
+            int endingIndex = (Model.PageNumber + maximumDisplayedPages) - (Model.PageNumber % maximumDisplayedPages);
+
+            if (endingIndex > Model.MaxCountPages)
             {
-                <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3">@i</a>
-                continue;
+                endingIndex = Model.MaxCountPages;                
             }
-            <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5">@i</a>
+
+            @for (var i = startingIndex; i < endingIndex; i++)
+            {
+                @if (i==@Model.PageNumber)
+                {
+                    <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3">@i</a>
+                    continue;
+                }
+                <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5">@i</a>
+            }
         }
         <a href="/?pageNumber=" onclick="return backArrow(this, false);" class="h5">&#62;</a>
     </div>
@@ -85,27 +96,25 @@ else
         // These functions are dependant on some dom elements' href attributes. If you are looking to refactor be careful not to break existing logic
         function backArrow(arrowElement, isBackArrow)
         {
-            let currentPageHref = document.querySelector("#currentPage").href;
-            let currentPageId = currentPageHref.split("/?pageNumber=")[1];
+            let pageId = @Model.PageNumber;
 
             if(isBackArrow)
             {
-                currentPageId--;
+                pageId--;
             }
             else
             {
-                currentPageId++;
+                pageId++;
             }
 
-            if(currentPageId<0 || currentPageId >= @Model.MaxCountPages)
+            if(pageId<0 || pageId >= @Model.MaxCountPages)
             {
                 return false;
             }
 
-            arrowElement.href+=currentPageId+"&"+getSearchQuery();
+            arrowElement.href+=pageId+"&"+getSearchQuery();
             return true;
         }
-
 
         function searchFor () {
             searchButton.href="/?"+getSearchQuery();

@@ -23,12 +23,12 @@ namespace Marketplace.Controllers
             }
 
             filter = filter.ToLower();
-            category=category.ToLower();
+            category = category.ToLower();
 
             List<SimplifiedAdvertisementViewModel>? adsResult = null;
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
 
-            int loadAdsPerPage = 3;
+            int loadAdsPerPage = 1;
             int categoryId = -1;
 
             if (searchTerm!=null)
@@ -69,11 +69,7 @@ namespace Marketplace.Controllers
                             .Include(x=>x.Category)
                             .Where(x => x.Category.Name.ToLower() == category);
                     }
-                    else
-                    {
-                        // no such caregory exists
-                        return NotFound();
-                    }
+                    // otherwise if the category is not found, there is no need to filter
                     break;
             }
 
