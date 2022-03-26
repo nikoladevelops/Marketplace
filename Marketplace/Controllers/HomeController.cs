@@ -28,7 +28,7 @@ namespace Marketplace.Controllers
             List<SimplifiedAdvertisementViewModel>? adsResult = null;
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
 
-            int loadAdsPerPage = 3;
+            int loadAdsPerPage = 24;
             int categoryId = -1;
 
             if (searchTerm!=null)
