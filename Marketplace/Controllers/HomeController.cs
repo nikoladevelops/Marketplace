@@ -28,7 +28,7 @@ namespace Marketplace.Controllers
             List<SimplifiedAdvertisementViewModel>? adsResult = null;
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
 
-            int loadAdsPerPage = 1;
+            int loadAdsPerPage = 3;
             int categoryId = -1;
 
             if (searchTerm!=null)
@@ -106,6 +106,8 @@ namespace Marketplace.Controllers
                     Title = x.Title,
                     Price = x.Price,
                     ImageInBase64 = Convert.ToBase64String(x.ImageData),
+                    Location=x.Location,
+                    Category=x.Category.Name
                 }).ToList();
 
 

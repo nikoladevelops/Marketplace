@@ -27,7 +27,21 @@ else
 
                 var currentAd = Model.ElementAt(i+j);
                 <div class="card col-3 border border-primary rounded p-0 mb-3">
-                    <partial name="_AdvertisementColumnPartial" model=currentAd />
+                    <img src="data:image;base64,@currentAd.ImageInBase64" class="card-img-top">
+
+                    <div class="card-body text-center">
+                        <h6 class="card-title">@currentAd.Title</h6>
+                    </div>
+                    <div class="card-footer bg-light">
+                        <div class="text-center">
+                            <h6 class="font-s">@currentAd.Price EUR</h6>
+                            <a class="btn btn-sm btn-dark" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">SHOW</a>
+                            <a class="btn btn-sm btn-warning" asp-action="Edit" asp-controller="Advertisement" asp-route-id="@currentAd.Id">EDIT</a>
+                            <a class="btn btn-sm btn-danger" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">DELETE</a>
+                        </div>
+                    </div>
+                        <h6 class="bg-warning text-dark p-1 m-0">@currentAd.Location</h6>
+                        <h6 class="bg-success text-white p-1 m-0">@currentAd.Category</h6>
                 </div>
             }
             </div>

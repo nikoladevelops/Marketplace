@@ -133,13 +133,11 @@
                     <div class="card-body">
                         <img id="image1" src="@profilePictureSrc" class="card-img">
                     </div>
-                    <a class="text-center pb-3" id="visitProfile" asp-action="@Model.UserName" asp-controller="Users">@Model.UserName</a>
+                    <a class="text-center p-1 btn-warning text-dark" id="visitProfile" asp-action="@Model.UserName" asp-controller="Users">@Model.UserName</a>
                 </div>
             </div>
             <div class="container">
-                <h4 class="text-center">Contact Info</h4>
-                <p class="">@Model.Email</p>
-                <p class="">@Model.PhoneNumber</p>
+                <button class="btn btn-success text-center rounded my-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
             </div>
         </div>
     </div>
@@ -151,12 +149,30 @@
     <div class="modal-content">
       <div class="modal-header">
           <p></p>
-          <button onclick="closeZoomImageModal()" type="button" class="close" aria-label="Close">
+          <button onclick="closeModal('zoomImageModal')" type="button" class="close" aria-label="Close">
           <span aria-hidden="true">&times;</span>
-        </button>
+          </button>
       </div>
         <img id="modalImage" src=""/>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="contactInfoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+          <p>Seller Contact Information</p>
+          <button onclick="closeModal('contactInfoModal')" type="button" class="close" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button>
+      </div>
       <div class="modal-body">
+          <p class="">Email: <span class="bg-success text-light p-2 rounded">@Model.Email</span></p>
+            @if (@Model.PhoneNumber!=null)
+            {
+                <p class="">Phone Number: <span class="bg-success text-light p-2 rounded">@Model.PhoneNumber</span></p>
+            }
       </div>
     </div>
   </div>
@@ -173,9 +189,15 @@
 
             $('#zoomImageModal').modal('show');
         }
-        function closeZoomImageModal()
+
+        function closeModal(modalName)
         {
-            $('#zoomImageModal').modal('hide');
+            $('#'+modalName).modal('hide');
+        }
+
+        function showModal(modalName)
+        {
+            $('#'+modalName).modal('show');
         }
     </script>
 }

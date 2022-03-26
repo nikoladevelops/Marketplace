@@ -98,7 +98,7 @@ namespace Marketplace.Controllers
         }
 
         [Authorize]
-        public IActionResult MyAdvertisements(bool hasError)
+        public IActionResult MyAdvertisements()
         {
             var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
 
@@ -109,7 +109,9 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64=Convert.ToBase64String(x.ImageData)
+                    ImageInBase64=Convert.ToBase64String(x.ImageData),
+                    Category=x.Category.Name,
+                    Location=x.Location
                 })
                 .ToList();
 
@@ -209,7 +211,9 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64 = Convert.ToBase64String(x.ImageData)
+                    ImageInBase64 = Convert.ToBase64String(x.ImageData),
+                    Location=x.Location,
+                    Category=x.Category.Name
                 })
                 .ToList();
 
