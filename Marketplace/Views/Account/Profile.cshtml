@@ -1,4 +1,5 @@
-﻿@using Marketplace.ViewModels
+﻿@using Marketplace.Utility
+@using Marketplace.ViewModels
 @model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
 @{
     var countAds = @Model.Count();
@@ -90,7 +91,12 @@ else
                         <div class="text-center">
                             <h6 class="font-s">@currentAd.Price EUR</h6>
                             <a class="btn btn-sm btn-dark" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">SHOW</a>
-                        </div>
+                            @if (User.IsInRole(Helper.AdminRole))
+                            {
+                                <a class="btn btn-sm btn-danger" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">DELETE</a>
+                                
+                            }
+                            </div>
                     </div>
                         <h6 class="bg-warning text-dark p-1 m-0 font-s">@currentAd.Location</h6>
                         <h6 class="bg-success text-white p-1 m-0 font-s">@currentAd.Category</h6>
@@ -100,4 +106,35 @@ else
         }
     </div>
 
+    @if (User.IsInRole(Helper.AdminRole))
+    {
+        <!-- Modal -->
+        <form method="post" name="deleteAdForm" asp-action="Delete" asp-controller="Advertisement">
+        <div class="modal fade" id="deleteAdModal" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
+        
+              </div>
+              <div class="modal-body">
+                <p>You are about to delete one of your advertisements - "<span class="adToDeleteTitle"></span>". Are you sure about that?</p>
+              </div>
+              <div class="modal-footer">
+                <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
+                <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </form>
+    }
+}
+
+@section Scripts
+{
+    @if (User.IsInRole(Helper.AdminRole))
+    {
+       <script defer src="~/js/deleteAdvertisement.js"></script>
+    }
 }

@@ -4,6 +4,7 @@ using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Marketplace.Controllers
@@ -170,15 +171,31 @@ namespace Marketplace.Controllers
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var ad = _context.Advertisements
+                .Include(x=>x.User)
                 .Where(x=>x.Id==id)
                 .SingleOrDefault();
 
-            if (ad == null || currentLoggedInUserId != ad.UserId)
+            if (ad == null)
             {
                 return NotFound();
             }
+
+            var isUserAdmin = User.IsInRole(Helper.AdminRole);
+            var adOwnerUsername = ad.User.UserName;
+
+            // if the user does not own the advertisement AND he is also NOT an admin
+            if (currentLoggedInUserId != ad.UserId && !(isUserAdmin))
+            {
+                return NotFound();
+            }
+
             _context.Advertisements.Remove(ad);
             await _context.SaveChangesAsync();
+
+            if (isUserAdmin)
+            {
+                return RedirectToAction("Profile", "Account", new { username = adOwnerUsername });
+            }
 
             return RedirectToAction("MyAdvertisements","Account");
         }
