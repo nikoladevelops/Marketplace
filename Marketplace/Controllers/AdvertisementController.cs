@@ -12,6 +12,7 @@ namespace Marketplace.Controllers
     public class AdvertisementController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private const int SELLER_MAXIMUM_ADS = 20;
         public AdvertisementController(ApplicationDbContext context)
         {
             _context = context;
@@ -20,6 +21,11 @@ namespace Marketplace.Controllers
         [Authorize]
         public IActionResult Create()
         {
+            if (CheckIfMaximumAdsReached()) 
+            {
+                return View("ReachedMaximumAds");
+            }
+
             var viewModel = new CreateAdvertisementViewModel()
             {
                 CategoryDropDown = LoadCategoryDropDown()
@@ -33,13 +39,18 @@ namespace Marketplace.Controllers
         [Authorize]
         public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel)
         {
+            if (CheckIfMaximumAdsReached())
+            {
+                return View("ReachedMaximumAds");
+            }
+
             if (!ModelState.IsValid) 
             {
                 viewModel.CategoryDropDown = LoadCategoryDropDown();
 
                 return View(viewModel);
             }
-            
+
             var advertisement = new AdvertisementModel()
             {
                 ImageData = await Helper.GetByteArrayFromImage(viewModel.Image),
@@ -264,6 +275,21 @@ namespace Marketplace.Controllers
                 .Single();
 
             return categoryName;
+        }
+
+        private bool CheckIfMaximumAdsReached() 
+        {
+            var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var currentUserAdsCount = _context.Advertisements
+                .Where(x => x.UserId == currentLoggedInUserId)
+                .Count();
+
+            if (currentUserAdsCount >= SELLER_MAXIMUM_ADS)
+            {
+                return true;
+            }
+            return false;
         }
 
     }
