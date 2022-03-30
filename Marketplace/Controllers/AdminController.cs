@@ -1,10 +1,12 @@
 ﻿using Marketplace.Models;
 using Marketplace.Utility;
+using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Marketplace.Controllers
 {
+    [Authorize(Roles = Helper.AdminRole)]
     public class AdminController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -14,16 +16,30 @@ namespace Marketplace.Controllers
             _context = context;
         }
 
-        [Authorize]
         public IActionResult AdminPanel()
         {
-            if (!(User.IsInRole(Helper.AdminRole)))
+            return View();
+        }
+
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public IActionResult SearchUser(string username)
+        {
+            var userExists = _context.Users
+                .SingleOrDefault(x => x.UserName == username);
+
+            var vm = new AdminPanelViewModel()
             {
-                return NotFound();
+                Username = username
+            };
+
+            if (userExists == null)
+            {
+                vm.UserNotFound = true;
+                return View("AdminPanel", vm);
             }
 
-
-            return View();
+            return View("AdminPanel",vm);
         }
     }
 }

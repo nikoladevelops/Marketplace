@@ -2,8 +2,8 @@
 {
     public class Helper
     {
-        public static string AdminRole = "Admin";
-        public static string SellerRole = "Seller";
+        public const string AdminRole = "Admin";
+        public const string SellerRole = "Seller";
 
         public static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
         {

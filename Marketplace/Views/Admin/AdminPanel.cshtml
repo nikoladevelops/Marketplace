@@ -1,1 +1,37 @@
-﻿<h3>Admin Panel</h3>
+﻿@model Marketplace.ViewModels.AdminPanelViewModel
+@{
+    var userExists = Model != null && !Model.UserNotFound;
+    var userDoesNotExist = Model != null && Model.UserNotFound;
+}
+<h3>Admin Panel</h3>
+
+<form method="post" asp-action="SearchUser" asp-controller="Admin">
+    <label>Search User</label>
+    <input asp-for=Username name="username" class="form-control mb-2" placeholder="Username"/>
+    @if (userDoesNotExist)
+    {
+        <p class="field-validation-error">User does NOT exist.</p>
+        
+    }
+    <button class="btn btn-primary mb-5">Search</button>
+</form>
+
+@if (userExists)
+{
+    <h3 class="text-success">User "<span class="text-primary">@Model.Username</span>" Found</h3>
+    <h5 class="text-primary">You can edit this user's account.</h5>
+    <div class="mb-3">
+        <a asp-controller="Users" asp-action="@Model.Username" class="btn btn-info">Show Profile</a>
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-success">Give Premium</button>
+        <button class="btn btn-danger">Remove Premium</button>
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-success">Make Admin</button>
+        <button class="btn btn-danger">Remove Admin</button>
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-danger">Delete Account</button>
+    </div>
+}
