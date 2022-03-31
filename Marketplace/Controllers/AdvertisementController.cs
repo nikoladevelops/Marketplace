@@ -13,6 +13,7 @@ namespace Marketplace.Controllers
     {
         private readonly ApplicationDbContext _context;
         private const int SELLER_MAXIMUM_ADS = 20;
+        private const int PREMIUM_MAXIMUM_ADS = 40;
         public AdvertisementController(ApplicationDbContext context)
         {
             _context = context;
@@ -285,7 +286,14 @@ namespace Marketplace.Controllers
                 .Where(x => x.UserId == currentLoggedInUserId)
                 .Count();
 
-            if (currentUserAdsCount >= SELLER_MAXIMUM_ADS)
+            var maxAdsAllowed = SELLER_MAXIMUM_ADS;
+
+            if (User.IsInRole(Helper.PremiumRole))
+            {
+                maxAdsAllowed = PREMIUM_MAXIMUM_ADS;
+            }
+
+            if (currentUserAdsCount >= maxAdsAllowed) // using >= instead of == because user's premium status can be removed and he can be left with more advertisements compared to normal seller accounts.
             {
                 return true;
             }

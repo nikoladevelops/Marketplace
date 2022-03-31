@@ -1,5 +1,14 @@
-﻿<container>
+﻿@using Marketplace.Utility
+<container>
     <row>
-        <h3 class="text-center field-validation-error">You have reached maximum amount of ads per account!</h3>
+        <h3 class="text-center field-validation-error">You have reached the maximum amount of ads for your account!</h3>
+        @if (User.IsInRole(Helper.PremiumRole))
+        {
+            <h3 class="text-center field-validation-error">Consider deleting some of your old advertisements.</h3>
+        }
+        else
+        {
+            <h3 class="text-center field-validation-error">Consider upgrading your account to Premium (contact us) or deleting some of your old advertisements.</h3>
+        }
     </row>
 </container>

@@ -18,7 +18,12 @@
 
 @if (User.IsInRole(Helper.AdminRole))
 {
-    <h5 class="text-success">You are logged in as Admin</h5>
+    <h6 class="text-success bg-light p-3 text-center">You are logged in as Admin</h6>
+}
+
+@if (User.IsInRole(Helper.PremiumRole))
+{
+     <h6 class="text-warning bg-dark bg-gradient p-3 text-center">You have Premium</h6>
 }
 <form class="form-control border border-primary" method="post" asp-action="Update" asp-controller="Account" enctype='multipart/form-data'>
 <div class="container">
