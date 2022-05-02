@@ -22,7 +22,7 @@ namespace Marketplace.ViewModels
         [Display(Name ="Date Created")]
         public string DateCreatedOn { get; set; }
 
-        public byte[]? ImageInBytes { get; set; }
+        public byte[] ImageInBytes { get; set; }
 
         public IList<byte[]>? AdditionalImagesInBytes { get; set; }
 
