@@ -9,7 +9,7 @@ namespace Marketplace.ViewModels
         public string Username { get; set; }
 
         [Required]
-        [StringLength(100, ErrorMessage = "Password can NOT be more than 100 characters long.")]
+        [StringLength(30, ErrorMessage = "Password can NOT be more than 100 characters long.")]
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
