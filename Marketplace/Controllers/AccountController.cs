@@ -158,14 +158,18 @@ namespace Marketplace.Controllers
                 {
                     //verify that it's actually a phone number
                     bool isInvalidLength = viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8;
-                    bool hasSymbols = !(int.TryParse(viewModel.PhoneNumber, out int num));
 
-                    if (isInvalidLength || hasSymbols)
+                    if (isInvalidLength)
                     {
                         ViewBag.PhoneError = "The phone number is incorrect.";
                         return View("MyProfile", viewModel);
                     }
-                    
+                    bool hasSymbols = !viewModel.PhoneNumber.All(char.IsDigit);
+                    if (hasSymbols)
+                    {
+                        ViewBag.PhoneError = "The phone number contains symbols.";
+                        return View("MyProfile", viewModel);
+                    }
                     currentUser.PhoneNumber = viewModel.PhoneNumber;
                 }
                 else
