@@ -17,7 +17,7 @@ if (connection_string == null)
     throw new Exception("You haven't configured the connection string, check Program.cs and the .env file");
 }
 
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connection_string));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connection_string));
 
 // Add Identity support + tables
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
