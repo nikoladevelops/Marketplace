@@ -2,9 +2,11 @@
 
 <form class="form-control border border-primary" method="post" asp-action="Create" asp-controller="Advertisement" enctype='multipart/form-data'>
     <h3 class="text-center mb-3">Create An Advertisement</h3>
-    <span class="text-center p-3" asp-validation-for=Image></span>
+    <span class="text-center p-3 text-danger" asp-validation-for="Image"></span>
+    
     <div class="container">
         <div class="row justify-content-md-center">
+            <!-- Main Image (Mandatory) -->
             <div class="card border-primary rounded col p-0 mb-3 mx-1">
                 <div class="card-body">
                     <img id="image1" src="/plusSign.png" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
@@ -14,28 +16,31 @@
                     <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1')" class="btn btn-danger disabled">Delete</button>
                 </div>
             </div>
+            <!-- Additional Image 1 -->
             <div class="card border-primary rounded col p-0 mb-3 mx-1">
                 <div class="card-body">
                     <img id="image2" src="/plusSign.png" class="card-img" onclick="triggerInputBrowse('imageInput2')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImages" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','button2')" accept="image/jpeg, image/png" class="form-control"/>
+                    <input asp-for="AdditionalImage1" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','button2')" accept="image/jpeg, image/png" class="form-control"/>
                 </div>
                 <div class="card-footer text-center p-1">
                     <button id="button2" type="button" onclick="deleteImage(this,'image2','imageInput2')" class="btn btn-danger disabled">Delete</button>
                 </div>
             </div>
+            <!-- Additional Image 2 -->
             <div class="card border-primary rounded col p-0 mb-3 mx-1">
                 <div class="card-body">
                     <img id="image3" src="/plusSign.png" class="card-img" onclick="triggerInputBrowse('imageInput3')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImages" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','button3')" accept="image/jpeg, image/png" class="form-control"/>
+                    <input asp-for="AdditionalImage2" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','button3')" accept="image/jpeg, image/png" class="form-control"/>
                 </div>
                 <div class="card-footer text-center p-1">
                     <button id="button3" type="button" onclick="deleteImage(this,'image3','imageInput3')" class="btn btn-danger disabled">Delete</button>
                 </div>
             </div>
+            <!-- Additional Image 3 -->
             <div class="card border-primary rounded col p-0 mb-3 mx-1">
                 <div class="card-body">
                     <img id="image4" src="/plusSign.png" class="card-img" onclick="triggerInputBrowse('imageInput4')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImages" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','button4')" accept="image/jpeg, image/png" class="form-control"/>
+                    <input asp-for="AdditionalImage3" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','button4')" accept="image/jpeg, image/png" class="form-control"/>
                 </div>
                 <div class="card-footer text-center p-1">
                     <button id="button4" type="button" onclick="deleteImage(this,'image4','imageInput4')" class="btn btn-danger disabled">Delete</button>
@@ -45,33 +50,33 @@
     </div>
     
     <div class="form-group mb-3">
-        <label asp-for=Title></label>
-        <input class="form-control form-control-lg" asp-for=Title placeholder="Title"/>
-        <span asp-validation-for=Title></span>
+        <label asp-for="Title"></label>
+        <input class="form-control form-control-lg" asp-for="Title" placeholder="Title"/>
+        <span asp-validation-for="Title"></span>
     </div>
     <div class="form-group mb-3">
-        <label asp-for=Description></label>
-        <textarea class="form-control" asp-for=Description rows="3" placeholder="Please add description here"></textarea>
-        <span asp-validation-for=Description></span>
+        <label asp-for="Description"></label>
+        <textarea class="form-control" asp-for="Description" rows="3" placeholder="Please add description here"></textarea>
+        <span asp-validation-for="Description"></span>
     </div>
     <div class="form-group mb-3">
-        <label asp-for=Price></label>
-        <input class="form-control" asp-for=Price placeholder="Price"/>
-        <span asp-validation-for=Price></span>
+        <label asp-for="Price"></label>
+        <input class="form-control" asp-for="Price" placeholder="Price"/>
+        <span asp-validation-for="Price"></span>
     </div>
     <div class="form-group mb-3">
-        <label asp-for=Location></label>
-        <input class="form-control" asp-for=Location placeholder="Please enter your location"/>
-        <span asp-validation-for=Location></span>
+        <label asp-for="Location"></label>
+        <input class="form-control" asp-for="Location" placeholder="Please enter your location"/>
+        <span asp-validation-for="Location"></span>
     </div>
     <div class="form-group mb-3">
         <select asp-for="CategoryId" asp-items="@Model.CategoryDropDown" class="form-control">
             <option value=-1>--Select--</option>
         </select>
-        <span asp-validation-for=CategoryId class=text-danger></span>
+        <span asp-validation-for="CategoryId" class="text-danger"></span>
     </div>
     <button type="submit" class="btn btn-primary border border-dark rounded">Create</button>
-    <a class="btn btn btn-light border border-dark rounded" asp-action="MyAdvertisements" asp-controller="Account">Cancel</a>
+    <a class="btn btn-light border border-dark rounded" asp-action="MyAdvertisements" asp-controller="Account">Cancel</a>
 </form>
 
 @section Scripts

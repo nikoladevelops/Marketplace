@@ -28,14 +28,14 @@ namespace Marketplace.ViewModels
         [StringLength(15,MinimumLength =4)]
         public string Location { get; set; }
 
-        // hardcoded value 9 for amount of categories available
         [Required(ErrorMessage = "You need to select a category.")]
         [Range(1,9, ErrorMessage = "You need to select a category.")]
         public int CategoryId { get; set; }
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public IEnumerable<IFormFile>? AdditionalImages { get; set; }
-
+        public IFormFile? AdditionalImage1 { get; set; }
+        public IFormFile? AdditionalImage2 { get; set; }
+        public IFormFile? AdditionalImage3 { get; set; }
     }
 }

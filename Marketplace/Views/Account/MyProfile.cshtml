@@ -25,6 +25,7 @@
 {
      <h6 class="text-warning bg-dark bg-gradient p-3 text-center">You have Premium</h6>
 }
+
 <form class="form-control border border-primary" method="post" asp-action="Update" asp-controller="Account" enctype='multipart/form-data'>
 <div class="container">
     <div class="row">
@@ -37,7 +38,7 @@
                 </div>
                 <div class="card-footer text-center">
                     <button id="changeProfileImage" type="button" onclick="triggerInputBrowse('imageInput1')" class="btn btn-sm btn-primary">Change</button>
-                    <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1')" class="btn btn-sm btn-danger disabled">Delete</button>
+                    <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1','existingPathInput')" class="btn btn-sm btn-danger disabled">Delete</button>
                 </div>
             </div>
         </div>
@@ -67,11 +68,10 @@
             <span asp-validation-for="Description" class="text-center"></span>
         </div>
 <button class="btn btn-success mb-3" type="submit">Update Profile</button>
-<input type="hidden" asp-for="ExistingProfilePicturePath"/>
+<input type="hidden" asp-for="ExistingProfilePicturePath" id="existingPathInput"/>
 </form>
 
 @section Scripts
 {
-    <script defer src=~/js/loadPreviousImages.js></script>
     <script src="~/js/imageManipulation.js"></script>
 }

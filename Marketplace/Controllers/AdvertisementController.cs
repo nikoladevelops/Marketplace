@@ -35,7 +35,7 @@ namespace Marketplace.Controllers
             return View(viewModel);
         }
 
-        [HttpPost]
+       [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
         public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel)
@@ -66,9 +66,11 @@ namespace Marketplace.Controllers
             await _context.Advertisements.AddAsync(advertisement);
             await _context.SaveChangesAsync();
 
-            if (viewModel.AdditionalImages != null)
+            // Collect individual additional images into an array/list for iteration
+            var additionalFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
+            foreach (var img in additionalFiles)
             {
-                foreach (var img in viewModel.AdditionalImages)
+                if (img != null && img.Length > 0)
                 {
                     string additionalPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment);
                     var advertisementImage = new AdvertisementImageModel()
@@ -78,8 +80,8 @@ namespace Marketplace.Controllers
                     };
                     await _context.AdvertisementImages.AddAsync(advertisementImage);
                 }
-                await _context.SaveChangesAsync();
             }
+            await _context.SaveChangesAsync();
 
             return RedirectToAction("MyAdvertisements", "Account");
         }
@@ -105,13 +107,18 @@ namespace Marketplace.Controllers
 
             if (ad == null || currentLoggedInUserId != ad.UserId) return NotFound();
 
-            var additionalImagesPaths = _context.AdvertisementImages
+            var additionalImages = _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
-                .Select(x => x.ImagePath)
                 .ToList();
 
+            var paths = new List<string> { "", "", "" };
+            for (int i = 0; i < Math.Min(additionalImages.Count, 3); i++)
+            {
+                paths[i] = additionalImages[i].ImagePath;
+            }
+
             ad.CategoryDropDown = LoadCategoryDropDown();
-            ad.ExistingAdditionalImagePaths = additionalImagesPaths;
+            ad.ExistingAdditionalImagePaths = paths;
 
             return View("Edit", ad);
         }
@@ -121,22 +128,37 @@ namespace Marketplace.Controllers
         [Authorize]
         public async Task<IActionResult> Edit(EditAdvertisementViewModel viewModel)
         {
+            // Enforce that main image is mandatory
+            if (viewModel.Image == null && string.IsNullOrEmpty(viewModel.ExistingImagePath))
+            {
+                ModelState.AddModelError("Image", "The main advertisement image is mandatory.");
+            }
+
             if (!ModelState.IsValid)
             {
                 viewModel.CategoryDropDown = LoadCategoryDropDown();
+                viewModel.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
                 return View(viewModel);
             }
 
-            var advertisement = _context.Advertisements.FirstOrDefault(x => x.Id == viewModel.Id);
+            var advertisement = _context.Advertisements
+                .Include(x => x.AdvertisementImages)
+                .FirstOrDefault(x => x.Id == viewModel.Id);
+                
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (advertisement == null || currentLoggedInUserId != advertisement.UserId) return NotFound();
 
-            // If a new main image is uploaded, delete old and save new
+            // 1. Handle Main Image
             if (viewModel.Image != null)
             {
                 Helper.DeleteImage(advertisement.ImagePath, _webHostEnvironment);
                 advertisement.ImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
+            }
+            else if (string.IsNullOrEmpty(viewModel.ExistingImagePath))
+            {
+                Helper.DeleteImage(advertisement.ImagePath, _webHostEnvironment);
+                advertisement.ImagePath = null;
             }
 
             advertisement.Title = viewModel.Title;
@@ -145,24 +167,43 @@ namespace Marketplace.Controllers
             advertisement.Location = viewModel.Location;
             advertisement.CategoryId = viewModel.CategoryId;
 
-            // Handle additional images replacement
-            if (viewModel.AdditionalImages != null && viewModel.AdditionalImages.Any())
-            {
-                var oldImgs = _context.AdvertisementImages.Where(x => x.AdvertisementId == advertisement.Id).ToList();
-                foreach (var oldImg in oldImgs)
-                {
-                    Helper.DeleteImage(oldImg.ImagePath, _webHostEnvironment);
-                }
-                _context.AdvertisementImages.RemoveRange(oldImgs);
+            // 2. Map individual inputs slot-by-slot (Slots 0, 1, 2)
+            var newFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
+            viewModel.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
+            var orderedExisting = advertisement.AdvertisementImages.OrderBy(x => x.Id).ToList();
 
-                foreach (var img in viewModel.AdditionalImages)
+            for (int i = 0; i < 3; i++)
+            {
+                AdvertisementImageModel dbImage = i < orderedExisting.Count ? orderedExisting[i] : null;
+                var newFile = newFiles[i];
+                var existingPathTracker = i < viewModel.ExistingAdditionalImagePaths.Count ? viewModel.ExistingAdditionalImagePaths[i] : "";
+
+                if (newFile != null && newFile.Length > 0)
                 {
-                    string addPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment);
-                    await _context.AdvertisementImages.AddAsync(new AdvertisementImageModel
+                    // User uploaded a new image for this slot
+                    if (dbImage != null)
                     {
-                        ImagePath = addPath,
-                        AdvertisementId = advertisement.Id
-                    });
+                        Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+                        dbImage.ImagePath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+                    }
+                    else
+                    {
+                        string addPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+                        _context.AdvertisementImages.Add(new AdvertisementImageModel
+                        {
+                            ImagePath = addPath,
+                            AdvertisementId = advertisement.Id
+                        });
+                    }
+                }
+                else if (string.IsNullOrEmpty(existingPathTracker))
+                {
+                    // User clicked delete for this slot
+                    if (dbImage != null)
+                    {
+                        Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+                        _context.AdvertisementImages.Remove(dbImage);
+                    }
                 }
             }
 

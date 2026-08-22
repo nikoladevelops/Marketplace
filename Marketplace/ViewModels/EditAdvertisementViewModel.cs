@@ -8,7 +8,7 @@ namespace Marketplace.ViewModels
     {
         public int Id { get; set; }
 
-        public IFormFile? Image { get; set; } // Optional on edit so users can keep existing image
+        public IFormFile? Image { get; set; }
 
         [Required]
         [StringLength(35, MinimumLength = 3)]
@@ -35,7 +35,9 @@ namespace Marketplace.ViewModels
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
-        public IEnumerable<IFormFile>? AdditionalImages { get; set; }
+        public IFormFile? AdditionalImage1 { get; set; }
+        public IFormFile? AdditionalImage2 { get; set; }
+        public IFormFile? AdditionalImage3 { get; set; }
 
         public string? ExistingImagePath { get; set; }
         public IList<string>? ExistingAdditionalImagePaths { get; set; }

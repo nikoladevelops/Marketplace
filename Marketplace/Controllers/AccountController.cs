@@ -141,9 +141,17 @@ namespace Marketplace.Controllers
 
             if (viewModel.ProfilePicture != null)
             {
+                // Case 1: User uploaded a brand-new image
                 Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
                 currentUser.ProfilePicturePath = await Helper.SaveImageAsync(viewModel.ProfilePicture, "profiles", _webHostEnvironment);
             }
+            else if (string.IsNullOrEmpty(viewModel.ExistingProfilePicturePath) && !string.IsNullOrEmpty(currentUser.ProfilePicturePath))
+            {
+                // Case 2: User clicked "Delete" (Existing path was cleared out by JS)
+                Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
+                currentUser.ProfilePicturePath = null;
+            }
+            // Case 3: User made no changes to the picture -> do nothing, keep existing path.
 
             await _context.SaveChangesAsync();
             return RedirectToAction("MyProfile", "Account");
