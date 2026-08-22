@@ -3,6 +3,20 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Visual Studio / JetBrains Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+**/wwwroot/uploads/
+
+
 # User-specific files
 *.rsuser
 *.suo

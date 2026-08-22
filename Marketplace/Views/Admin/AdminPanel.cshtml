@@ -23,7 +23,7 @@
 @if (userExists && !userUpdated)
 {
     <form method="post">
-        <h3 class="text-success">User "<span class="text-primary">@Model.Username</span>" Found</h3>
+        <h3 class="text-success">User <span class="text-primary">@Model.Username</span>" Found</h3>
         <h5 class="text-primary">You can edit this user's account.</h5>
         <div class="mb-3">
             <a asp-controller="Users" asp-action="@Model.Username" class="btn btn-info">Show Profile</a>

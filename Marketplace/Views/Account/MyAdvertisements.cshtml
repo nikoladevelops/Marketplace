@@ -4,30 +4,30 @@
     var countAds = @Model.Count();
 }
 
-@if (countAds==0)
+@if (countAds == 0)
 {
     <h3>You have no advertisements. Consider creating one.</h3>
-    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
+    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a>
 }
 else
 {
     <h3>My Advertisements</h3>
-    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a> @*this should redirect to CreateAdvertisement view*@
+    <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary mb-4">Create An Advertisement</a>
     
     <div class="container">
-        @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
+        @for (var i = 0; i < countAds; i += 4)
         {
             <div class="row">
-            @for (var j = 0; j < 4; j++) // I want 4 columns on current row
+            @for (var j = 0; j < 4; j++)
             {
-                @if (i+j==countAds) // stop displaying if we've reached the end
+                @if (i + j == countAds)
                 {
                     break;
                 }
 
-                var currentAd = Model.ElementAt(i+j);
+                var currentAd = Model.ElementAt(i + j);
                 <div class="card col-3 border border-primary rounded p-0 mb-3">
-                    <img src="data:image;base64,@currentAd.ImageInBase64" class="card-img-top">
+                    <img src="@currentAd.ImagePath" class="card-img-top" alt="Advertisement Image">
 
                     <div class="card-body text-center">
                         <h6 class="card-title">@currentAd.Title</h6>
@@ -48,7 +48,6 @@ else
         }
     </div>
 
-
 <!-- Modal -->
 <form method="post" name="deleteAdForm" asp-action="Delete" asp-controller="Advertisement">
 <div class="modal fade" id="deleteAdModal" tabindex="-1">
@@ -56,7 +55,6 @@ else
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
-        
       </div>
       <div class="modal-body">
         <p>You are about to delete one of your advertisements - "<span class="adToDeleteTitle"></span>". Are you sure about that?</p>

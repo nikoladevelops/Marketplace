@@ -5,7 +5,7 @@ namespace Marketplace.Models
     public class AdvertisementModel
     {
         public int Id { get; set; }
-        public byte[] ImageData { get; set; }
+        public string ImagePath { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public double Price { get; set; }
@@ -17,5 +17,7 @@ namespace Marketplace.Models
 
         public int CategoryId { get; set; }
         public CategoryModel Category { get; set; }
+        
+        public ICollection<AdvertisementImageModel> AdvertisementImages { get; set; } = new List<AdvertisementImageModel>();
     }
 }

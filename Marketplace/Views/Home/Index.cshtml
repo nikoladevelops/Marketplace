@@ -60,7 +60,7 @@ else
 
                 var currentAd = Model.Advertisements.ElementAt(i+j);
                 <div class="card col-3 border border-primary rounded p-0 mb-3">
-                    <img src="data:image;base64,@currentAd.ImageInBase64" class="card-img-top">
+                    <img src="@currentAd.ImagePath" class="card-img-top" alt="Advertisement Image">
 
                     <div class="card-body text-center">
                         <h6 class="card-title">@currentAd.Title</h6>

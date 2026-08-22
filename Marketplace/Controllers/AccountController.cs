@@ -2,42 +2,31 @@
 using Marketplace.Utility;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Marketplace.Controllers
 {
-    public class AccountController:Controller
+    public class AccountController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+
         public AccountController(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
+            _webHostEnvironment = webHostEnvironment;
         }
-        public IActionResult Register() 
-        {
-            if (_signInManager.IsSignedIn(User))
-            {
-                return RedirectToAction("MyProfile");
-            }
 
-            return View();
-        }
-        public IActionResult Login()
-        {
-            if (_signInManager.IsSignedIn(User))
-            {
-                return RedirectToAction("MyProfile");
-            }
-
-            return View();
-        }
+        public IActionResult Register() => _signInManager.IsSignedIn(User) ? RedirectToAction("MyProfile") : View();
+        public IActionResult Login() => _signInManager.IsSignedIn(User) ? RedirectToAction("MyProfile") : View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -46,15 +35,9 @@ namespace Marketplace.Controllers
             if (ModelState.IsValid)
             {
                 var result = await _signInManager.PasswordSignInAsync(viewModel.Username, viewModel.Password, viewModel.RememberMe, false);
-
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("Index","Home");
-                }
-
+                if (result.Succeeded) return RedirectToAction("Index", "Home");
                 ModelState.AddModelError(string.Empty, "Invalid log in attempt.");
             }
-
             return View(viewModel);
         }
 
@@ -64,12 +47,7 @@ namespace Marketplace.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser()
-                {
-                    UserName = viewModel.Username,
-                    Email = viewModel.Email
-                };
-
+                var user = new ApplicationUser { UserName = viewModel.Username, Email = viewModel.Email };
                 var result = await _userManager.CreateAsync(user, viewModel.Password);
 
                 if (result.Succeeded)
@@ -77,14 +55,10 @@ namespace Marketplace.Controllers
                     await _userManager.AddToRoleAsync(user, Helper.SellerRole);
                     await _context.SaveChangesAsync();
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index","Home");
+                    return RedirectToAction("Index", "Home");
                 }
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
+                foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
             }
-
             return View(viewModel);
         }
 
@@ -100,41 +74,39 @@ namespace Marketplace.Controllers
         [Authorize]
         public IActionResult MyAdvertisements()
         {
-            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-            var currentUserAllAds = _context.Advertisements
-                .Where(x => x.UserId == currentLoggedInUserId)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var ads = _context.Advertisements
+                .Where(x => x.UserId == userId)
                 .Select(x => new SimplifiedAdvertisementViewModel()
                 {
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64=Convert.ToBase64String(x.ImageData),
-                    Category=x.Category.Name,
-                    Location=x.Location
+                    ImagePath = x.ImagePath,
+                    Category = x.Category.Name,
+                    Location = x.Location
                 })
                 .ToList();
 
-            return View(currentUserAllAds);
+            return View(ads);
         }
 
         [Authorize]
         public IActionResult MyProfile()
         {
-            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-            var currentUserDataVM = _context.Users
-                .Where(x => x.Id == currentLoggedInUserId)
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var profileVM = _context.Users
+                .Where(x => x.Id == userId)
                 .Select(x => new MyProfileViewModel()
                 {
-                    ProfilePictureInBytes = x.ProfilePicture,
+                    ExistingProfilePicturePath = x.ProfilePicturePath,
                     Description = x.Description,
                     PhoneNumber = x.PhoneNumber,
-                    PhoneNumberAgreement = x.PhoneNumber == null ? false : true
+                    PhoneNumberAgreement = x.PhoneNumber != null
                 })
                 .Single();
 
-            return View(currentUserDataVM);
+            return View(profileVM);
         }
 
         [HttpPost]
@@ -142,71 +114,46 @@ namespace Marketplace.Controllers
         [Authorize]
         public async Task<IActionResult> Update(MyProfileViewModel viewModel)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid) return View("MyProfile", viewModel);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
+            var currentUser = _context.Users.First(x => x.Id == userId);
+            currentUser.Description = viewModel.Description;
+
+            if (viewModel.PhoneNumber != null)
             {
-                return View("MyProfile",viewModel);
-            }
-
-            var currentLoggedInUserId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-            var currentUser = _context.Users.First(x => x.Id == currentLoggedInUserId);
-            currentUser.Description=viewModel.Description;
-            
-            if (viewModel.PhoneNumber!=null)
-            {
-                if (viewModel.PhoneNumberAgreement)
-                {
-                    //verify that it's actually a phone number
-                    bool isInvalidLength = viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8;
-
-                    if (isInvalidLength)
-                    {
-                        ViewBag.PhoneError = "The phone number is incorrect.";
-                        return View("MyProfile", viewModel);
-                    }
-                    bool hasSymbols = !viewModel.PhoneNumber.All(char.IsDigit);
-                    if (hasSymbols)
-                    {
-                        ViewBag.PhoneError = "The phone number contains symbols.";
-                        return View("MyProfile", viewModel);
-                    }
-                    currentUser.PhoneNumber = viewModel.PhoneNumber;
-                }
-                else
+                if (!viewModel.PhoneNumberAgreement)
                 {
                     ViewBag.AgreementError = "You need to click the checkbox";
                     return View("MyProfile", viewModel);
                 }
+                if (viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8 || !viewModel.PhoneNumber.All(char.IsDigit))
+                {
+                    ViewBag.PhoneError = "The phone number is incorrect.";
+                    return View("MyProfile", viewModel);
+                }
+                currentUser.PhoneNumber = viewModel.PhoneNumber;
             }
             else
             {
                 currentUser.PhoneNumber = null;
             }
 
-            if (viewModel.ProfilePicture!=null)
+            if (viewModel.ProfilePicture != null)
             {
-                currentUser.ProfilePicture = await Helper.GetByteArrayFromImage(viewModel.ProfilePicture);
-            }
-            else
-            {
-                currentUser.ProfilePicture = null;
+                Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
+                currentUser.ProfilePicturePath = await Helper.SaveImageAsync(viewModel.ProfilePicture, "profiles", _webHostEnvironment);
             }
 
             await _context.SaveChangesAsync();
-
-            return RedirectToAction("MyProfile","Account");
+            return RedirectToAction("MyProfile", "Account");
         }
 
         [Route("/Users/{username}")]
         public IActionResult Profile(string username)
         {
-            var user = _context.Users
-               .SingleOrDefault(x => x.UserName == username);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
+            var user = _context.Users.SingleOrDefault(x => x.UserName == username);
+            if (user == null) return NotFound();
 
             var userAds = _context.Advertisements
                 .Where(x => x.UserId == user.Id)
@@ -215,15 +162,13 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64 = Convert.ToBase64String(x.ImageData),
-                    Location=x.Location,
-                    Category=x.Category.Name
+                    ImagePath = x.ImagePath,
+                    Location = x.Location,
+                    Category = x.Category.Name
                 })
                 .ToList();
 
-           
-
-            ViewBag.ProfilePicture = user.ProfilePicture;
+            ViewBag.ProfilePicturePath = user.ProfilePicturePath;
             ViewBag.Description = user.Description;
             ViewBag.PhoneNumber = user.PhoneNumber;
             ViewBag.Email = user.Email;
@@ -231,5 +176,4 @@ namespace Marketplace.Controllers
             return View(userAds);
         }
     }
-
 }

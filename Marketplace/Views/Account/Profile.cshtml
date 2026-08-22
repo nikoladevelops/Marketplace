@@ -6,14 +6,14 @@
     var profilePictureSrc = "/noProfilePicture.png";
     var description = "This user has no description.";
 
-    if(ViewBag.ProfilePicture != null)
+    if (ViewBag.ProfilePicturePath != null)
     {
-        profilePictureSrc = "data:image;base64,"+Convert.ToBase64String(@ViewBag.ProfilePicture);
+        profilePictureSrc = ViewBag.ProfilePicturePath;
     }
 
-    if(ViewBag.Description != null)
+    if (ViewBag.Description != null)
     {
-        description = @ViewBag.Description;
+        description = ViewBag.Description;
     }
 }
 
@@ -23,7 +23,7 @@
             <h3>Profile Picture</h3>
             <div class="border border-primary rounded">
                 <div class="card-body">
-                    <img id="image1" src="@profilePictureSrc" class="card-img">
+                    <img id="image1" src="@profilePictureSrc" class="card-img" alt="Profile Picture">
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
             <textarea readonly name="description" class="form-control mb-3">@description</textarea>
         }
 
-@if (countAds==0)
+@if (countAds == 0)
 {
     <h3>This user has no advertisements.</h3>
 }
@@ -70,19 +70,19 @@ else
     <h3>User Advertisements</h3>
 
     <div class="container">
-        @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
+        @for (var i = 0; i < countAds; i += 4)
         {
             <div class="row">
-            @for (var j = 0; j < 4; j++) // I want 4 columns on current row
+            @for (var j = 0; j < 4; j++)
             {
-                @if (i+j==countAds) // stop displaying if we've reached the end
+                @if (i + j == countAds)
                 {
                     break;
                 }
 
-                var currentAd = Model.ElementAt(i+j);
+                var currentAd = Model.ElementAt(i + j);
                 <div class="card col-3 border border-primary rounded p-0 mb-3">
-                    <img src="data:image;base64,@currentAd.ImageInBase64" class="card-img-top">
+                    <img src="@currentAd.ImagePath" class="card-img-top" alt="Ad Image">
 
                     <div class="card-body text-center">
                         <h6 class="card-title">@currentAd.Title</h6>
@@ -94,7 +94,6 @@ else
                             @if (User.IsInRole(Helper.AdminRole))
                             {
                                 <a class="btn btn-sm btn-danger" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">DELETE</a>
-                                
                             }
                             </div>
                     </div>
@@ -115,7 +114,6 @@ else
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
-        
               </div>
               <div class="modal-body">
                 <p>You are about to delete - "<span class="adToDeleteTitle"></span>". Are you sure about that?</p>

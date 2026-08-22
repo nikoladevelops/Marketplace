@@ -25,79 +25,45 @@ namespace Marketplace.Controllers
             filter = filter.ToLower();
             category = category.ToLower();
 
-            List<SimplifiedAdvertisementViewModel>? adsResult = null;
             IQueryable<AdvertisementModel> currentQuery = _context.Advertisements;
-
             int loadAdsPerPage = 24;
             int categoryId = -1;
 
-            if (searchTerm!=null)
+            if (searchTerm != null)
             {
-                currentQuery = currentQuery
-                    .Where(x => x.Title.Contains(searchTerm));
+                currentQuery = currentQuery.Where(x => x.Title.Contains(searchTerm));
             }
 
-            switch (location)
+            if (location != null)
             {
-                case null:
-                    // dont filter then
-                    break;
-                default:
-                    location = location.ToLower().Trim();
-                    currentQuery = currentQuery
-                        .Where(x => x.Location == location);
-                    break;
+                location = location.ToLower().Trim();
+                currentQuery = currentQuery.Where(x => x.Location == location);
             }
 
-            currentQuery = currentQuery
-                .Where(x => x.Price >= minimumPrice && x.Price <= maximumPrice);
+            currentQuery = currentQuery.Where(x => x.Price >= minimumPrice && x.Price <= maximumPrice);
             
-            switch (category)
+            if (category != "all")
             {
-                case "all":
-                    //no need to filter based on category
-                    break;
-                default:
-                    var allCategories = _context.Categories
-                    .Select(x => x.Name.ToLower())
-                    .ToList();
-
-                    categoryId = allCategories.IndexOf(category);
-                    if (categoryId != -1)
-                    {
-                        currentQuery = currentQuery
-                            .Include(x=>x.Category)
-                            .Where(x => x.Category.Name.ToLower() == category);
-                    }
-                    // otherwise if the category is not found, there is no need to filter
-                    break;
+                var allCategories = _context.Categories.Select(x => x.Name.ToLower()).ToList();
+                categoryId = allCategories.IndexOf(category);
+                if (categoryId != -1)
+                {
+                    currentQuery = currentQuery.Include(x => x.Category).Where(x => x.Category.Name.ToLower() == category);
+                }
             }
 
-            switch (filter)
+            currentQuery = filter switch
             {
-                case "new":
-                    currentQuery = currentQuery
-                        .OrderByDescending(x => x.DateCreatedOn);
-                    break;
-                case "old":
-                    currentQuery = currentQuery
-                        .OrderBy(x => x.DateCreatedOn);
-                    break;
-                case "cheapest":
-                    currentQuery = currentQuery
-                        .OrderBy(x => x.Price);
-                        break;
-                case "most expensive":
-                    currentQuery = currentQuery
-                        .OrderByDescending(x => x.Price);
-                    break;
-                default: // just dont order then
-                    break;
-            }
+                "new" => currentQuery.OrderByDescending(x => x.DateCreatedOn),
+                "old" => currentQuery.OrderBy(x => x.DateCreatedOn),
+                "cheapest" => currentQuery.OrderBy(x => x.Price),
+                "most expensive" => currentQuery.OrderByDescending(x => x.Price),
+                _ => currentQuery
+            };
 
-            var countFilteredAds=currentQuery.Count();
+            var countFilteredAds = currentQuery.Count();
 
-            adsResult = currentQuery
+            var adsResult = currentQuery
                 .Skip(pageNumber * loadAdsPerPage)
                 .Take(loadAdsPerPage)
                 .Select(x => new SimplifiedAdvertisementViewModel()
@@ -105,35 +71,27 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImageInBase64 = Convert.ToBase64String(x.ImageData),
-                    Location=x.Location,
-                    Category=x.Category.Name
+                    ImagePath = x.ImagePath, // Swapped from Base64 blob conversion to disk path
+                    Location = x.Location,
+                    Category = x.Category.Name
                 }).ToList();
-
 
             var homeVM = new HomeViewModel()
             {
-                CategoryDropDown = _context.Categories
-                .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
-                .ToList(),
+                CategoryDropDown = _context.Categories.Select(x => new SelectListItem(x.Name, x.Id.ToString())).ToList(),
                 Advertisements = adsResult,
-                SearchTerm=searchTerm,
-                CategoryId=categoryId+1, // adding +1 so the indexes are correct because I've added an additional category 'All' in the drop down menu in the view
-                PageNumber=pageNumber,
-                MaxCountPages=(int)Math.Ceiling((double)countFilteredAds/loadAdsPerPage)
+                SearchTerm = searchTerm,
+                CategoryId = categoryId + 1,
+                PageNumber = pageNumber,
+                MaxCountPages = (int)Math.Ceiling((double)countFilteredAds / loadAdsPerPage)
             };
 
             return View(homeVM);
         }
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+
+        public IActionResult Privacy() => View();
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
+        public IActionResult Error() => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }

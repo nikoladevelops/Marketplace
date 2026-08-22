@@ -8,11 +8,10 @@ namespace Marketplace.ViewModels
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Primary image is required.")]
-        public IFormFile Image { get; set; }
+        public IFormFile? Image { get; set; } // Optional on edit so users can keep existing image
 
         [Required]
-        [StringLength(35,MinimumLength = 3)]
+        [StringLength(35, MinimumLength = 3)]
         public string Title { get; set; }
 
         [Required]
@@ -20,28 +19,25 @@ namespace Marketplace.ViewModels
         public string Description { get; set; }
 
         [Required]
-        [Range(1,1000000)]
+        [Range(1, 1000000)]
         [DataType(DataType.Currency)]
         public double Price { get; set; }
 
         [Required(ErrorMessage = "You need to specify where you are located.")]
-        [StringLength(15,MinimumLength =4)]
+        [StringLength(15, MinimumLength = 4)]
         public string Location { get; set; }
 
         public string? UserId { get; set; }
 
-        // hardcoded value 9 for amount of categories available
         [Required(ErrorMessage = "You need to select a category.")]
-        [Range(1,9, ErrorMessage = "You need to select a category.")]
+        [Range(1, 9, ErrorMessage = "You need to select a category.")]
         public int CategoryId { get; set; }
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
         public IEnumerable<IFormFile>? AdditionalImages { get; set; }
 
-        public byte[]? ImageInBytes { get; set; }
-
-        public IList<byte[]>? AdditionalImagesInBytes { get; set; }
-
+        public string? ExistingImagePath { get; set; }
+        public IList<string>? ExistingAdditionalImagePaths { get; set; }
     }
 }

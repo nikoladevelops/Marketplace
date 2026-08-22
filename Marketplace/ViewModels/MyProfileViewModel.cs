@@ -1,11 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.ViewModels
 {
     public class MyProfileViewModel
     {
         public IFormFile? ProfilePicture { get; set; }
-        public byte[]? ProfilePictureInBytes { get; set; }
+        public string? ExistingProfilePicturePath { get; set; }
 
         [StringLength(250)]
         public string? Description { get; set; }
