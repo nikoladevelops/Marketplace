@@ -125,20 +125,60 @@ function closeModal(modalName) {
     $('#' + modalName).modal('hide');
 }
 
-function triggerSmartListingAI() {
+function showModal(modalName) {
+    $('#' + modalName).modal('show');
+}
+
+function triggerInputBrowse(inputId) {
+    let input = document.getElementById(inputId);
+    if (input) {
+        input.click();
+    }
+}
+
+async function triggerSmartListingAI() {
     let formData = new FormData();
     let hasImages = false;
 
     for (let i = 1; i <= 4; i++) {
         let fileInput = document.getElementById('imageInput' + i);
+
+        // Prefer a freshly picked file
         if (fileInput && fileInput.files && fileInput.files[0]) {
             formData.append("images", fileInput.files[0]);
             hasImages = true;
+            continue;
         }
+
+        // Otherwise fall back to the already-uploaded image stored on disk
+        let img = document.getElementById('image' + i);
+        let existingPath = img ? img.getAttribute("data-existing-path") : null;
+
+        if (existingPath && existingPath.trim() !== "") {
+            try {
+                let response = await fetch(existingPath);
+                if (response.ok) {
+                    let blob = await response.blob();
+                    formData.append("images", blob, existingPath.split('/').pop());
+                    hasImages = true;
+                } else {
+                    console.error("Could not load existing image:", existingPath, response.status);
+                }
+            } catch (e) {
+                console.error("Could not load existing image:", existingPath, e);
+            }
+        }
+    }
+
+    if (!hasImages) {
+        alert("Please upload at least one image first.");
+        return;
     }
 
     let aiBtn = $("#aiGenerateBtn");
     let originalText = aiBtn.text();
+    let originalTitlePlaceholder = $("#Title").attr("placeholder");
+    let originalDescriptionPlaceholder = $("#Description").attr("placeholder");
 
     aiBtn.prop("disabled", true).text("🤖 AI is analyzing your images...");
     $("#Title").attr("placeholder", "Analyzing...").prop("disabled", true);
@@ -156,7 +196,7 @@ function triggerSmartListingAI() {
                 $("#Description").val(response.data.description);
                 $("#CategoryId").val(response.data.categoryId).trigger('change');
             } else {
-                alert("AI could not generate listing details. Check server logs.");
+                alert(response.message || "AI could not generate listing details. Check server logs.");
             }
         },
         error: function (xhr, status, error) {
@@ -165,8 +205,8 @@ function triggerSmartListingAI() {
         },
         complete: function () {
             aiBtn.prop("disabled", false).text(originalText);
-            $("#Title").attr("placeholder", "Title").prop("disabled", false);
-            $("#Description").attr("placeholder", "Provide a detailed description of your item...").prop("disabled", false);
+            $("#Title").attr("placeholder", originalTitlePlaceholder).prop("disabled", false);
+            $("#Description").attr("placeholder", originalDescriptionPlaceholder).prop("disabled", false);
             updateAiButtonState();
         }
     });

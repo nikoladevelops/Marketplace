@@ -1,5 +1,7 @@
 html {
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,14 +10,101 @@ html {
   }
 }
 
-html {
-  position: relative;
-  min-height: 100%;
-}
-
 body {
   margin-bottom: 60px;
+  background-color: #f6f8fb;
 }
+
 .field-validation-error {
     color: #dc3545;
+}
+
+/* ===== Bootstrap 5.1 fallbacks (utilities below only exist in 5.3+) ===== */
+.object-fit-cover { object-fit: cover; }
+.cursor-pointer { cursor: pointer; }
+.rounded-4 { border-radius: 0.5rem !important; }
+.fw-semibold { font-weight: 600 !important; }
+.rounded-end-3 { border-top-right-radius: 0.3rem !important; border-bottom-right-radius: 0.3rem !important; }
+.border-primary-subtle { border-color: rgba(13, 110, 253, 0.25) !important; }
+
+/* ===== Navbar ===== */
+.navbar {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+}
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--bs-primary) !important;
+}
+.navbar .nav-link {
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+.navbar .nav-link:hover {
+    color: var(--bs-primary) !important;
+}
+
+/* ===== Cards ===== */
+.card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.ad-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0.75rem 2rem rgba(30, 41, 59, 0.14) !important;
+}
+.ad-card img {
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background-color: #eef2f7;
+}
+.ad-card .ad-price {
+    color: #198754;
+    font-weight: 700;
+}
+.ad-card .ad-badge {
+    font-size: 0.78rem;
+    padding: 0.25rem 0.6rem;
+    margin: 0;
+}
+
+/* ===== Buttons & forms ===== */
+.btn { border-radius: 0.55rem; }
+.btn-icon-spacer { margin-inline-end: 0.35rem; }
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+}
+
+/* ===== Footer ===== */
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 60px;
+    background-color: #ffffff;
+}
+
+/* ===== Page headers ===== */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e9edf3;
+}
+.page-header h3 {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* ===== Auth pages ===== */
+.auth-wrapper {
+    max-width: 440px;
+    margin: 2rem auto 0;
+}
+.auth-card {
+    padding: 2rem;
 }

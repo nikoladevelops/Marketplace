@@ -2,74 +2,100 @@
 @model Marketplace.ViewModels.MyProfileViewModel
 
 @{
-    var profilePictureSrc = "/noProfilePicture.png";
-    var description = "No description. Consider adding one.";
-
-    if (!string.IsNullOrEmpty(Model.ExistingProfilePicturePath))
-    {
-        profilePictureSrc = Model.ExistingProfilePicturePath;
-    }
-
-    if (!string.IsNullOrEmpty(Model.Description))
-    {
-        description = Model.Description;
-    }
+    var profilePictureSrc = !string.IsNullOrEmpty(Model.ExistingProfilePicturePath) ? Model.ExistingProfilePicturePath : "/noProfilePicture.png";
+    var description = !string.IsNullOrEmpty(Model.Description) ? Model.Description : "No description. Consider adding one.";
 }
 
 @if (User.IsInRole(Helper.AdminRole))
 {
-    <h6 class="text-success bg-light p-3 text-center">You are logged in as Admin</h6>
+    <div class="alert alert-success text-center rounded-4 border-0">You are logged in as Admin</div>
 }
 
 @if (User.IsInRole(Helper.PremiumRole))
 {
-     <h6 class="text-warning bg-dark bg-gradient p-3 text-center">You have Premium</h6>
+    <div class="alert alert-warning text-center rounded-4 border-0 mb-0 bg-warning bg-opacity-10 text-dark">You have Premium ✨</div>
 }
 
-<form class="form-control border border-primary" method="post" asp-action="Update" asp-controller="Account" enctype='multipart/form-data'>
-<div class="container">
-    <div class="row">
-        <div class="card col-3 p-0 mb-3 mx-1 border-0">
-            <h3>Profile Picture</h3>
-            <div class="border border-primary rounded">
-                <div class="card-body">
-                    <img id="image1" src="@profilePictureSrc" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="ProfilePicture" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','button1')" accept="image/jpeg, image/png" class="form-control"/>
+<div class="container py-3">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                <div class="page-header">
+                    <h3>👤 My Profile</h3>
                 </div>
-                <div class="card-footer text-center">
-                    <button id="changeProfileImage" type="button" onclick="triggerInputBrowse('imageInput1')" class="btn btn-sm btn-primary">Change</button>
-                    <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1','existingPathInput')" class="btn btn-sm btn-danger disabled">Delete</button>
-                </div>
-            </div>
-        </div>
-        <div class="card col-8 p-0 mb-3 mx-1 border-0">
-            <h3>Contact Info</h3>
-            <div class="border border-primary rounded text-center p-3">
-                <label>Phone number</label>
-                <input asp-for="PhoneNumber" class="form-control text-center" placeholder="Number"/>
-                <input asp-for="PhoneNumberAgreement" type="checkbox" class="form-check-input"/>
-                <label>I agree that everybody can view this information on my profile page and on my advertisements</label>
-                <span class="text-center field-validation-error">@ViewBag.AgreementError</span>
-                <span class="text-center field-validation-error">@ViewBag.PhoneError</span>
+
+                <form method="post" asp-action="Update" asp-controller="Account" enctype='multipart/form-data'>
+                    <div class="row g-4">
+                        <!-- Profile Picture -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-secondary mb-2">Profile Picture</label>
+                            <div class="card h-100 border-2 border-primary rounded-4 overflow-hidden shadow-sm">
+                                <div class="card-body p-0 position-relative bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+                                    <img id="image1" src="@profilePictureSrc"
+                                         data-existing-path="@Model.ExistingProfilePicturePath"
+                                         class="w-100 h-100 object-fit-cover cursor-pointer"
+                                         onclick="handleImageClick(1, 'imageInput1')" title="Click to view or change">
+                                    <input asp-for="ProfilePicture" id="imageInput1" class="d-none" type="file" onchange="handleFileSelected(this, 1)" accept="image/jpeg, image/png"/>
+                                </div>
+                                <div class="card-footer bg-white border-0 p-2 text-center">
+                                    <button id="changeProfileImage" type="button" onclick="triggerInputBrowse('imageInput1')" class="btn btn-sm btn-outline-primary w-100 mb-1">Change</button>
+                                    <button id="button1" type="button" onclick="deleteImage(1, 'existingPathInput')" class="btn btn-sm btn-outline-danger w-100" disabled>Remove</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Info -->
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold text-secondary mb-2">Contact Info</label>
+                            <div class="border rounded-4 p-3 bg-light h-100">
+                                <label asp-for="PhoneNumber" class="form-label small fw-semibold">Phone number</label>
+                                <input asp-for="PhoneNumber" class="form-control mb-2" placeholder="Number"/>
+                                <div class="form-check">
+                                    <input asp-for="PhoneNumberAgreement" type="checkbox" class="form-check-input"/>
+                                    <label asp-for="PhoneNumberAgreement" class="form-check-label small">I agree that everybody can view this information on my profile page and on my advertisements</label>
+                                </div>
+                                <span class="d-block small field-validation-error">@ViewBag.AgreementError</span>
+                                <span class="d-block small field-validation-error">@ViewBag.PhoneError</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mt-4">
+                        <label class="form-label fw-semibold text-secondary">Description</label>
+                        @if (Model.Description == null)
+                        {
+                            <textarea name="description" placeholder="@description" class="form-control rounded-3" rows="4"></textarea>
+                        }
+                        else
+                        {
+                            <textarea name="description" class="form-control rounded-3" rows="4">@description</textarea>
+                        }
+                        <div class="text-center mb-3 mt-1">
+                            <span asp-validation-for="Description" class="field-validation-error"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 pt-3 border-top">
+                        <button type="submit" class="btn btn-success px-4 fw-semibold rounded-3 shadow-sm">Update Profile</button>
+                    </div>
+
+                    <input type="hidden" asp-for="ExistingProfilePicturePath" id="existingPathInput"/>
+                </form>
             </div>
         </div>
     </div>
 </div>
-<h3>Description</h3>
-        @if (Model.Description == null)
-        {
-            <textarea name="description" placeholder="@description" class="form-control mb-3"></textarea>
-        }
-        else
-        {
-            <textarea name="description" class="form-control mb-3">@description</textarea>
-        }
-        <div class="text-center mb-3">
-            <span asp-validation-for="Description" class="text-center"></span>
+
+<!-- Image Zoom Modal -->
+<div class="modal fade" id="zoomImageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 bg-transparent text-end">
+            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
+            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
         </div>
-<button class="btn btn-success mb-3" type="submit">Update Profile</button>
-<input type="hidden" asp-for="ExistingProfilePicturePath" id="existingPathInput"/>
-</form>
+    </div>
+</div>
 
 @section Scripts
 {

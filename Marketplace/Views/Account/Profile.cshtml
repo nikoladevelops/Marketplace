@@ -81,24 +81,22 @@ else
                 }
 
                 var currentAd = Model.ElementAt(i + j);
-                <div class="card col-3 border border-primary rounded p-0 mb-3">
-                    <img src="@currentAd.ImagePath" class="card-img-top" alt="Ad Image">
+                <div class="card col-3 ad-card border-0 rounded-4 overflow-hidden shadow-sm p-0 mb-4">
+                    <img src="@currentAd.ImagePath" alt="Ad Image">
+                    <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
 
-                    <div class="card-body text-center">
-                        <h6 class="card-title">@currentAd.Title</h6>
+                    <div class="card-body pb-2">
+                        <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
+                        <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
+                        <p class="text-muted small mb-0">📍 @currentAd.Location</p>
                     </div>
-                    <div class="card-footer bg-light">
-                        <div class="text-center">
-                            <h6 class="font-s">@currentAd.Price EUR</h6>
-                            <a class="btn btn-sm btn-dark" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">SHOW</a>
-                            @if (User.IsInRole(Helper.AdminRole))
-                            {
-                                <a class="btn btn-sm btn-danger" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">DELETE</a>
-                            }
-                            </div>
+                    <div class="card-footer bg-white border-0 pt-0 px-3 pb-3 d-flex gap-2">
+                        <a class="btn btn-sm btn-primary flex-fill" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">View</a>
+                        @if (User.IsInRole(Helper.AdminRole))
+                        {
+                            <a class="btn btn-sm btn-outline-danger flex-fill" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">Delete</a>
+                        }
                     </div>
-                        <h6 class="bg-warning text-dark p-1 m-0 font-s">@currentAd.Location</h6>
-                        <h6 class="bg-success text-white p-1 m-0 font-s">@currentAd.Category</h6>
                 </div>
             }
             </div>
