@@ -9,6 +9,9 @@
 *.user
 *.suo
 
+# AI tools
+*.commandcode/
+
 [Bb]in/
 [Oo]bj/
 [Ll]og/

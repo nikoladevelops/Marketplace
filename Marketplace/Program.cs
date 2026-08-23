@@ -1,4 +1,5 @@
 using Marketplace.Models;
+using Marketplace.Services;
 using Marketplace.Utility;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,11 @@ if (connection_string == null)
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connection_string));
+
+builder.Services.AddHttpClient<IAiService, AiService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60); // Generous timeout for vision model inference
+});
 
 // Add Identity support + tables
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()

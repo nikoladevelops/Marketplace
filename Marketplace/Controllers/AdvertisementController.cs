@@ -1,29 +1,39 @@
 ﻿using Marketplace.Models;
+using Marketplace.Services;
 using Marketplace.Utility;
 using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Marketplace.Controllers
 {
+    [Authorize]
     public class AdvertisementController : Controller
     {
+        private readonly IAiService _aiService;
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private const int SELLER_MAXIMUM_ADS = 20;
         private const int PREMIUM_MAXIMUM_ADS = 40;
 
-        public AdvertisementController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
+        public AdvertisementController(IAiService aiService, ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
         {
+            _aiService = aiService;
             _context = context;
             _webHostEnvironment = webHostEnvironment;
         }
 
-        [Authorize]
+        [HttpGet]
         public IActionResult Create()
         {
             if (CheckIfMaximumAdsReached()) return View("ReachedMaximumAds");
@@ -35,10 +45,9 @@ namespace Marketplace.Controllers
             return View(viewModel);
         }
 
-       [HttpPost]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize]
-        public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel)
+        public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel, CancellationToken cancellationToken)
         {
             if (CheckIfMaximumAdsReached()) return View("ReachedMaximumAds");
 
@@ -63,10 +72,10 @@ namespace Marketplace.Controllers
                 DateCreatedOn = DateTime.UtcNow
             };
 
-            await _context.Advertisements.AddAsync(advertisement);
-            await _context.SaveChangesAsync();
+            await _context.Advertisements.AddAsync(advertisement, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
 
-            // Collect individual additional images into an array/list for iteration
+            // Collect individual additional images into an array for slot-by-slot iteration
             var additionalFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
             foreach (var img in additionalFiles)
             {
@@ -78,15 +87,15 @@ namespace Marketplace.Controllers
                         ImagePath = additionalPath,
                         AdvertisementId = advertisement.Id
                     };
-                    await _context.AdvertisementImages.AddAsync(advertisementImage);
+                    await _context.AdvertisementImages.AddAsync(advertisementImage, cancellationToken);
                 }
             }
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             return RedirectToAction("MyAdvertisements", "Account");
         }
 
-        [Authorize]
+        [HttpGet]
         public IActionResult Edit(int id)
         {
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -125,62 +134,59 @@ namespace Marketplace.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize]
-        public async Task<IActionResult> Edit(EditAdvertisementViewModel viewModel)
+        public async Task<IActionResult> Edit(EditAdvertisementViewModel model, CancellationToken cancellationToken)
         {
-            // Enforce that main image is mandatory
-            if (viewModel.Image == null && string.IsNullOrEmpty(viewModel.ExistingImagePath))
+            if (model.Image == null && string.IsNullOrEmpty(model.ExistingImagePath))
             {
                 ModelState.AddModelError("Image", "The main advertisement image is mandatory.");
             }
 
             if (!ModelState.IsValid)
             {
-                viewModel.CategoryDropDown = LoadCategoryDropDown();
-                viewModel.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
-                return View(viewModel);
+                model.CategoryDropDown = LoadCategoryDropDown();
+                model.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
+                return View(model);
             }
 
-            var advertisement = _context.Advertisements
+            var advertisement = await _context.Advertisements
                 .Include(x => x.AdvertisementImages)
-                .FirstOrDefault(x => x.Id == viewModel.Id);
-                
+                .FirstOrDefaultAsync(x => x.Id == model.Id, cancellationToken);
+
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (advertisement == null || currentLoggedInUserId != advertisement.UserId) return NotFound();
 
-            // 1. Handle Main Image
-            if (viewModel.Image != null)
+            // 1. Handle Main Image update
+            if (model.Image != null)
             {
                 Helper.DeleteImage(advertisement.ImagePath, _webHostEnvironment);
-                advertisement.ImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
+                advertisement.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
             }
-            else if (string.IsNullOrEmpty(viewModel.ExistingImagePath))
+            else if (string.IsNullOrEmpty(model.ExistingImagePath))
             {
                 Helper.DeleteImage(advertisement.ImagePath, _webHostEnvironment);
                 advertisement.ImagePath = null;
             }
 
-            advertisement.Title = viewModel.Title;
-            advertisement.Description = viewModel.Description;
-            advertisement.Price = viewModel.Price;
-            advertisement.Location = viewModel.Location;
-            advertisement.CategoryId = viewModel.CategoryId;
+            advertisement.Title = model.Title;
+            advertisement.Description = model.Description;
+            advertisement.Price = model.Price;
+            advertisement.Location = model.Location;
+            advertisement.CategoryId = model.CategoryId;
 
-            // 2. Map individual inputs slot-by-slot (Slots 0, 1, 2)
-            var newFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
-            viewModel.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
+            // 2. Map slot-by-slot additional images (Slots 0, 1, 2)
+            var newFiles = new[] { model.AdditionalImage1, model.AdditionalImage2, model.AdditionalImage3 };
+            model.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
             var orderedExisting = advertisement.AdvertisementImages.OrderBy(x => x.Id).ToList();
 
             for (int i = 0; i < 3; i++)
             {
                 AdvertisementImageModel dbImage = i < orderedExisting.Count ? orderedExisting[i] : null;
                 var newFile = newFiles[i];
-                var existingPathTracker = i < viewModel.ExistingAdditionalImagePaths.Count ? viewModel.ExistingAdditionalImagePaths[i] : "";
+                var existingPathTracker = i < model.ExistingAdditionalImagePaths.Count ? model.ExistingAdditionalImagePaths[i] : "";
 
                 if (newFile != null && newFile.Length > 0)
                 {
-                    // User uploaded a new image for this slot
                     if (dbImage != null)
                     {
                         Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
@@ -198,7 +204,6 @@ namespace Marketplace.Controllers
                 }
                 else if (string.IsNullOrEmpty(existingPathTracker))
                 {
-                    // User clicked delete for this slot
                     if (dbImage != null)
                     {
                         Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
@@ -207,24 +212,25 @@ namespace Marketplace.Controllers
                 }
             }
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             return RedirectToAction("MyAdvertisements", "Account");
         }
-        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var ad = _context.Advertisements.Include(x => x.User).Include(x => x.AdvertisementImages).SingleOrDefault(x => x.Id == id);
+            var ad = await _context.Advertisements
+                .Include(x => x.User)
+                .Include(x => x.AdvertisementImages)
+                .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
             if (ad == null) return NotFound();
 
             bool isUserAdmin = User.IsInRole(Helper.AdminRole);
             if (currentLoggedInUserId != ad.UserId && !isUserAdmin) return NotFound();
 
-            // Delete files from disk
             Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
             foreach (var img in ad.AdvertisementImages)
             {
@@ -232,12 +238,13 @@ namespace Marketplace.Controllers
             }
 
             _context.Advertisements.Remove(ad);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             if (isUserAdmin) return RedirectToAction("Profile", "Account", new { username = ad.User.UserName });
             return RedirectToAction("MyAdvertisements", "Account");
         }
 
+        [AllowAnonymous]
         public IActionResult Show(int id)
         {
             var ad = _context.Advertisements
@@ -275,6 +282,25 @@ namespace Marketplace.Controllers
             ad.PhoneNumber = adOwnerData.PhoneNumber;
 
             return View("Show", ad);
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GenerateListingAI(List<IFormFile> images, CancellationToken cancellationToken)
+        {
+            if (images == null || !images.Any(f => f != null && f.Length > 0))
+            {
+                return Json(new { success = false, message = "No valid images provided." });
+            }
+
+            var result = await _aiService.GenerateListingFromImagesAsync(images, cancellationToken);
+
+            if (result == null)
+            {
+                return Json(new { success = false, message = "AI generation failed or LM Studio is unresponsive." });
+            }
+
+            return Json(new { success = true, data = result });
         }
 
         private IEnumerable<SelectListItem> LoadCategoryDropDown() =>

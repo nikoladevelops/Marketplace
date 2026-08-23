@@ -1,101 +1,166 @@
 ﻿@model Marketplace.ViewModels.EditAdvertisementViewModel
-@{
-var mainSrc = !string.IsNullOrEmpty(Model.ExistingImagePath) ? Model.ExistingImagePath : "/plusSign.png";
 
-var path0 = (Model.ExistingAdditionalImagePaths != null && Model.ExistingAdditionalImagePaths.Count > 0) ? Model.ExistingAdditionalImagePaths[0] : "";
-var path1 = (Model.ExistingAdditionalImagePaths != null && Model.ExistingAdditionalImagePaths.Count > 1) ? Model.ExistingAdditionalImagePaths[1] : "";
-var path2 = (Model.ExistingAdditionalImagePaths != null && Model.ExistingAdditionalImagePaths.Count > 2) ? Model.ExistingAdditionalImagePaths[2] : "";
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
 
-var firstSrc = !string.IsNullOrEmpty(path0) ? path0 : "/plusSign.png";
-var secondSrc = !string.IsNullOrEmpty(path1) ? path1 : "/plusSign.png";
-var thirdSrc = !string.IsNullOrEmpty(path2) ? path2 : "/plusSign.png";
-}
+                <div class="d-flex align-items-center mb-4 pb-2 border-bottom">
+                    <h3 class="fw-bold text-primary mb-0">✏️ Edit Advertisement</h3>
+                </div>
 
-<form class="form-control border border-primary" method="post" asp-action="Edit" asp-controller="Advertisement" enctype='multipart/form-data'>
-    <h3 class="text-center mb-3">Edit An Advertisement</h3>
-    <span class="text-center p-3 text-danger" asp-validation-for="Image"></span>
+                <form method="post" asp-action="Edit" asp-controller="Advertisement" enctype='multipart/form-data'>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <span class="text-danger d-block mb-2" asp-validation-for="Image"></span>
 
-    <div class="container">
-        <div class="row justify-content-md-center">
-            <!-- Main Image (Mandatory) -->
-            <div class="card col border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image1" src="@mainSrc" class="card-img" onclick="triggerInputBrowse('imageInput1')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="Image" id="imageInput1" style="display:none" type="file" onchange="readURL(this,'image1','button1')" accept="image/jpeg, image/png" class="form-control"/>
-                </div>
-                <div class="card-footer text-center p-1">
-                    <button id="button1" type="button" onclick="deleteImage(this,'image1','imageInput1','existingMainPath')" class="btn btn-danger disabled">Delete</button>
-                </div>
-            </div>
-            <!-- Additional Image 1 -->
-            <div class="card col border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image2" src="@firstSrc" class="card-img" onclick="triggerInputBrowse('imageInput2')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImage1" id="imageInput2" style="display:none" type="file" onchange="readURL(this,'image2','button2')" accept="image/jpeg, image/png" class="form-control"/>
-                </div>
-                <div class="card-footer text-center p-1">
-                    <button id="button2" type="button" onclick="deleteImage(this,'image2','imageInput2','existingAdditionalPath0')" class="btn btn-danger disabled">Delete</button>
-                </div>
-            </div>
-            <!-- Additional Image 2 -->
-            <div class="card col border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image3" src="@secondSrc" class="card-img" onclick="triggerInputBrowse('imageInput3')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImage2" id="imageInput3" style="display:none" type="file" onchange="readURL(this,'image3','button3')" accept="image/jpeg, image/png" class="form-control"/>
-                </div>
-                <div class="card-footer text-center p-1">
-                    <button id="button3" type="button" onclick="deleteImage(this,'image3','imageInput3','existingAdditionalPath1')" class="btn btn-danger disabled">Delete</button>
-                </div>
-            </div>
-            <!-- Additional Image 3 -->
-            <div class="card col border border-primary rounded p-0 mb-3 mx-1">
-                <div class="card-body">
-                    <img id="image4" src="@thirdSrc" class="card-img" onclick="triggerInputBrowse('imageInput4')" onmouseover="lowerImageOpacity(this)" onmouseout="increaseImageOpacity(this)">
-                    <input asp-for="AdditionalImage3" id="imageInput4" style="display:none" type="file" onchange="readURL(this,'image4','button4')" accept="image/jpeg, image/png" class="form-control"/>
-                </div>
-                <div class="card-footer text-center p-1">
-                    <button id="button4" type="button" onclick="deleteImage(this,'image4','imageInput4','existingAdditionalPath2')" class="btn btn-danger disabled">Delete</button>
-                </div>
+                    <!-- Image Gallery Section -->
+                    <label class="form-label fw-semibold text-secondary mb-2">Product Images (Click box to upload, click image to zoom)</label>
+                    <div class="row g-3 mb-4">
+                        <!-- Main Image -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border-2 border-primary rounded-3 overflow-hidden shadow-sm">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                    <img id="image1" src="@(!string.IsNullOrEmpty(Model.ExistingImagePath) ? Model.ExistingImagePath : "/plusSign.png")"
+                                         data-existing-path="@Model.ExistingImagePath"
+                                         class="w-100 h-100 object-fit-cover cursor-pointer"
+                                         onclick="handleImageClick(1, 'imageInput1')" title="Click to view or change">
+                                    <input asp-for="Image" id="imageInput1" class="d-none" type="file" onchange="handleFileSelected(this, 1)" accept="image/jpeg, image/png"/>
+                                </div>
+                                <div class="card-footer bg-white border-0 p-2 text-center">
+                                    <button id="button1" type="button" onclick="deleteImage(1, 'existingMainPath')" class="btn btn-sm btn-outline-danger w-100" disabled>Remove</button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block text-center mt-1">Main Image *</small>
+                        </div>
+
+                        <!-- Additional Image 1 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                    @{ var p0 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(0) ?? ""; }
+                                    <img id="image2" src="@(!string.IsNullOrEmpty(p0) ? p0 : "/plusSign.png")"
+                                         data-existing-path="@p0"
+                                         class="w-100 h-100 object-fit-cover cursor-pointer"
+                                         onclick="handleImageClick(2, 'imageInput2')" title="Click to view or change">
+                                    <input asp-for="AdditionalImage1" id="imageInput2" class="d-none" type="file" onchange="handleFileSelected(this, 2)" accept="image/jpeg, image/png"/>
+                                </div>
+                                <div class="card-footer bg-white border-0 p-2 text-center">
+                                    <button id="button2" type="button" onclick="deleteImage(2, 'existingAdditionalPath0')" class="btn btn-sm btn-outline-danger w-100" disabled>Remove</button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block text-center mt-1">Extra 1</small>
+                        </div>
+
+                        <!-- Additional Image 2 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                    @{ var p1 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(1) ?? ""; }
+                                    <img id="image3" src="@(!string.IsNullOrEmpty(p1) ? p1 : "/plusSign.png")"
+                                         data-existing-path="@p1"
+                                         class="w-100 h-100 object-fit-cover cursor-pointer"
+                                         onclick="handleImageClick(3, 'imageInput3')" title="Click to view or change">
+                                    <input asp-for="AdditionalImage2" id="imageInput3" class="d-none" type="file" onchange="handleFileSelected(this, 3)" accept="image/jpeg, image/png"/>
+                                </div>
+                                <div class="card-footer bg-white border-0 p-2 text-center">
+                                    <button id="button3" type="button" onclick="deleteImage(3, 'existingAdditionalPath1')" class="btn btn-sm btn-outline-danger w-100" disabled>Remove</button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block text-center mt-1">Extra 2</small>
+                        </div>
+
+                        <!-- Additional Image 3 -->
+                        <div class="col-6 col-md-3">
+                            <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                    @{ var p2 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(2) ?? ""; }
+                                    <img id="image4" src="@(!string.IsNullOrEmpty(p2) ? p2 : "/plusSign.png")"
+                                         data-existing-path="@p2"
+                                         class="w-100 h-100 object-fit-cover cursor-pointer"
+                                         onclick="handleImageClick(4, 'imageInput4')" title="Click to view or change">
+                                    <input asp-for="AdditionalImage3" id="imageInput4" class="d-none" type="file" onchange="handleFileSelected(this, 4)" accept="image/jpeg, image/png"/>
+                                </div>
+                                <div class="card-footer bg-white border-0 p-2 text-center">
+                                    <button id="button4" type="button" onclick="deleteImage(4, 'existingAdditionalPath2')" class="btn btn-sm btn-outline-danger w-100" disabled>Remove</button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block text-center mt-1">Extra 3</small>
+                        </div>
+                    </div>
+
+                    <!-- AI Auto-Fill Banner -->
+                    <div class="p-3 mb-4 bg-light rounded-3 border border-primary-subtle text-center">
+                        <button type="button" id="aiGenerateBtn" onclick="triggerSmartListingAI()" class="btn btn-primary fw-semibold px-4 shadow-sm" disabled>
+                            ✨ Re-Scan & Refresh Details with AI
+                        </button>
+                        <small class="text-muted d-block mt-1">AI will analyze your images to update your title and description.</small>
+                    </div>
+
+                    <!-- Form Inputs -->
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold"></label>
+                        <input class="form-control form-control-lg rounded-3" asp-for="Title" placeholder="e.g. iPhone 15 Pro Max 256GB"/>
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold"></label>
+                        <textarea class="form-control rounded-3" asp-for="Description" rows="6" placeholder="Provide a detailed description of your item..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Price" class="form-label fw-semibold"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control rounded-end-3" asp-for="Price" placeholder="0.00"/>
+                            </div>
+                            <span asp-validation-for="Price" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Location" class="form-label fw-semibold"></label>
+                            <input class="form-control rounded-3" asp-for="Location" placeholder="e.g. Sofia, Bulgaria"/>
+                            <span asp-validation-for="Location" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
+                        <select asp-for="CategoryId" asp-items="@Model.CategoryDropDown" class="form-select rounded-3">
+                            <option value="-1">-- Select Category --</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2 pt-3 border-top">
+                        <button type="submit" class="btn btn-success px-4 fw-semibold rounded-3 shadow-sm">Save Changes</button>
+                        <a class="btn btn-light px-4 rounded-3 border" asp-action="MyAdvertisements" asp-controller="Account">Cancel</a>
+                    </div>
+
+                    <!-- Hidden Path Trackers -->
+                    <input asp-for="ExistingImagePath" type="hidden" id="existingMainPath"/>
+                    <input name="ExistingAdditionalImagePaths[0]" type="hidden" id="existingAdditionalPath0" value="@p0"/>
+                    <input name="ExistingAdditionalImagePaths[1]" type="hidden" id="existingAdditionalPath1" value="@p1"/>
+                    <input name="ExistingAdditionalImagePaths[2]" type="hidden" id="existingAdditionalPath2" value="@p2"/>
+                </form>
+
             </div>
         </div>
     </div>
+</div>
 
-    <div class="form-group mb-3">
-        <label asp-for="Title"></label>
-        <input class="form-control form-control-lg" asp-for="Title" placeholder="Title"/>
-        <span asp-validation-for="Title"></span>
+<!-- Image Zoom Modal -->
+<div class="modal fade" id="zoomImageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 bg-transparent text-end">
+            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
+            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
+        </div>
     </div>
-    <div class="form-group mb-3">
-        <label asp-for="Description"></label>
-        <textarea class="form-control" asp-for="Description" rows="3" placeholder="Please add description here"></textarea>
-        <span asp-validation-for="Description"></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="Price"></label>
-        <input class="form-control" asp-for="Price" placeholder="Price"/>
-        <span asp-validation-for="Price"></span>
-    </div>
-    <div class="form-group mb-3">
-        <label asp-for="Location"></label>
-        <input class="form-control" asp-for="Location" placeholder="Please enter your location"/>
-        <span asp-validation-for="Location"></span>
-    </div>
-    <div class="form-group mb-3">
-        <select asp-for="CategoryId" asp-items="@Model.CategoryDropDown" class="form-control">
-            <option value="-1">--Select--</option>
-        </select>
-        <span asp-validation-for="CategoryId" class="text-danger"></span>
-    </div>
-    <button type="submit" class="btn btn-primary border border-dark rounded">Update</button>
-    <a class="btn btn-light border border-dark rounded" asp-action="MyAdvertisements" asp-controller="Account">Cancel</a>
-
-    <!-- Hidden Path Trackers -->
-    <input asp-for="ExistingImagePath" type="hidden" id="existingMainPath"/>
-    <input name="ExistingAdditionalImagePaths[0]" type="hidden" id="existingAdditionalPath0" value="@path0"/>
-    <input name="ExistingAdditionalImagePaths[1]" type="hidden" id="existingAdditionalPath1" value="@path1"/>
-    <input name="ExistingAdditionalImagePaths[2]" type="hidden" id="existingAdditionalPath2" value="@path2"/>
-</form>
+</div>
 
 @section Scripts {
-<script src="~/js/imageManipulation.js"></script>
+    <script src="~/js/imageManipulation.js"></script>
 }

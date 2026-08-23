@@ -1,9 +1,8 @@
 ﻿@model Marketplace.ViewModels.ShowAdvertisementViewModel
 @{
-var profilePictureSrc = !string.IsNullOrEmpty(Model.ProfilePicturePath) ? Model.ProfilePicturePath : "/noProfilePicture.png";
-var mainImageSrc = !string.IsNullOrEmpty(Model.ImagePath) ? Model.ImagePath : "/plusSign.png";
-
-var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>();
+    var profilePictureSrc = !string.IsNullOrEmpty(Model.ProfilePicturePath) ? Model.ProfilePicturePath : "/noProfilePicture.png";
+    var mainImageSrc = !string.IsNullOrEmpty(Model.ImagePath) ? Model.ImagePath : "/plusSign.png";
+    var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>();
 }
 
 <h3 class="text-center mb-3">View An Advertisement</h3>
@@ -11,22 +10,22 @@ var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>()
 <div class="container">
     <div class="row justify-content-md-center">
         <div class="card col-4 border border-primary rounded p-0 mb-3 mx-1">
-            <div class="card-body">
-                <img id="image1" src="@mainImageSrc" class="card-img" onclick="zoomImage(this)">
+            <div class="card-body d-flex align-items-center justify-content-center p-0" style="height: 250px;">
+                <img id="image1" src="@mainImageSrc" class="w-100 h-100 object-fit-cover cursor-pointer" onclick="zoomImage(this)">
             </div>
         </div>
         @if (additionalPaths.Count > 0)
         {
-        @foreach (var path in additionalPaths)
-        {
-        <div class="card col-2 border-0 p-0 mb-3 mx-1">
-            <div class="border border-primary rounded">
-                <div class="card-body">
-                    <img src="@path" class="card-img" onclick="zoomImage(this)">
+            @foreach (var path in additionalPaths)
+            {
+                <div class="card col-2 border-0 p-0 mb-3 mx-1">
+                    <div class="border border-primary rounded overflow-hidden">
+                        <div class="card-body d-flex align-items-center justify-content-center p-0" style="height: 250px;">
+                            <img src="@path" class="w-100 h-100 object-fit-cover cursor-pointer" onclick="zoomImage(this)">
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        }
+            }
         }
     </div>
 </div>
@@ -63,29 +62,24 @@ var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>()
             <div class="container">
                 <h4 class="text-center">Seller</h4>
                 <div class="card border border-primary">
-                    <div class="card-body">
-                        <img src="@profilePictureSrc" class="card-img">
+                    <div class="card-body p-0 d-flex align-items-center justify-content-center overflow-hidden" style="height: 200px;">
+                        <img src="@profilePictureSrc" class="w-100 h-100 object-fit-cover">
                     </div>
-                    <a class="text-center p-1 btn-warning text-dark" asp-action="@Model.UserName" asp-controller="Users">@Model.UserName</a>
+                    <a class="text-center p-1 btn-warning text-dark text-decoration-none fw-semibold" asp-action="@Model.UserName" asp-controller="Users">@Model.UserName</a>
                 </div>
             </div>
             <div class="container">
-                <button class="btn btn-success text-center rounded my-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
+                <button class="btn btn-success text-center rounded my-3 w-100" onclick="showModal('contactInfoModal')">Contact Seller</button>
             </div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="zoomImageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <p></p>
-                <button onclick="closeModal('zoomImageModal')" type="button" class="close" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <img id="modalImage" src=""/>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 bg-transparent text-end">
+            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
+            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
         </div>
     </div>
 </div>
@@ -94,16 +88,14 @@ var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>()
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <p>Seller Contact Information</p>
-                <button onclick="closeModal('contactInfoModal')" type="button" class="close" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <h5 class="modal-title">Seller Contact Information</h5>
+                <button onclick="closeModal('contactInfoModal')" type="button" class="btn-close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>Email: <span class="bg-success text-light p-2 rounded">@Model.Email</span></p>
                 @if (!string.IsNullOrEmpty(Model.PhoneNumber))
                 {
-                <p>Phone Number: <span class="bg-success text-light p-2 rounded">@Model.PhoneNumber</span></p>
+                    <p>Phone Number: <span class="bg-success text-light p-2 rounded">@Model.PhoneNumber</span></p>
                 }
             </div>
         </div>
@@ -111,17 +103,5 @@ var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>()
 </div>
 
 @section Scripts {
-<script>
-    function zoomImage(image) {
-        let modalImage = document.querySelector("#modalImage");
-        modalImage.src = image.src;
-        $('#zoomImageModal').modal('show');
-    }
-    function closeModal(modalName) {
-        $('#' + modalName).modal('hide');
-    }
-    function showModal(modalName) {
-        $('#' + modalName).modal('show');
-    }
-</script>
+    <script src="~/js/imageManipulation.js"></script>
 }
