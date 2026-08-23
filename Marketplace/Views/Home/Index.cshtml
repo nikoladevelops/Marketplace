@@ -5,36 +5,36 @@
 }
 
 <div class="container m-0 p-0">
-    <div class="row p-0 m-0 mb-3 justify-content-center">
-        <div class="col-5 m-0 p-0 mx-1">
-            <input asp-for="SearchTerm" id="searchBar" class="form-control border-1 border-primary" placeholder="Search"/>
+    <div class="row g-2 justify-content-center mb-2">
+        <div class="col-12 col-md-5">
+            <input asp-for="SearchTerm" id="searchBar" class="form-control" placeholder="🔍 Search listings"/>
         </div>
-        <div class="col-2 m-0 p-0 mx-1">
-            <select id="categoryDropDown" asp-items="@Model.CategoryDropDown" asp-for="CategoryId" class="form-control text-center border-1 border-primary">
+        <div class="col-6 col-md-2">
+            <select id="categoryDropDown" asp-items="@Model.CategoryDropDown" asp-for="CategoryId" class="form-select text-center">
                 <option value=-1>All</option>
             </select>
         </div>
-        <div class="col-2 m-0 p-0 mx-1">
-            <select id="filterDropDown" asp-for="Filter" class="form-control text-center border-1 border-primary">
+        <div class="col-6 col-md-2">
+            <select id="filterDropDown" asp-for="Filter" class="form-select text-center">
                 <option>New</option>
                 <option>Old</option>
                 <option>Cheapest</option>
                 <option>Most Expensive</option>
             </select>
         </div>
-        <div class="col-2 m-0 p-0 mx-1">
-            <input id="locationInput" asp-for="Location" class="form-control text-center border-1 border-primary" placeholder="Location"/>
+        <div class="col-8 col-md-2">
+            <input id="locationInput" asp-for="Location" class="form-control text-center" placeholder="📍 Location"/>
+        </div>
+        <div class="col-4 col-md-1 d-grid">
+            <a id="searchButton" href="#" onclick="return searchFor();" class="btn btn-primary fw-semibold">Go</a>
         </div>
     </div>
-    <div class="row p-0 m-0 mb-3 justify-content-center">
-        <div class="col-2 m-0 p-0 mx-1">
-            <input id="minimumPriceInput" asp-for="MinimumPrice" class="form-control text-center border-1 border-primary" placeholder="Minimum Price"/>
+    <div class="row g-2 justify-content-center mb-4">
+        <div class="col-6 col-md-2">
+            <input id="minimumPriceInput" asp-for="MinimumPrice" class="form-control text-center" placeholder="Min price"/>
         </div>
-        <div class="col-2 m-0 p-0 mx-1">
-            <input id="maximumPriceInput" asp-for="MaximumPrice" class="form-control text-center border-1 border-primary" placeholder="Max Price"/>
-        </div>
-        <div class="col-1 m-0 p-0 text-center mx-1">
-            <a id="searchButton" href="#" onclick="return searchFor();" class="btn btn-primary">Search</a>
+        <div class="col-6 col-md-2">
+            <input id="maximumPriceInput" asp-for="MaximumPrice" class="form-control text-center" placeholder="Max price"/>
         </div>
     </div>
 </div>
@@ -53,7 +53,7 @@ else
     <div class="container">
         @for (var i = 0; i < countAds; i+=4) // responsible for the row count, on each row I want exactly 4 elements, after those 4 elements make a new row
         {
-            <div class="row">
+            <div class="row g-3">
             @for (var j = 0; j < 4; j++) // I want 4 columns on current row
             {
                 @if (i+j==countAds) // stop displaying if we've reached the end
@@ -62,25 +62,28 @@ else
                 }
 
                 var currentAd = Model.Advertisements.ElementAt(i+j);
-                <div class="card col-3 ad-card border-0 rounded-4 overflow-hidden shadow-sm p-0 mb-4">
-                    <img src="@currentAd.ImagePath" alt="Advertisement Image">
-                    <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
+                        <img src="@currentAd.ImagePath" data-lightbox="home-grid" loading="lazy" alt="Advertisement Image">
+                        <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
 
-                    <div class="card-body pb-2">
-                        <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
-                        <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
-                        <p class="text-muted small mb-0">📍 @currentAd.Location</p>
-                    </div>
-                    <div class="card-footer bg-white border-0 pt-0 px-3 pb-3 text-center">
-                        <a class="btn btn-sm btn-primary w-100" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">View Listing</a>
+                        <div class="card-body pb-2">
+                            <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
+                            <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
+                            <p class="text-muted small mb-0">📍 @currentAd.Location</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto">
+                            <a class="btn btn-sm btn-primary w-100" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">View Listing</a>
+                        </div>
                     </div>
                 </div>
             }
             </div>
         }
     </div>
-    <div class="text-center">
-        <a href="/?pageNumber=" onclick="return backArrow(this, true);" class="h3 text-decoration-none">&#60;</a>
+
+    <div class="text-center pagination-links">
+        <a href="/?pageNumber=" onclick="return backArrow(this, true);" title="Previous page">&#60;</a>
         @{
             int maximumDisplayedPages = 10;
             int startingIndex = startingIndex = Model.PageNumber - (Model.PageNumber % maximumDisplayedPages);
@@ -95,20 +98,20 @@ else
             {
                 @if (i==@Model.PageNumber)
                 {
-                    <a id="currentPage" href="/?pageNumber=@i" onclick="return changePage(this);" class="h3 text-decoration-none">@i</a>
+                    <a id="currentPage" class="active" href="/?pageNumber=@i" onclick="return changePage(this);">@i</a>
                     continue;
                 }
-                <a href="/?pageNumber=@i" onclick="return changePage(this);" class="h5 text-decoration-none">@i</a>
+                <a href="/?pageNumber=@i" onclick="return changePage(this);">@i</a>
             }
 
             if (!(endingIndex >= Model.MaxCountPages))
             {
                 var lastPageIndex = Model.MaxCountPages - 1;
-                <span class="h5">....</span>
-                <a href="/?pageNumber=@lastPageIndex" onclick="return changePage(this);" class="h5 text-decoration-none">@lastPageIndex</a> 
+                <span class="px-1 text-muted">...</span>
+                <a href="/?pageNumber=@lastPageIndex" onclick="return changePage(this);">@lastPageIndex</a> 
             }
         }
-        <a href="/?pageNumber=" onclick="return backArrow(this, false);" class="h3 text-decoration-none">&#62;</a>
+        <a href="/?pageNumber=" onclick="return backArrow(this, false);" title="Next page">&#62;</a>
     </div>
 }
 
@@ -169,22 +172,22 @@ else
 
             if(!(isNullOrWhitespace(searchTerm)))
             {
-                searchQuery+="&searchTerm="+searchTerm;
+                searchQuery+="&searchTerm="+encodeURIComponent(searchTerm);
             }
 
             if(!(isNullOrWhitespace(location)))
             {
-                searchQuery+="&location="+location;
+                searchQuery+="&location="+encodeURIComponent(location);
             }
 
             if(!(isNullOrWhitespace(minimumPrice)))
             {
-                searchQuery+="&minimumPrice="+minimumPrice;
+                searchQuery+="&minimumPrice="+encodeURIComponent(minimumPrice);
             }
 
             if(!(isNullOrWhitespace(maximumPrice)))
             {
-                searchQuery+="&maximumPrice="+maximumPrice;
+                searchQuery+="&maximumPrice="+encodeURIComponent(maximumPrice);
             }
             return searchQuery;
         }

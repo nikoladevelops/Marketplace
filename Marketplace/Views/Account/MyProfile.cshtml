@@ -30,7 +30,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold text-secondary mb-2">Profile Picture</label>
                             <div class="card h-100 border-2 border-primary rounded-4 overflow-hidden shadow-sm">
-                                <div class="card-body p-0 position-relative bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+                                <div class="card-body p-0 position-relative bg-light d-flex align-items-center justify-content-center img-slot-lg">
                                     <img id="image1" src="@profilePictureSrc"
                                          data-existing-path="@Model.ExistingProfilePicturePath"
                                          class="w-100 h-100 object-fit-cover cursor-pointer"
@@ -83,16 +83,6 @@
                     <input type="hidden" asp-for="ExistingProfilePicturePath" id="existingPathInput"/>
                 </form>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Image Zoom Modal -->
-<div class="modal fade" id="zoomImageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 bg-transparent text-end">
-            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
-            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
         </div>
     </div>
 </div>

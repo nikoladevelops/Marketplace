@@ -5,10 +5,10 @@ function showDeleteAdModal(title, id) {
 
     document.deleteAdForm.action = deleteFormActionUrl + "/" + id;
 
-    $('#deleteAdModal').modal('show');
+    showModal('deleteAdModal');
 }
 
 function hideDeleteAdModal() {
-    $('#deleteAdModal').modal('hide');
+    hideModal('deleteAdModal');
     document.deleteAdForm.action = deleteFormActionUrl;
 }

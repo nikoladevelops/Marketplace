@@ -19,7 +19,7 @@
                         <!-- Main Image -->
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border-2 border-primary rounded-3 overflow-hidden shadow-sm">
-                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
                                     <img id="image1" src="@(!string.IsNullOrEmpty(Model.ExistingImagePath) ? Model.ExistingImagePath : "/plusSign.png")"
                                          data-existing-path="@Model.ExistingImagePath"
                                          class="w-100 h-100 object-fit-cover cursor-pointer"
@@ -36,7 +36,7 @@
                         <!-- Additional Image 1 -->
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
-                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
                                     @{ var p0 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(0) ?? ""; }
                                     <img id="image2" src="@(!string.IsNullOrEmpty(p0) ? p0 : "/plusSign.png")"
                                          data-existing-path="@p0"
@@ -54,7 +54,7 @@
                         <!-- Additional Image 2 -->
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
-                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
                                     @{ var p1 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(1) ?? ""; }
                                     <img id="image3" src="@(!string.IsNullOrEmpty(p1) ? p1 : "/plusSign.png")"
                                          data-existing-path="@p1"
@@ -72,7 +72,7 @@
                         <!-- Additional Image 3 -->
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
-                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center" style="height: 130px;">
+                                <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
                                     @{ var p2 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(2) ?? ""; }
                                     <img id="image4" src="@(!string.IsNullOrEmpty(p2) ? p2 : "/plusSign.png")"
                                          data-existing-path="@p2"
@@ -147,16 +147,6 @@
                 </form>
 
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Image Zoom Modal -->
-<div class="modal fade" id="zoomImageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 bg-transparent text-end">
-            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
-            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
         </div>
     </div>
 </div>

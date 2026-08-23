@@ -19,15 +19,36 @@
     updateAiButtonState();
 });
 
+function isPlaceholderSrc(src) {
+    return !src || src.endsWith("plusSign.png") || src.endsWith("noProfilePicture.png");
+}
+
 function handleImageClick(index, inputId) {
     let img = document.getElementById("image" + index);
+    if (!img) return;
+
     let src = img.getAttribute("src");
 
     // If empty placeholder, open file upload browser. Otherwise, zoom the image.
-    if (!src || src.endsWith("plusSign.png") || src.endsWith("noProfilePicture.png")) {
+    if (isPlaceholderSrc(src)) {
         document.getElementById(inputId).click();
-    } else {
-        zoomImage(img);
+        return;
+    }
+
+    // Collect every filled slot so the user can flip through them in the lightbox
+    let items = [];
+    let currentIndex = 0;
+    for (let i = 1; i <= 4; i++) {
+        let slotImg = document.getElementById("image" + i);
+        if (!slotImg) continue;
+        let slotSrc = slotImg.getAttribute("src");
+        if (isPlaceholderSrc(slotSrc)) continue;
+        if (i === index) currentIndex = items.length;
+        items.push({ src: slotSrc, alt: "Image " + i });
+    }
+
+    if (window.Lightbox) {
+        Lightbox.open(items, currentIndex);
     }
 }
 
@@ -111,22 +132,6 @@ function updateAiButtonState() {
         aiBtn.setAttribute("disabled", "true");
         aiBtn.classList.add("disabled");
     }
-}
-
-function zoomImage(image) {
-    let modalImage = document.getElementById("modalImage");
-    if (modalImage && image) {
-        modalImage.src = image.src;
-        $('#zoomImageModal').modal('show');
-    }
-}
-
-function closeModal(modalName) {
-    $('#' + modalName).modal('hide');
-}
-
-function showModal(modalName) {
-    $('#' + modalName).modal('show');
 }
 
 function triggerInputBrowse(inputId) {

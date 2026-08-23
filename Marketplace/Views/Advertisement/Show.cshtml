@@ -15,9 +15,10 @@
     <div class="row g-4">
         <!-- Gallery -->
         <div class="col-lg-6">
-            <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
-                <div class="d-flex align-items-center justify-content-center bg-light" style="height: 340px;">
-                    <img id="image1" src="@mainImageSrc" class="w-100 h-100 object-fit-cover cursor-pointer" onclick="zoomImage(this)" alt="Main advertisement image">
+            <div class="card border-0 rounded-4 shadow-sm overflow-hidden position-relative">
+                <div class="d-flex align-items-center justify-content-center bg-light" style="height: clamp(260px, 42vw, 440px);">
+                    <img id="image1" src="@mainImageSrc" data-lightbox="show-gallery"
+                         class="w-100 h-100 object-fit-cover cursor-pointer" alt="Main advertisement image">
                 </div>
             </div>
             @if (additionalPaths.Count > 0)
@@ -26,8 +27,9 @@
                     @foreach (var path in additionalPaths)
                     {
                         <div class="col-4 col-md-3">
-                            <div class="border rounded-3 overflow-hidden bg-light" style="height: 90px;">
-                                <img src="@path" class="w-100 h-100 object-fit-cover cursor-pointer" onclick="zoomImage(this)" alt="Additional image">
+                            <div class="border rounded-3 overflow-hidden bg-light" style="height: clamp(72px, 11vw, 104px);">
+                                <img src="@path" data-lightbox="show-gallery" loading="lazy"
+                                     class="w-100 h-100 object-fit-cover cursor-pointer" alt="Additional image">
                             </div>
                         </div>
                     }
@@ -37,7 +39,7 @@
 
         <!-- Details -->
         <div class="col-lg-6">
-            <div class="card border-0 rounded-4 shadow-sm p-4 h-100">
+            <div class="card border-0 rounded-4 shadow-sm p-4 h-100 d-flex flex-column">
                 <h3 class="fw-bold mb-1">@Model.Title</h3>
                 <p class="ad-price display-6 mb-0">@Model.Price</p>
                 <p class="text-muted small mb-3">📍 @Model.Location · 🏷️ @Model.CategoryName</p>
@@ -58,16 +60,6 @@
                 </div>
                 <button class="btn btn-success fw-semibold py-2 mt-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Image Zoom Modal -->
-<div class="modal fade" id="zoomImageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 bg-transparent text-end">
-            <button onclick="closeModal('zoomImageModal')" type="button" class="btn-close btn-close-white ms-auto mb-2" aria-label="Close"></button>
-            <img id="modalImage" src="" class="img-fluid rounded-4 shadow-lg mx-auto" style="max-height: 80vh; object-fit: contain;"/>
         </div>
     </div>
 </div>
