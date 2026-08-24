@@ -223,11 +223,13 @@ var Lightbox = (function () {
             }
         });
 
-        /* Drag to pan */
-        var dragging = false, lastX = 0, lastY = 0;
+        /* Drag to pan. dragMoved accumulates the distance so the leftover
+           synthetic click after a drag doesn't close the lightbox. */
+        var dragging = false, lastX = 0, lastY = 0, dragMoved = 0;
         stage.addEventListener("pointerdown", function (e) {
             if (e.button !== 0 || scale <= 1) return;
             dragging = true;
+            dragMoved = 0;
             lastX = e.clientX;
             lastY = e.clientY;
             stage.classList.add("panning");
@@ -235,8 +237,11 @@ var Lightbox = (function () {
         });
         stage.addEventListener("pointermove", function (e) {
             if (!dragging) return;
-            offsetX += e.clientX - lastX;
-            offsetY += e.clientY - lastY;
+            var dx = e.clientX - lastX;
+            var dy = e.clientY - lastY;
+            offsetX += dx;
+            offsetY += dy;
+            dragMoved += Math.abs(dx) + Math.abs(dy);
             lastX = e.clientX;
             lastY = e.clientY;
             applyTransform();
@@ -273,9 +278,13 @@ var Lightbox = (function () {
             pinchStartDist = 0;
         });
 
-        /* Click on empty space closes */
+        /* Click on empty space closes — unless the click is the leftover
+           synthetic click at the end of a drag-pan. */
         stage.addEventListener("click", function (e) {
-            if (e.target === stage) close();
+            var moved = dragMoved;
+            dragMoved = 0;
+            if (e.target !== stage || moved > 5) return;
+            close();
         });
 
         /* Keyboard shortcuts */

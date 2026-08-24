@@ -4,6 +4,7 @@ using Marketplace.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Controllers
 {
@@ -18,89 +19,120 @@ namespace Marketplace.Controllers
             _userManager = userManager;
         }
 
-        public IActionResult AdminPanel()
+        public async Task<IActionResult> AdminPanel(string searchTerm, string selectedUserId)
         {
-            return View();
-        }
-
-        [ValidateAntiForgeryToken]
-        [HttpPost]
-        public IActionResult SearchUser(string username)
-        {
-            var user = _context.Users
-                .SingleOrDefault(x => x.UserName == username);
-
-            var vm = new AdminPanelViewModel()
+            var vm = new AdminPanelViewModel
             {
-                Username = username
+                SearchTerm = searchTerm
             };
 
-            if (user == null)
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                vm.UserNotFound = true;
-                return View("AdminPanel", vm);
+                var pattern = $"%{searchTerm.Trim()}%";
+                var matchedUsers = await _context.Users
+                    .Where(u => EF.Functions.ILike(u.UserName ?? "", pattern)
+                                || EF.Functions.ILike(u.Email ?? "", pattern))
+                    .OrderBy(u => u.UserName)
+                    .Take(50)
+                    .ToListAsync();
+
+                var matchedIds = matchedUsers.Select(u => u.Id).ToList();
+                var roleAssignments = await _context.UserRoles
+                    .Where(ur => matchedIds.Contains(ur.UserId))
+                    .Join(_context.Roles,
+                        ur => ur.RoleId,
+                        r => r.Id,
+                        (ur, r) => new { ur.UserId, r.Name })
+                    .ToListAsync();
+
+                vm.SearchResults = matchedUsers.Select(u => new AdminUserListItemViewModel
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName ?? "",
+                    Email = u.Email ?? "",
+                    IsAdmin = roleAssignments.Any(ra => ra.UserId == u.Id && ra.Name == Helper.AdminRole),
+                    IsPremium = roleAssignments.Any(ra => ra.UserId == u.Id && ra.Name == Helper.PremiumRole),
+                    IsSeller = roleAssignments.Any(ra => ra.UserId == u.Id && ra.Name == Helper.SellerRole)
+                }).ToList();
             }
 
-            vm.UserId = user.Id;
-            return View("AdminPanel",vm);
+            if (!string.IsNullOrEmpty(selectedUserId))
+            {
+                var user = await _userManager.FindByIdAsync(selectedUserId);
+                if (user != null)
+                {
+                    vm.UserId = user.Id;
+                    vm.Username = user.UserName ?? "";
+                }
+            }
+
+            return View(vm);
         }
 
         [ValidateAntiForgeryToken]
         [HttpPost]
-        public async Task<IActionResult> GiveUserRole(string userId, string roleName)
+        public async Task<IActionResult> GiveUserRole(string userId, string roleName, string searchTerm)
         {
-            var user = _context.Users
-                .SingleOrDefault(x => x.Id == userId);
-
-            if (user==null)
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
             {
                 return NotFound();
+            }
+
+            if (IsSelfAdminChange(userId, roleName))
+            {
+                TempData["StatusMessage"] = "\u26D4 You cannot change your own Admin role.";
+                return RedirectToAction(nameof(AdminPanel), new { searchTerm, selectedUserId = userId });
             }
 
             await _userManager.AddToRoleAsync(user, roleName);
 
-            var vm = new AdminPanelViewModel() { UserAccountUpdated = true };
-
-            return View("AdminPanel", vm);
+            TempData["StatusMessage"] = $"\u2705 Added \"{roleName}\" to {user.UserName}.";
+            return RedirectToAction(nameof(AdminPanel), new { searchTerm, selectedUserId = userId });
         }
 
         [ValidateAntiForgeryToken]
         [HttpPost]
-        public async Task<IActionResult> RemoveUserRole(string userId, string roleName)
+        public async Task<IActionResult> RemoveUserRole(string userId, string roleName, string searchTerm)
         {
-            var user = _context.Users
-                .SingleOrDefault(x => x.Id == userId);
-
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return NotFound();
+            }
+
+            if (IsSelfAdminChange(userId, roleName))
+            {
+                TempData["StatusMessage"] = "\u26D4 You cannot change your own Admin role.";
+                return RedirectToAction(nameof(AdminPanel), new { searchTerm, selectedUserId = userId });
             }
 
             await _userManager.RemoveFromRoleAsync(user, roleName);
 
-            var vm = new AdminPanelViewModel() { UserAccountUpdated = true };
-
-            return View("AdminPanel", vm);
+            TempData["StatusMessage"] = $"\u2705 Removed \"{roleName}\" from {user.UserName}.";
+            return RedirectToAction(nameof(AdminPanel), new { searchTerm, selectedUserId = userId });
         }
 
         [ValidateAntiForgeryToken]
         [HttpPost]
-        public async Task<IActionResult> DeleteAccount(string userId)
+        public async Task<IActionResult> DeleteAccount(string userId, string searchTerm)
         {
-            var user = _context.Users
-                .SingleOrDefault(x => x.Id == userId);
-
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return NotFound();
             }
 
+            var deletedUserName = user.UserName;
             await _userManager.DeleteAsync(user);
 
-            var vm = new AdminPanelViewModel() { UserAccountUpdated = true };
-
-            return View("AdminPanel", vm);
+            TempData["StatusMessage"] = $"\uD83D\uDDD1️ Account \"{deletedUserName}\" was permanently deleted.";
+            return RedirectToAction(nameof(AdminPanel), new { searchTerm });
         }
 
+        private bool IsSelfAdminChange(string userId, string roleName)
+        {
+            return roleName == Helper.AdminRole && userId == _userManager.GetUserId(User);
+        }
     }
 }
