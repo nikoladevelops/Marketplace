@@ -25,8 +25,11 @@ namespace Marketplace.ViewModels
         public double Price { get; set; }
 
         [Required(ErrorMessage = "You need to specify where you are located.")]
-        [StringLength(15,MinimumLength =4)]
+        [StringLength(100, MinimumLength = 2)]
         public string Location { get; set; }
+
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
 
         [Required(ErrorMessage = "You need to select a category.")]
         [Range(1,9, ErrorMessage = "You need to select a category.")]

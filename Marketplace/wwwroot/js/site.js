@@ -12,6 +12,7 @@ function toggleTheme() {
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("theme", next);
     updateThemeToggleIcon();
+    document.dispatchEvent(new CustomEvent("themechange"));
 }
 
 function updateThemeToggleIcon() {

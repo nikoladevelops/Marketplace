@@ -1,0 +1,19 @@
+@* Expanded-map modal shell for Create/Edit location picking. *@
+<div class="modal fade" id="locationMapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title">📍 Choose meeting point</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="locationMapBig" style="height: 62vh;"></div>
+                <p class="small text-muted px-3 pt-2 mb-0" id="locationStatus"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="useLocationBtn">Use this location</button>
+            </div>
+        </div>
+    </div>
+</div>

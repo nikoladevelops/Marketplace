@@ -67,6 +67,8 @@ namespace Marketplace.Controllers
                 Description = viewModel.Description,
                 Price = viewModel.Price,
                 Location = viewModel.Location,
+                Latitude = SanitizeCoordinate(viewModel.Latitude, -90, 90),
+                Longitude = SanitizeCoordinate(viewModel.Longitude, -180, 180),
                 UserId = User.FindFirst(ClaimTypes.NameIdentifier).Value,
                 CategoryId = viewModel.CategoryId,
                 DateCreatedOn = DateTime.UtcNow
@@ -108,6 +110,8 @@ namespace Marketplace.Controllers
                     Description = x.Description,
                     Price = x.Price,
                     Location = x.Location,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
                     CategoryId = x.CategoryId,
                     ExistingImagePath = x.ImagePath,
                     UserId = x.UserId
@@ -172,6 +176,8 @@ namespace Marketplace.Controllers
             advertisement.Description = model.Description;
             advertisement.Price = model.Price;
             advertisement.Location = model.Location;
+            advertisement.Latitude = SanitizeCoordinate(model.Latitude, -90, 90);
+            advertisement.Longitude = SanitizeCoordinate(model.Longitude, -180, 180);
             advertisement.CategoryId = model.CategoryId;
 
             // 2. Map slot-by-slot additional images (Slots 0, 1, 2)
@@ -255,6 +261,8 @@ namespace Marketplace.Controllers
                     Description = x.Description,
                     Price = x.Price + " EUR",
                     Location = x.Location,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
                     ImagePath = x.ImagePath,
                     UserId = x.UserId,
                     DateCreatedOn = x.DateCreatedOn.ToShortDateString(),
@@ -315,6 +323,12 @@ namespace Marketplace.Controllers
             int count = _context.Advertisements.Count(x => x.UserId == currentLoggedInUserId);
             int max = User.IsInRole(Helper.PremiumRole) ? PREMIUM_MAXIMUM_ADS : SELLER_MAXIMUM_ADS;
             return count >= max;
+        }
+
+        private static double? SanitizeCoordinate(double? value, double min, double max)
+        {
+            if (value == null || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) return null;
+            return value.Value >= min && value.Value <= max ? value.Value : null;
         }
     }
 }

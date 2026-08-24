@@ -10,6 +10,8 @@ namespace Marketplace.Models
         public string Description { get; set; }
         public double Price { get; set; }
         public string Location { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public DateTime DateCreatedOn { get; set; }
 
         public string UserId { get; set; }

@@ -19,6 +19,8 @@ namespace Marketplace.ViewModels
 
         public string ImagePath { get; set; }
         public IList<string>? AdditionalImagePaths { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
 
         public string? ProfilePicturePath { get; set; }
         public string UserName { get; set; }

@@ -315,3 +315,24 @@ img { max-width: 100%; }
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
+
+/* ===== Location picker maps ===== */
+.location-map-inline { height: clamp(200px, 30vw, 280px); z-index: 0; }
+.location-map-show { height: clamp(180px, 26vw, 240px); z-index: 0; }
+
+/* Leaflet controls should match the theme surfaces */
+.location-map-inline .leaflet-bar a,
+.location-map-show .leaflet-bar a {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+.location-map-inline .leaflet-control-attribution,
+.location-map-show .leaflet-control-attribution {
+    background: rgba(23, 30, 46, 0.8);
+    color: var(--text-muted);
+}
+.location-map-inline .leaflet-control-attribution a,
+.location-map-show .leaflet-control-attribution a {
+    color: var(--primary);
+}
