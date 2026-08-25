@@ -336,3 +336,116 @@ img { max-width: 100%; }
 .location-map-show .leaflet-control-attribution a {
     color: var(--primary);
 }
+
+/* ===== Chat ===== */
+.chat-bubble {
+    max-width: 75%;
+    padding: 0.55rem 0.9rem;
+    border-radius: 1.1rem;
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+.chat-mine {
+    background-color: var(--primary-strong);
+    color: #fff;
+    border-bottom-right-radius: 0.3rem;
+}
+.chat-theirs {
+    background-color: var(--surface-2);
+    color: var(--text);
+    border-bottom-left-radius: 0.3rem;
+}
+.chat-time {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+}
+
+/* SignalR connection status chip in the chat header */
+.chat-status {
+    font-size: 0.65rem;
+}
+.chat-status-online {
+    background-color: rgba(25, 135, 84, 0.15);
+    color: #198754;
+}
+.chat-status-connecting {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #997404;
+}
+.chat-status-offline {
+    background-color: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+[data-theme="dark"] .chat-status-online { color: #75dfb9; }
+[data-theme="dark"] .chat-status-connecting { color: #ffe083; }
+[data-theme="dark"] .chat-status-offline { color: #ff9faa; }
+
+/* Temporary inline error raised by the live send path */
+.chat-alert-temporary {
+    animation: none;
+}
+
+/* ===== Chat scroll containers ===== */
+#chatScroll {
+    max-height: clamp(340px, 62vh, 560px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+#chatScroll::-webkit-scrollbar { width: 6px; }
+#chatScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+#chatScroll::-webkit-scrollbar-track { background: transparent; }
+
+.inbox-scroll {
+    max-height: clamp(380px, 68vh, 640px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    overscroll-behavior: contain;
+}
+.inbox-scroll::-webkit-scrollbar { width: 6px; }
+.inbox-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+.chat-toast-beautiful {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1080;
+    min-width: min(92vw, 520px);
+    max-width: min(92vw, 520px);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--danger);
+    box-shadow: var(--shadow);
+    animation: toastSlideIn 0.28s ease;
+}
+.chat-toast-beautiful.toast-success { border-left-color: var(--success); }
+@keyframes toastSlideIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.chat-modal-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(220,53,69,0.12); color: var(--danger); font-size: 1.25rem;
+}
+[data-theme="dark"] .chat-modal-icon { background: rgba(239,94,104,0.18); }
+
+/* Responsive chat */
+@media (max-width: 576px) {
+    #chatScroll { max-height: clamp(300px, 56vh, 480px); }
+    .inbox-scroll { max-height: clamp(320px, 62vh, 560px); }
+    .chat-bubble { max-width: 86%; font-size: 0.92rem; }
+    .conversation-row { padding: 0.75rem !important; }
+    .chat-toast-beautiful { min-width: 92vw; }
+}
+@media (min-width: 577px) and (max-width: 991px) {
+    #chatScroll { max-height: 58vh; }
+}

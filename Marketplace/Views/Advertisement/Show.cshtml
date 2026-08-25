@@ -68,7 +68,16 @@
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-success fw-semibold py-2 mt-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
+                @if (User.Identity.IsAuthenticated && User.Identity.Name != Model.UserName)
+                {
+                    <a class="btn btn-success fw-semibold py-2 mt-3 w-100" asp-controller="Chat" asp-action="Thread"
+                       asp-route-with="@Model.UserName" asp-route-adId="@Model.Id">💬 Message Seller</a>
+                    <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (email/phone)</button>
+                }
+                else
+                {
+                    <button class="btn btn-success fw-semibold py-2 mt-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
+                }
             </div>
         </div>
     </div>

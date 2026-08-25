@@ -1,5 +1,16 @@
 ﻿@using Marketplace.Utility
 @inject Microsoft.AspNetCore.Identity.SignInManager<Marketplace.Models.ApplicationUser> _signInManager
+@inject Microsoft.AspNetCore.Identity.UserManager<Marketplace.Models.ApplicationUser> _userManager
+@inject Marketplace.Models.ApplicationDbContext _db
+
+@{
+    int unreadCount = 0;
+    if (_signInManager.IsSignedIn(User))
+    {
+        var meId = _userManager.GetUserId(User);
+        unreadCount = _db.ChatMessages.Count(m => m.ReceiverId == meId && !m.IsReadByReceiver);
+    }
+}
 
 <ul class="navbar-nav flex-grow-1">
     <li class="nav-item">
@@ -9,6 +20,12 @@
     {
         <li class="nav-item">
             <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="MyAdvertisements">My Advertisements</a>
+        </li>
+        <li class="nav-item" id="navbarMessagesItem">
+            <a id="navbarMessagesLink" class="nav-link text-dark d-flex align-items-center gap-1 position-relative" asp-area="" asp-controller="Chat" asp-action="Inbox" data-unread="@unreadCount" data-username="@User.Identity?.Name">
+                💬 Messages
+                <span id="navbarUnreadBadge" class="badge rounded-pill bg-danger @(unreadCount > 0 ? "" : "d-none")">@unreadCount</span>
+            </a>
         </li>
         <li class="nav-item">
             <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="MyProfile">My Profile</a>

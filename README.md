@@ -1,7 +1,7 @@
 # Marketplace
 Marketplace web app where people display the items they wish to sell alongside their contact information.
 
-Used technologies: ASP .NET Core with .NET 9, Entity Framework Core 9 using SQL Server provider and finally Bootstrap 5 for styling purposes. The project uses MVC, without a Web API.
+Used technologies: ASP.NET Core with .NET 10, Entity Framework Core 10 using Npgsql PostgreSQL provider, Bootstrap 5, SignalR for real-time chat. The project uses MVC without a separate Web API.
 
 ## What is supported?
 ### 1. Different user roles
@@ -17,29 +17,63 @@ Used technologies: ASP .NET Core with .NET 9, Entity Framework Core 9 using SQL 
 - Min and Max price range
 ### 4. User profiles
 Each user has a profile that can be visited. You can browse through the items they have put up for sale and choose to contact them via email or phone.
+### 5. Real-time chat
+- SignalR hub `/hubs/chat` with live Inbox and Thread
+- Navbar unread badge + toast updates instantly
+- Block/unblock (admins cannot be blocked), paginated Inbox (12) and Thread (50), scrollbars, responsive
 
-## How to test the project?
-1. Clone it to a folder on your pc `git clone https://github.com/nikoladevelops/Marketplace.git`
-2. Download all necessary `NuGet` packages
-3. Create a `.env` file inside the project and configure the connection string<br>
-Example:
+## How to run (Linux / CachyOS dev — HTTP default)
+
+1. Clone: `git clone https://github.com/nikoladevelops/Marketplace.git && cd Marketplace`
+2. Restore: `dotnet restore`
+3. Create `Marketplace/.env` (next to `Marketplace.csproj`):
+   ```
+   CONNECTION_STRING=Host=localhost;Database=marketplace;Username=postgres;Password=postgres
+   # optional AI
+   AI_API_URL=
+   AI_API_KEY=
+   ```
+4. First-time setup (migrate + seed core):
+   ```
+   dotnet run --project Marketplace -- setup
+   ```
+   Seeds roles, users (`seller`/`premium`/`admin` — pass `aaaaaaA!1`), categories (`Furniture` … `Sports & Outdoors`). Idempotent — safe to re-run.
+
+5. Then demo data (requires setup first):
+   ```
+   dotnet run --project Marketplace -- seed:demo            # 25 ads
+   dotnet run --project Marketplace -- seed:demo --count 50 # 1..200
+   # compat: dotnet run --project Marketplace -- --seed-demo=25
+   ```
+
+6. Start app:
+   ```
+   dotnet run --project Marketplace
+   # opens http://localhost:5256 (dev default, no cert needed)
+   ```
+
+Order matters: **setup → seed:demo → run**. Help: `dotnet run --project Marketplace -- help`.
+
+Windows / manual migrations alternative:
 ```
-CONNECTION_STRING=Server=.\SQLEXPRESS;Database=Marketplace;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;
+dotnet ef database update --project Marketplace
 ```
-4. Open `Package Manager Console` and run `update-database` in order for all migrations to be applied to your SQL Server database
-5. Run the project
+But the app also runs `MigrateAsync()` on startup, so `update-database` is optional.
 
-By default inside the `Program.cs` file, a `DataSeeder` class is used, to generate test users and categories, so you can edit the logic however you wish.
+### Test users after setup
+Username: `seller` / pass `aaaaaaA!1` (Seller)  
+Username: `premium` / pass `aaaaaaA!1` (Premium)  
+Username: `admin` / pass `aaaaaaA!1` (Admin)
 
-In order to test the functionality after running the app, here are the test user details you need for login:
+## Troubleshooting chat
 
-Username: seller<br>
-Pass: aaaaaaA!1
+Real-time chat runs over SignalR (`/hubs/chat`) and needs the page and the hub on the same scheme.
 
-Username: premium<br>
-Pass: aaaaaaA!1
+* Dev default is `http://localhost:5256` (no cert). Always open the app at that exact URL.
+* If you re-enable `https://localhost:7256` in `Properties/launchSettings.json`, trust the dev cert once: `dotnet dev-certs https --trust` (Linux: also `certutil -d sql:$HOME/.pki/nssdb -A` for Firefox/NSS).
+* If `Connection lost — reconnecting` appears, check browser Console ` [chat] start` and Network `POST /hubs/chat/negotiate` (should be `200` when logged in, `401` anon is normal).
+* Only one `dotnet run` at a time — kill stale holders if `Failed to bind to address … already in use`: `lsof -ti :5256 | xargs -r kill -9`.
 
-Username: admin<br>
-Pass: aaaaaaA!1
+## Production
 
-
+`appsettings.Production.json` binds `http://*:80` behind reverse proxy (nginx/caddy) with `ForwardedHeaders`. Data Protection keys are persisted to Postgres (`DataProtectionKeys` table) so auth cookies survive restarts.

@@ -12,7 +12,10 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7256;http://localhost:5256",
+      // Linux dev default: HTTP-only to avoid dev-cert trust issues on CachyOS/Arch.
+      // Alternative with HTTPS: "https://localhost:7256;http://localhost:5256" — requires `dotnet dev-certs https --trust` (and certutil/nssdb on Linux).
+      // Production note: keep this HTTP; HTTPS is terminated at the reverse proxy (nginx/caddy) — see Program.cs ForwardedHeaders comment.
+      "applicationUrl": "http://localhost:5256",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
