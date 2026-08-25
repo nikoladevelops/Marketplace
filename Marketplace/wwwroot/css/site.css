@@ -104,16 +104,24 @@ body {
 
 /* ===== Navbar & footer ===== */
 .navbar {
-    background-color: var(--surface);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
 }
 .navbar-brand {
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     color: var(--primary) !important;
 }
-.navbar .nav-link { font-weight: 500; color: var(--text); transition: color 0.15s ease; }
-.navbar .nav-link:hover { color: var(--primary) !important; }
+.navbar .nav-link { font-weight: 500; color: var(--text); transition: color 0.15s ease, background 0.15s ease; border-radius: 0.5rem; padding: 0.35rem 0.6rem !important; }
+.navbar .nav-link:hover { color: var(--primary) !important; background: var(--surface-2); }
+.navbar .nav-link.active { color: var(--primary) !important; background: var(--surface-2); }
 .navbar-toggler { border-color: var(--border); }
+.navbar-toggler:focus { box-shadow: 0 0 0 0.2rem rgba(91,155,255,0.2); }
+.navbar-username { color: var(--text-muted) !important; font-size: 0.88rem; }
+[data-theme="light"] .navbar-username { color: var(--text-muted) !important; }
 
 .footer {
     position: absolute;
@@ -138,6 +146,7 @@ body {
 
 /* ===== Ad cards ===== */
 .card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+.ad-card { border: 1px solid var(--border); }
 .ad-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow) !important;
@@ -147,15 +156,46 @@ body {
     width: 100%;
     object-fit: cover;
     background-color: var(--surface-2);
+    transition: transform 0.35s ease;
 }
+.ad-card:hover img { transform: scale(1.03); }
+.ad-card .card-body { position: relative; }
 .ad-card .ad-price { color: var(--success); font-weight: 700; }
 .ad-card .ad-badge { font-size: 0.78rem; padding: 0.25rem 0.6rem; margin: 0; }
 
 /* ===== Image slots (uniform, responsive fitting) ===== */
-.img-slot { height: clamp(120px, 16vw, 170px); }
-.img-slot-lg { height: clamp(190px, 28vw, 250px); }
+.img-slot { height: clamp(110px, 15vw, 150px); aspect-ratio: 1; }
+.img-slot-lg { height: clamp(110px, 18vw, 150px); }
 .img-thumb { height: clamp(72px, 11vw, 104px); }
-.show-main-img { height: clamp(260px, 42vw, 440px); }
+.show-main-img { height: clamp(220px, 36vw, 360px); }
+.ad-card-img-wrap {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    max-height: 200px;
+    overflow: hidden;
+    background: var(--surface-2);
+    position: relative;
+}
+.ad-card-img-wrap img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.profile-avatar-wrap {
+    width: clamp(110px, 20vw, 150px);
+    height: clamp(110px, 20vw, 150px);
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 3px solid var(--border);
+    background: var(--surface-2);
+    box-shadow: var(--shadow);
+}
+.profile-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.show-gallery-main {
+    height: clamp(220px, 36vw, 360px);
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--surface-2);
+}
 
 img { max-width: 100%; }
 
@@ -414,21 +454,24 @@ img { max-width: 100%; }
 
 .chat-toast-beautiful {
     position: fixed;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
+    top: calc(56px + 0.75rem);
+    right: 1rem;
+    left: auto;
+    transform: none;
     z-index: 1080;
-    min-width: min(92vw, 520px);
-    max-width: min(92vw, 520px);
+    min-width: 320px;
+    max-width: min(92vw, 420px);
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
     border-left: 4px solid var(--danger);
     box-shadow: var(--shadow);
-    animation: toastSlideIn 0.28s ease;
+    animation: toastSlideInRight 0.28s ease;
+    pointer-events: auto;
 }
 .chat-toast-beautiful.toast-success { border-left-color: var(--success); }
 @keyframes toastSlideIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes toastSlideInRight { from { opacity: 0; transform: translate(12px, -8px); } to { opacity: 1; transform: translate(0, 0); } }
 
 .chat-modal-icon {
     width: 44px; height: 44px;
@@ -444,7 +487,7 @@ img { max-width: 100%; }
     .inbox-scroll { max-height: clamp(320px, 62vh, 560px); }
     .chat-bubble { max-width: 86%; font-size: 0.92rem; }
     .conversation-row { padding: 0.75rem !important; }
-    .chat-toast-beautiful { min-width: 92vw; }
+    .chat-toast-beautiful { left: 0.5rem; right: 0.5rem; min-width: auto; max-width: none; top: calc(56px + 0.5rem); }
 }
 @media (min-width: 577px) and (max-width: 991px) {
     #chatScroll { max-height: 58vh; }

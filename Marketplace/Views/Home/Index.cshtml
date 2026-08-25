@@ -63,19 +63,23 @@ else
 
                 var currentAd = Model.Advertisements.ElementAt(i+j);
                 <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
-                        <img src="@currentAd.ImagePath" data-lightbox="home-grid" loading="lazy" alt="Advertisement Image">
-                        <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                    <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none h-100 d-block">
+                        <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
+                            <div class="ad-card-img-wrap">
+                                <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
+                                <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                            </div>
 
-                        <div class="card-body pb-2">
-                            <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
-                            <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
-                            <p class="text-muted small mb-0">📍 @currentAd.Location</p>
+                            <div class="card-body pb-2">
+                                <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
+                                <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
+                                <p class="text-muted small mb-0">📍 @currentAd.Location</p>
+                            </div>
+                            <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto">
+                                <span class="btn btn-sm btn-primary w-100">View Listing</span>
+                            </div>
                         </div>
-                        <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto">
-                            <a class="btn btn-sm btn-primary w-100" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">View Listing</a>
-                        </div>
-                    </div>
+                    </a>
                 </div>
             }
             </div>

@@ -18,13 +18,11 @@
 }
 
 <div class="container">
-    <div class="row">
-        <div class="card col-3 p-0 mb-3 mx-1 border-0">
-            <h3>Profile Picture</h3>
-            <div class="border border-primary rounded">
-                <div class="card-body">
-                    <img id="image1" src="@profilePictureSrc" class="card-img" alt="Profile Picture">
-                </div>
+    <div class="row g-4">
+        <div class="col-md-4 col-lg-3 text-center">
+            <h3 class="h5 fw-bold mb-3">Profile Picture</h3>
+            <div class="profile-avatar-wrap mx-auto">
+                <img id="image1" src="@profilePictureSrc" class="w-100 h-100 object-fit-cover" alt="Profile Picture">
             </div>
         </div>
     @if (@ViewBag.PhoneNumber != null)
@@ -82,9 +80,12 @@ else
 
                 var currentAd = Model.ElementAt(i + j);
                 <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
-                        <img src="@currentAd.ImagePath" data-lightbox="profile-ads" loading="lazy" alt="Ad Image">
-                        <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                    <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none h-100 d-block">
+                        <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
+                            <div class="ad-card-img-wrap">
+                                <img src="@currentAd.ImagePath" loading="lazy" alt="Ad Image">
+                                <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                            </div>
 
                         <div class="card-body pb-2">
                             <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
@@ -92,13 +93,14 @@ else
                             <p class="text-muted small mb-0">📍 @currentAd.Location</p>
                         </div>
                         <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto d-flex gap-2">
-                            <a class="btn btn-sm btn-primary flex-fill" asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id">View</a>
+                            <span class="btn btn-sm btn-primary flex-fill">View</span>
                             @if (User.IsInRole(Helper.AdminRole))
                             {
-                                <a class="btn btn-sm btn-outline-danger flex-fill" onclick="showDeleteAdModal('@currentAd.Title',@currentAd.Id)">Delete</a>
+                                <a class="btn btn-sm btn-outline-danger flex-fill position-relative" style="z-index:1;" onclick="event.stopPropagation(); showDeleteAdModal('@currentAd.Title',@currentAd.Id)">Delete</a>
                             }
                         </div>
                     </div>
+                    </a>
                 </div>
             }
             </div>

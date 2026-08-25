@@ -14,27 +14,27 @@
 
 <ul class="navbar-nav flex-grow-1">
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
     </li>
     @if (_signInManager.IsSignedIn(User))
     {
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="MyAdvertisements">My Advertisements</a>
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="MyAdvertisements">My Advertisements</a>
         </li>
         <li class="nav-item" id="navbarMessagesItem">
-            <a id="navbarMessagesLink" class="nav-link text-dark d-flex align-items-center gap-1 position-relative" asp-area="" asp-controller="Chat" asp-action="Inbox" data-unread="@unreadCount" data-username="@User.Identity?.Name">
+            <a id="navbarMessagesLink" class="nav-link d-flex align-items-center gap-1 position-relative" asp-area="" asp-controller="Chat" asp-action="Inbox" data-unread="@unreadCount" data-username="@User.Identity?.Name">
                 💬 Messages
                 <span id="navbarUnreadBadge" class="badge rounded-pill bg-danger @(unreadCount > 0 ? "" : "d-none")">@unreadCount</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="MyProfile">My Profile</a>
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="MyProfile">My Profile</a>
         </li>
 
         if (User.IsInRole(Helper.AdminRole))
         {
             <li class="nav-item">
-                <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="AdminPanel">Admin Panel</a>
+                <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="AdminPanel">Admin Panel</a>
             </li>
         }
     }
@@ -42,11 +42,11 @@
 
 @if (_signInManager.IsSignedIn(User))
 {
-    <h5 class="text-black-50 m-3">@User.Identity.Name</h5>
-    <ul class="navbar-nav">
+    <span class="navbar-username d-none d-sm-inline text-muted fw-medium ms-2 ms-sm-3 me-2 align-self-center text-truncate" style="max-width: 140px;" title="@(User.Identity?.Name ?? "")">@(User.Identity?.Name ?? "")</span>
+    <ul class="navbar-nav flex-row align-items-center gap-2">
         <li class="nav-item">
-            <form asp-action="LogOut" asp-controller="Account">
-                <button type="submit" class="btn btn-secondary">Log out</button>
+            <form asp-action="LogOut" asp-controller="Account" class="m-0">
+                <button type="submit" class="btn btn-outline-secondary btn-sm rounded-3">Log out</button>
             </form>
         </li>
     </ul>
@@ -54,12 +54,12 @@
 }
 else
 {
-    <ul class="navbar-nav">
+    <ul class="navbar-nav flex-row gap-1">
         <li class="nav-item">
-            <a class="nav-link text-black" asp-area="" asp-controller="Account" asp-action="Register">Register</a>
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">Register</a>
         </li>
-        <li class="nav-item ">
-            <a class="nav-link text-black" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
+        <li class="nav-item">
+            <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
         </li>
     </ul>
 }

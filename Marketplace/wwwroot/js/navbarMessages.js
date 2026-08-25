@@ -1,5 +1,5 @@
-// Navbar live unread badge + toast — same SignalR user group as Inbox/Thread.
-// Keeps top nav instantly in sync without page reload. Toast is responsive (92vw on mobile).
+// Navbar live unread badge — same SignalR user group as Inbox/Thread.
+// Keeps top nav instantly in sync without page reload. No toast (badge is enough).
 (function () {
     "use strict";
     var link = document.getElementById("navbarMessagesLink");
@@ -32,33 +32,6 @@
             .catch(function () { });
     }
 
-    function showToast(data) {
-        var toast = document.getElementById("navbarToast");
-        if (!toast) {
-            toast = document.createElement("div");
-            toast.id = "navbarToast";
-            toast.className = "alert chat-toast-beautiful rounded-4";
-            toast.setAttribute("role", "alert");
-            toast.style.cursor = "pointer";
-            toast.addEventListener("click", function () {
-                var url = "/Chat/Thread?with=" + encodeURIComponent(data.senderName) + "&adId=" + encodeURIComponent(data.advertisementId);
-                window.location.href = url;
-            });
-            document.body.appendChild(toast);
-        }
-        var snippet = (data.body || "").length > 56 ? data.body.substring(0, 56) + "…" : data.body;
-        toast.innerHTML = '<div class="d-flex align-items-center gap-2"><span class="flex-shrink-0" style="font-size:1.1rem;">💬</span><div class="flex-grow-1 min-width-0"><div class="fw-semibold small text-truncate">New message from ' + escapeHtml(data.senderName) + '</div><div class="small text-muted text-truncate">' + escapeHtml(snippet) + '</div></div><span class="badge bg-primary flex-shrink-0">Open</span></div>';
-        toast.hidden = false;
-        toast.style.display = "block";
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(function () { toast.hidden = true; toast.style.display = "none"; }, 5500);
-    }
-    function escapeHtml(s) {
-        var d = document.createElement("div");
-        d.textContent = s || "";
-        return d.innerHTML;
-    }
-
     function build() {
         var c = new signalR.HubConnectionBuilder()
             .withUrl("/hubs/chat", { transport: TRANSPORTS })
@@ -67,9 +40,6 @@
         c.on("ReceiveMessage", function (data) {
             if (!data || data.senderName === myUser) return;
             incBadge();
-            // Only toast if not already on that Thread (chat.js will handle thread UI)
-            var onSameThread = window.chatConfig && window.chatConfig.partnerName === data.senderName && String(window.chatConfig.adId) === String(data.advertisementId);
-            if (!onSameThread) showToast(data);
         });
         c.on("MessagesRead", function () {
             // Debounce a server sync — accurate even when multiple tabs mark read
