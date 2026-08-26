@@ -61,20 +61,16 @@ var Lightbox = (function () {
 
     var items = [];
     var currentIndex = 0;
+    var dragging = false, lastX = 0, lastY = 0, dragMoved = 0;
+    var suppressClickUntil = 0;
 
     function clamp(v, lo, hi) {
         return Math.min(hi, Math.max(lo, v));
     }
 
-    function applyTransform(instant) {
-        if (instant) {
-            wrap.style.transition = "none";
-            void wrap.offsetWidth; // flush so the next change animates again
-        } else {
-            wrap.style.transition = "";
-        }
+    function applyTransform() {
         wrap.style.transform = "translate(" + offsetX + "px, " + offsetY + "px) scale(" + scale + ")";
-        stage.classList.toggle("pannable", scale > 1);
+        wrap.classList.toggle("pannable", scale > 1);
     }
 
     function updateZoomLabel() {
@@ -105,24 +101,55 @@ var Lightbox = (function () {
             scale = 1;
             offsetX = 0;
             offsetY = 0;
+        } else {
+            clampOffsets();
         }
 
         applyTransform();
         updateZoomLabel();
     }
 
-    function resetView(instant) {
+    function resetView() {
+        wrap.style.transition = "none";
         scale = 1;
         offsetX = 0;
         offsetY = 0;
-        applyTransform(instant);
+        applyTransform();
         updateZoomLabel();
+        requestAnimationFrame(function () {
+            wrap.style.transition = "";
+        });
+    }
+
+    function clampOffsets() {
+        if (scale <= 1) {
+            offsetX = 0;
+            offsetY = 0;
+            return;
+        }
+        var stageW = stage.clientWidth;
+        var stageH = stage.clientHeight;
+        var imgW = imgEl.naturalWidth > 0 ? imgEl.naturalWidth : imgEl.offsetWidth;
+        var imgH = imgEl.naturalHeight > 0 ? imgEl.naturalHeight : imgEl.offsetHeight;
+        // Rendered size after CSS max constraints relative to viewport
+        var rect = imgEl.getBoundingClientRect();
+        // Use actual rendered size at scale 1, then apply scale
+        var renderedW = rect.width / scale;
+        var renderedH = rect.height / scale;
+        var scaledW = renderedW * scale;
+        var scaledH = renderedH * scale;
+        var maxX = Math.max(0, (scaledW - stageW) / 2 + 40);
+        var maxY = Math.max(0, (scaledH - stageH) / 2 + 40);
+        offsetX = Math.max(-maxX, Math.min(maxX, offsetX));
+        offsetY = Math.max(-maxY, Math.min(maxY, offsetY));
     }
 
     function render() {
         var item = items[currentIndex];
         if (!item) return;
-        resetView(true);
+        // Instant switch: no transition for image swap to avoid hit-test race on fast next/prev
+        wrap.style.transition = "none";
+        resetView();
         imgEl.src = item.src;
         imgEl.alt = item.alt || "";
         counterEl.textContent = items.length > 1
@@ -131,6 +158,10 @@ var Lightbox = (function () {
         prevBtn.classList.toggle("lb-hidden", items.length < 2);
         nextBtn.classList.toggle("lb-hidden", items.length < 2);
         preloadNeighbors();
+        dragMoved = 0;
+        requestAnimationFrame(function () {
+            wrap.style.transition = "";
+        });
     }
 
     function preloadNeighbors() {
@@ -177,10 +208,10 @@ var Lightbox = (function () {
                 '<button type="button" class="lb-btn lb-close" title="Close (Esc)">\u2715</button>' +
             '</div>' +
             '<div class="lb-stage">' +
-                '<button type="button" class="lb-nav lb-prev" title="Previous (\u2190)">\u2039</button>' +
-                '<button type="button" class="lb-nav lb-next" title="Next (\u2192)">\u203A</button>' +
                 '<div class="lb-img-wrap"><img alt=""></div>' +
             '</div>' +
+            '<button type="button" class="lb-nav lb-prev" title="Previous (\u2190)">\u2039</button>' +
+            '<button type="button" class="lb-nav lb-next" title="Next (\u2192)">\u203A</button>' +
             '<div class="lb-toolbar">' +
                 '<button type="button" class="lb-btn lb-zoom-out" title="Zoom out (-)">\u2212</button>' +
                 '<span class="lb-zoom-label">100%</span>' +
@@ -195,18 +226,22 @@ var Lightbox = (function () {
         stage = overlay.querySelector(".lb-stage");
         wrap = overlay.querySelector(".lb-img-wrap");
         imgEl = overlay.querySelector("img");
+        imgEl.draggable = false;
+        imgEl.addEventListener("dragstart", function (e) { e.preventDefault(); });
 
         bindEvents();
         document.body.appendChild(overlay);
     }
 
     function bindEvents() {
-        overlay.querySelector(".lb-close").addEventListener("click", close);
-        prevBtn.addEventListener("click", function () { go(-1); });
-        nextBtn.addEventListener("click", function () { go(1); });
-        overlay.querySelector(".lb-zoom-in").addEventListener("click", function () { setZoom(scale * 1.25); });
-        overlay.querySelector(".lb-zoom-out").addEventListener("click", function () { setZoom(scale / 1.25); });
-        overlay.querySelector(".lb-reset").addEventListener("click", function () { resetView(); });
+        overlay.querySelector(".lb-close").addEventListener("click", function (e) { e.stopPropagation(); close(); });
+        prevBtn.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); go(-1); });
+        nextBtn.addEventListener("click", function (e) { e.stopPropagation(); e.preventDefault(); go(1); });
+        overlay.querySelector(".lb-zoom-in").addEventListener("click", function (e) { e.stopPropagation(); setZoom(scale * 1.25); });
+        overlay.querySelector(".lb-zoom-out").addEventListener("click", function (e) { e.stopPropagation(); setZoom(scale / 1.25); });
+        overlay.querySelector(".lb-reset").addEventListener("click", function (e) { e.stopPropagation(); resetView(); });
+        overlay.querySelector(".lb-topbar").addEventListener("click", function (e) { e.stopPropagation(); });
+        overlay.querySelector(".lb-toolbar").addEventListener("click", function (e) { e.stopPropagation(); });
 
         /* Wheel zoom toward cursor */
         stage.addEventListener("wheel", function (e) {
@@ -215,42 +250,56 @@ var Lightbox = (function () {
             setZoom(scale * factor, e.clientX, e.clientY);
         }, { passive: false });
 
-        /* Double-click toggles fit <-> 2x at pointer */
-        stage.addEventListener("dblclick", function (e) {
+        /* Double-click toggles fit <-> 2x at pointer.
+           The only ways to close are stage background click or close button. */
+        function handleDblClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            suppressClickUntil = Date.now() + 400;
+            dragMoved = 999;
             if (scale > 1.01) {
                 resetView();
             } else {
                 setZoom(2, e.clientX, e.clientY);
             }
-        });
+        }
+        stage.addEventListener("dblclick", handleDblClick);
+        wrap.addEventListener("dblclick", handleDblClick);
+        // Prevent native image drag ghost
+        wrap.addEventListener("dragstart", function (e) { e.preventDefault(); });
+        stage.addEventListener("dragstart", function (e) { e.preventDefault(); });
 
-        /* Drag to pan. dragMoved accumulates the distance so the leftover
-           synthetic click after a drag doesn't close the lightbox. */
-        var dragging = false, lastX = 0, lastY = 0, dragMoved = 0;
         stage.addEventListener("pointerdown", function (e) {
+            if (e.target.closest && e.target.closest(".lb-nav")) return;
             if (e.button !== 0 || scale <= 1) return;
+            e.preventDefault();
             dragging = true;
             dragMoved = 0;
             lastX = e.clientX;
             lastY = e.clientY;
-            stage.classList.add("panning");
+            wrap.style.transition = "none";
+            wrap.classList.add("panning");
             try { stage.setPointerCapture(e.pointerId); } catch (err) { }
         });
         stage.addEventListener("pointermove", function (e) {
             if (!dragging) return;
+            e.preventDefault();
             var dx = e.clientX - lastX;
             var dy = e.clientY - lastY;
             offsetX += dx;
             offsetY += dy;
+            clampOffsets();
             dragMoved += Math.abs(dx) + Math.abs(dy);
             lastX = e.clientX;
             lastY = e.clientY;
             applyTransform();
         });
-        ["pointerup", "pointercancel"].forEach(function (type) {
+        ["pointerup", "pointercancel", "pointerleave"].forEach(function (type) {
             stage.addEventListener(type, function (e) {
+                if (!dragging) return;
                 dragging = false;
-                stage.classList.remove("panning");
+                wrap.classList.remove("panning");
+                wrap.style.transition = "";
                 try { stage.releasePointerCapture(e.pointerId); } catch (err) { }
             });
         });
@@ -280,8 +329,10 @@ var Lightbox = (function () {
         });
 
         /* Click on empty space closes — unless the click is the leftover
-           synthetic click at the end of a drag-pan. */
+           synthetic click at the end of a drag-pan or the second click of a double-click. */
         stage.addEventListener("click", function (e) {
+            if (Date.now() < suppressClickUntil) return;
+            if (e.detail > 1) return;
             var moved = dragMoved;
             dragMoved = 0;
             if (e.target !== stage || moved > 5) return;
