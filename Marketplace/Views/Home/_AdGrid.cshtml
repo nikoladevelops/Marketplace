@@ -1,0 +1,86 @@
+@using Marketplace.Utility
+@model Marketplace.ViewModels.HomeViewModel
+
+@if (Model.Advertisements == null || !Model.Advertisements.Any())
+{
+    <div class="text-center py-5">
+        <h3 class="mb-2">No advertisements found</h3>
+        <p class="text-muted mb-0">Try adjusting your search filters or check back later.</p>
+    </div>
+}
+else
+{
+    <h3 class="mb-4 fw-bold">Advertisements</h3>
+
+    <div class="container">
+        @{
+            var countAds = Model.Advertisements.Count();
+        }
+        @for (var i = 0; i < countAds; i += 4)
+        {
+            <div class="row g-3">
+                @for (var j = 0; j < 4; j++)
+                {
+                    @if (i + j == countAds)
+                    {
+                        break;
+                    }
+
+                    var currentAd = Model.Advertisements.ElementAt(i + j);
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none h-100 d-block">
+                            <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
+                                <div class="ad-card-img-wrap">
+                                    <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
+                                    <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                                </div>
+
+                                <div class="card-body pb-3 d-flex flex-column">
+                                    <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
+                                    <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(currentAd.Price)</p>
+                                    <p class="text-muted small mb-2">📍 @currentAd.Location</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top small">
+                                        <span class="text-muted text-truncate" title="@currentAd.UserName">👤 @currentAd.UserName</span>
+                                        <span class="text-muted flex-shrink-0 ms-2">@DateFormatter.ToShortLocationDate(currentAd.DateCreatedOn, currentAd.Location)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="text-center pagination-links">
+        <a href="/?pageNumber=" data-page="@(Model.PageNumber - 1)" class="page-nav" title="Previous page">&#60;</a>
+        @{
+            int maximumDisplayedPages = 10;
+            int startingIndex = Model.PageNumber - (Model.PageNumber % maximumDisplayedPages);
+            int endingIndex = (Model.PageNumber + maximumDisplayedPages) - (Model.PageNumber % maximumDisplayedPages);
+
+            if (endingIndex > Model.MaxCountPages)
+            {
+                endingIndex = Model.MaxCountPages;
+            }
+
+            @for (var i = startingIndex; i < endingIndex; i++)
+            {
+                @if (i == Model.PageNumber)
+                {
+                    <a id="currentPage" class="active" data-page="@i" href="/?pageNumber=@i">@i</a>
+                    continue;
+                }
+                <a href="/?pageNumber=@i" data-page="@i">@i</a>
+            }
+
+            if (!(endingIndex >= Model.MaxCountPages))
+            {
+                var lastPageIndex = Model.MaxCountPages - 1;
+                <span class="px-1 text-muted">...</span>
+                <a href="/?pageNumber=@lastPageIndex" data-page="@lastPageIndex">@lastPageIndex</a>
+            }
+        }
+        <a href="/?pageNumber=" data-page="@(Model.PageNumber + 1)" class="page-nav" title="Next page">&#62;</a>
+    </div>
+}

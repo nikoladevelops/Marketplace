@@ -20,9 +20,10 @@ namespace Marketplace.ViewModels
         public string Description { get; set; }
 
         [Required]
-        [Range(1,1000000)]
+        [Range(1, 1000000)]
         [DataType(DataType.Currency)]
-        public double Price { get; set; }
+        [Display(Name = "Price (EUR)")]
+        public decimal Price { get; set; }
 
         [Required(ErrorMessage = "You need to specify where you are located.")]
         [StringLength(100, MinimumLength = 2)]

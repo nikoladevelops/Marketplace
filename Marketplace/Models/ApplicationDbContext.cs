@@ -22,6 +22,39 @@ namespace Marketplace.Models
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.HasPostgresExtension("pg_trgm");
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .Property(x => x.Price)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.Title)
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.Description)
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.Location)
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.Price);
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.DateCreatedOn);
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => x.CategoryId);
+
+            modelBuilder.Entity<AdvertisementModel>()
+                .HasIndex(x => new { x.CategoryId, x.Price });
+
             modelBuilder.Entity<UserBlock>()
                 .HasIndex(b => new { b.BlockerId, b.BlockedId })
                 .IsUnique();

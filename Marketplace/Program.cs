@@ -50,6 +50,9 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddScoped<LocalFallbackProvider>();
 }
 
+// Filtering service
+builder.Services.AddScoped<AdvertisementFilterService>();
+
 // Seeding services for Utility/Seeding folder
 builder.Services.AddScoped<IdentityAndCatalogSeeder>();
 builder.Services.AddScoped<DemoContentSeeder>();

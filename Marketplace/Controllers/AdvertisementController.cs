@@ -259,7 +259,7 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Description = x.Description,
-                    Price = x.Price + " EUR",
+                    Price = PriceFormatter.ToEur(x.Price),
                     Location = x.Location,
                     Latitude = x.Latitude,
                     Longitude = x.Longitude,

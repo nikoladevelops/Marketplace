@@ -60,17 +60,17 @@ namespace Marketplace.Utility.Seeding
             ["Sports & Outdoors"] = ["bicycle", "tent,camping"]
         };
 
-        private static readonly Dictionary<string, (string[] Titles, double MinPrice, double MaxPrice)> CategoryContent = new()
+        private static readonly Dictionary<string, (string[] Titles, decimal MinPrice, decimal MaxPrice)> CategoryContent = new()
         {
-            ["Furniture"] = (["Vintage oak dining table", "Three-seat fabric sofa", "Scandinavian armchair", "Solid wood bookshelf", "Retro walnut coffee table", "Corner desk with drawers"], 40, 900),
-            ["Home Appliances"] = (["Electric kettle 1.7L", "Robot vacuum cleaner", "Stand mixer 1000W", "Air fryer 5L digital", "Steam iron ceramic soleplate", "Espresso machine semi-automatic"], 25, 450),
-            ["Fashion & Accessories"] = (["Leather biker jacket", "Winter parka size L", "Genuine leather handbag", "Wool overcoat charcoal", "Canvas backpack vintage style", "Silk scarf floral print"], 15, 250),
-            ["Smartphones"] = (["iPhone 12 128GB", "Samsung Galaxy S21 5G", "Google Pixel 6a", "Xiaomi Redmi Note 11", "OnePlus Nord 2", "iPhone SE 2020 64GB"], 120, 1200),
-            ["Computers & Laptops"] = (["ThinkPad T480 i5 16GB", "MacBook Air M1 256GB", "Mechanical keyboard RGB", "Dell UltraSharp 27 monitor", "RTX 3060 gaming PC", "Logitech MX Master 3 mouse"], 30, 1500),
-            ["Audio & Headphones"] = (["Sony WH-1000XM4 headphones", "JBL Flip 5 portable speaker", "Audio-Technica ATH-M50x", "Marshall Stanmore II speaker", "Apple AirPods Pro", "Studio monitor pair 5 inch"], 20, 400),
-            ["TV & Home Entertainment"] = (["LG 55 inch 4K Smart TV", "Samsung soundbar 3.1", "Full HD projector 1080p", "PlayStation 4 Slim 1TB", "Xbox Series S", "TV wall mount full motion"], 35, 800),
-            ["Cameras & Photography"] = (["Canon EOS 750D kit 18-55mm", "Nikon D3500 kit", "GoPro Hero 8 Black", "Carbon tripod ball head", "Godox speedlight flash", "Fujifilm Instax Mini 11"], 40, 950),
-            ["Sports & Outdoors"] = (["Mountain bike 26 inch", "3-person tent waterproof", "Yoga mat 6mm TPE", "Adjustable dumbbells 20kg", "Camping stove portable", "Hiking backpack 45L"], 15, 700)
+            ["Furniture"] = (["Vintage oak dining table", "Three-seat fabric sofa", "Scandinavian armchair", "Solid wood bookshelf", "Retro walnut coffee table", "Corner desk with drawers"], 40m, 900m),
+            ["Home Appliances"] = (["Electric kettle 1.7L", "Robot vacuum cleaner", "Stand mixer 1000W", "Air fryer 5L digital", "Steam iron ceramic soleplate", "Espresso machine semi-automatic"], 25m, 450m),
+            ["Fashion & Accessories"] = (["Leather biker jacket", "Winter parka size L", "Genuine leather handbag", "Wool overcoat charcoal", "Canvas backpack vintage style", "Silk scarf floral print"], 15m, 250m),
+            ["Smartphones"] = (["iPhone 12 128GB", "Samsung Galaxy S21 5G", "Google Pixel 6a", "Xiaomi Redmi Note 11", "OnePlus Nord 2", "iPhone SE 2020 64GB"], 120m, 1200m),
+            ["Computers & Laptops"] = (["ThinkPad T480 i5 16GB", "MacBook Air M1 256GB", "Mechanical keyboard RGB", "Dell UltraSharp 27 monitor", "RTX 3060 gaming PC", "Logitech MX Master 3 mouse"], 30m, 1500m),
+            ["Audio & Headphones"] = (["Sony WH-1000XM4 headphones", "JBL Flip 5 portable speaker", "Audio-Technica ATH-M50x", "Marshall Stanmore II speaker", "Apple AirPods Pro", "Studio monitor pair 5 inch"], 20m, 400m),
+            ["TV & Home Entertainment"] = (["LG 55 inch 4K Smart TV", "Samsung soundbar 3.1", "Full HD projector 1080p", "PlayStation 4 Slim 1TB", "Xbox Series S", "TV wall mount full motion"], 35m, 800m),
+            ["Cameras & Photography"] = (["Canon EOS 750D kit 18-55mm", "Nikon D3500 kit", "GoPro Hero 8 Black", "Carbon tripod ball head", "Godox speedlight flash", "Fujifilm Instax Mini 11"], 40m, 950m),
+            ["Sports & Outdoors"] = (["Mountain bike 26 inch", "3-person tent waterproof", "Yoga mat 6mm TPE", "Adjustable dumbbells 20kg", "Camping stove portable", "Hiking backpack 45L"], 15m, 700m)
         };
 
         private static readonly Dictionary<string, string> TitleKeywords = new()
@@ -213,8 +213,8 @@ namespace Marketplace.Utility.Seeding
                     var categoryName = category.Name;
 
                     string title;
-                    double minPrice;
-                    double maxPrice;
+                    decimal minPrice;
+                    decimal maxPrice;
 
                     if (CategoryContent.TryGetValue(categoryName, out var content))
                     {
@@ -229,14 +229,14 @@ namespace Marketplace.Utility.Seeding
                         var fallbackTitles = CategoryContent.Values.SelectMany(v => v.Titles).ToArray();
                         title = fallbackTitles[random.Next(fallbackTitles.Length)];
                         if (title.Length > 35) title = title.Substring(0, 35);
-                        minPrice = 20;
-                        maxPrice = 500;
+                        minPrice = 20m;
+                        maxPrice = 500m;
                         _logger.LogDebug("Using fallback title for unknown category {Category}", categoryName);
                     }
 
                     var city = Cities[random.Next(Cities.Length)];
-                    var price = Math.Round(minPrice + random.NextDouble() * (maxPrice - minPrice), 2);
-                    if (price < 1) price = 1;
+                    var price = Math.Round(minPrice + (decimal)random.NextDouble() * (maxPrice - minPrice), 2);
+                    if (price < 1) price = 1m;
 
                     // Main image: guaranteed to return a file via provider chain + local fallback
                     var mainImage = await FetchImageWithChainAsync(title, categoryName, ct);
