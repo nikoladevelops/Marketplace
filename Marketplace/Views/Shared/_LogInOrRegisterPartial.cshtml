@@ -42,19 +42,21 @@
 
 @if (_signInManager.IsSignedIn(User))
 {
-    <span class="navbar-username d-none d-sm-inline text-muted fw-medium ms-2 ms-sm-3 me-2 align-self-center text-truncate" style="max-width: 140px;" title="@(User.Identity?.Name ?? "")">@(User.Identity?.Name ?? "")</span>
-    <ul class="navbar-nav flex-row align-items-center gap-2">
-        <li class="nav-item">
-            <form asp-action="LogOut" asp-controller="Account" class="m-0">
-                <button type="submit" class="btn btn-outline-secondary btn-sm rounded-3">Log out</button>
-            </form>
-        </li>
-    </ul>
+    <div class="navbar-user-cluster mt-2 mt-md-0">
+        <span class="navbar-username text-muted fw-medium mb-2 mb-md-0 text-truncate" style="max-width: 140px;" title="@(User.Identity?.Name ?? "")">@(User.Identity?.Name ?? "")</span>
+        <ul class="navbar-nav flex-column flex-md-row align-items-md-center gap-md-2">
+            <li class="nav-item">
+                <form asp-action="LogOut" asp-controller="Account" class="m-0">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-3">Log out</button>
+                </form>
+            </li>
+        </ul>
+    </div>
 
 }
 else
 {
-    <ul class="navbar-nav flex-row gap-1">
+    <ul class="navbar-nav flex-column flex-md-row gap-md-1 auth-nav-list">
         <li class="nav-item">
             <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">Register</a>
         </li>

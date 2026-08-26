@@ -24,17 +24,17 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm border-bottom box-shadow mb-3 sticky-top">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">🛍️ Marketplace</a>
+        <nav class="navbar navbar-expand-md navbar-toggleable-md border-bottom box-shadow mb-3 sticky-top">
+            <div class="container-fluid position-relative">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index"><img src="~/img/brand.svg" alt="" width="28" height="28" class="brand-icon" /> Marketplace</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between align-items-center">
+                <div class="navbar-collapse collapse d-md-flex justify-content-between align-items-center">
                     <partial name="_LogInOrRegisterPartial" />
-                    <button id="themeToggle" type="button" class="btn btn-outline-secondary ms-sm-2 my-2 my-sm-0"
-                            onclick="toggleTheme()" title="Switch between light and dark mode">🌙</button>
+                    <button id="themeToggle" type="button" class="theme-toggle ms-md-2 mt-3 mt-md-0 d-flex align-items-center justify-content-center gap-2"
+                            onclick="toggleTheme()" title="Switch between light and dark mode"><span id="themeToggleIcon">🌙</span><span id="themeToggleText">Dark mode</span></button>
                 </div>
             </div>
         </nav>

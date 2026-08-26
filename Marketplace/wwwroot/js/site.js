@@ -19,7 +19,11 @@ function updateThemeToggleIcon() {
     var btn = document.getElementById("themeToggle");
     if (!btn) return;
     var dark = currentTheme() === "dark";
-    btn.textContent = dark ? "\uD83C\uDF19" : "\u2600\uFE0F"; // moon / sun
+    var icon = document.getElementById("themeToggleIcon");
+    var text = document.getElementById("themeToggleText");
+    if (icon) icon.textContent = dark ? "\uD83C\uDF19" : "\u2600\uFE0F";
+    else btn.textContent = dark ? "\uD83C\uDF19" : "\u2600\uFE0F";
+    if (text) text.textContent = dark ? "Dark mode" : "Light mode";
     btn.title = dark ? "Switch to light mode" : "Switch to dark mode";
 }
 

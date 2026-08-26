@@ -12,42 +12,28 @@ else
 {
     <h3 class="mb-4 fw-bold">Advertisements</h3>
 
-    <div class="container">
-        @{
-            var countAds = Model.Advertisements.Count();
-        }
-        @for (var i = 0; i < countAds; i += 4)
+    <div class="row g-3">
+        @foreach (var currentAd in Model.Advertisements)
         {
-            <div class="row g-3">
-                @for (var j = 0; j < 4; j++)
-                {
-                    @if (i + j == countAds)
-                    {
-                        break;
-                    }
+            <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
+                <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none flex-fill d-flex w-100">
+                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
+                        <div class="ad-card-img-wrap flex-shrink-0">
+                            <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
+                            <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                        </div>
 
-                    var currentAd = Model.Advertisements.ElementAt(i + j);
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none h-100 d-block">
-                            <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
-                                <div class="ad-card-img-wrap">
-                                    <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
-                                    <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
-                                </div>
-
-                                <div class="card-body pb-3 d-flex flex-column">
-                                    <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
-                                    <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(currentAd.Price)</p>
-                                    <p class="text-muted small mb-2">📍 @currentAd.Location</p>
-                                    <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top small">
-                                        <span class="text-muted text-truncate" title="@currentAd.UserName">👤 @currentAd.UserName</span>
-                                        <span class="text-muted flex-shrink-0 ms-2">@DateFormatter.ToShortLocationDate(currentAd.DateCreatedOn, currentAd.Location)</span>
-                                    </div>
-                                </div>
+                        <div class="card-body pb-3 d-flex flex-column flex-grow-1">
+                            <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
+                            <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(currentAd.Price)</p>
+                            <p class="text-muted small mb-2">📍 @currentAd.Location</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top small">
+                                <span class="text-muted text-truncate" title="@currentAd.UserName">👤 @currentAd.UserName</span>
+                                <span class="text-muted flex-shrink-0 ms-2">@DateFormatter.ToShortLocationDate(currentAd.DateCreatedOn, currentAd.Location)</span>
                             </div>
-                        </a>
+                        </div>
                     </div>
-                }
+                </a>
             </div>
         }
     </div>
