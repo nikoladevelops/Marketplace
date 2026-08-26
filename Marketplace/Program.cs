@@ -1,7 +1,7 @@
 using Marketplace.Hubs;
 using Marketplace.Models;
 using Marketplace.Services;
-using Marketplace.Utility;
+using Marketplace.Utility.Seeding;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -34,6 +34,15 @@ builder.Services.AddHttpClient<IAiService, AiService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60); // Generous timeout for vision model inference
 });
+builder.Services.AddHttpClient("DemoContentSeeder", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
+// Seeding services for Utility/Seeding folder
+builder.Services.AddScoped<IdentityAndCatalogSeeder>();
+builder.Services.AddScoped<DemoContentSeeder>();
+builder.Services.AddScoped<DevDatabaseCleaner>();
 
 // Add Identity support + tables
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -41,21 +50,20 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 // Persist Data Protection keys so auth cookies survive an app restart. Without
 // this the keys are regenerated on each run and previously issued cookies fail
-// validation — SignalR then sees an unauthenticated user and the chat hub
-// rejects the connection ("connection lost" on every send).
-//
+// validation, so SignalR sees an unauthenticated user and the chat hub
+// rejects the connection.
 // DEV on Linux (CachyOS): this app defaults to HTTP-only (http://localhost:5256) to avoid
-// `dotnet dev-certs https --trust` pain on Arch (certutil/NSS). If you re-enable HTTPS
-// in launchSettings.json (https://localhost:7256) run `dotnet dev-certs https --trust`.
-//
+// dev-certs pain on Arch. If you re-enable HTTPS in launchSettings.json
+// (https://localhost:7256) run `dotnet dev-certs https --trust`.
 // PRODUCTION: HTTPS is terminated at the reverse proxy (nginx/caddy). Configure the proxy
-// to forward X-Forwarded-Proto/For and set ASPNETCORE_FORWARDEDHEADERS_ENABLED=true or
-// enable ForwardedHeaders below. Kestrel then binds http://*:80 behind the proxy.
-// Persisted keys to Postgres keep cookies valid across restarts/scale-out.
+// to forward X-Forwarded-Proto and X-Forwarded-For and set
+// ASPNETCORE_FORWARDEDHEADERS_ENABLED=true or enable ForwardedHeaders below.
+// Kestrel then binds http://*:80 behind the proxy. Keys are persisted to Postgres
+// so cookies stay valid across restarts.
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<ApplicationDbContext>();
 
-// Forwarded headers for production reverse proxy (nginx/caddy) — harmless in dev.
+// Forwarded headers for production reverse proxy (nginx/caddy), harmless in dev.
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -65,22 +73,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 
 var app = builder.Build();
 
-// Early help — no DB required
-var earlyNormalized = args.Select(a => a.Trim().TrimStart('-').ToLowerInvariant()).ToList();
-if (earlyNormalized.Any(a => a is "help" or "h" or "?"))
+// Early help: no DB required, does not touch CONNECTION_STRING
+if (SeedingCommands.TryHandleEarlyHelp(args))
 {
-    Console.WriteLine("""
-        Marketplace — seeding help
-          dotnet run -- setup                    Migrate DB + seed roles, users (seller/premium/admin), categories
-          dotnet run -- seed:demo               Create 25 demo ads (requires setup first)
-          dotnet run -- seed:demo --count 50    Create 50 demo ads (1..200)
-          dotnet run -- --seed-demo=25          Backward compat alias for seed:demo
-        Order for first-time dev: setup → seed:demo → dotnet run
-        """);
     return;
 }
 
-// Forwarded headers must run early so scheme/host are correct for SignalR/redirects.
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
@@ -93,9 +91,9 @@ if (!app.Environment.IsDevelopment())
 }
 else
 {
-    // DEV: only redirect non-hub requests to HTTPS if the request was already HTTPS.
-    // On http://localhost:5256 this is a no-op, so no dev-cert is required and
-    // SignalR negotiate stays on the same scheme (ws:// not wss://).
+    // In dev, only redirect non-hub requests that are already HTTPS.
+    // On http://localhost:5256 this is a no-op, so no dev cert is needed and
+    // SignalR stays on the same scheme (ws, not wss).
     app.UseWhen(ctx => !ctx.Request.Path.StartsWithSegments("/hubs") && ctx.Request.IsHttps,
         branch => branch.UseHttpsRedirection());
 }
@@ -116,8 +114,8 @@ app.MapHub<ChatHub>("/hubs/chat");
 
 // Apply pending EF Core migrations automatically (including DataProtectionKeys).
 // Without this a fresh clone without `dotnet ef database update` would run with
-// missing tables and DataProtection would regenerate keys on every restart,
-// invalidating auth cookies and breaking SignalR auth.
+// missing tables and DataProtection would regenerate keys on every restart
+// and invalidate auth cookies.
 try
 {
     using var migrateScope = app.Services.CreateScope();
@@ -127,61 +125,20 @@ try
 catch (Exception ex)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Database migration failed — check CONNECTION_STRING and that Postgres is reachable");
+    logger.LogError(ex, "Database migration failed, check CONNECTION_STRING and that Postgres is reachable");
     throw;
 }
 
-// ---- Seeding CLI ----
-// Simple, discoverable commands for dev setup. Order matters: setup first, then demo.
-//   dotnet run -- setup              → migrate + seed roles/users/categories (idempotent, first-time devs)
-//   dotnet run -- seed:demo          → 25 demo ads (or --seed-demo / --count 50)
-//   dotnet run -- seed:demo --count 50
-//   dotnet run -- help               → this help
-// Running without args just starts the app (migrate only, no seeding) — see README.
-var normalized = args.Select(a => a.Trim().TrimStart('-').ToLowerInvariant()).ToList();
-bool isHelp = normalized.Any(a => a is "help" or "h" or "?");
-bool isSetup = normalized.Any(a => a is "setup" or "seed:core" or "seed-core");
-bool isDemo = normalized.Any(a => a is "seed:demo" or "seed-demo" or "seeddemo" or "demo");
-
-if (isHelp)
+// Seeding CLI: setup first, then demo
+//   dotnet run -- setup              -> migrate and seed roles/users/categories (idempotent)
+//   dotnet run -- seed:demo          -> 25 demo ads (or --count 50, compat --seed-demo=25)
+//   dotnet run -- db:reset --force   -> purge dev DB and uploads (DEV only)
+//   dotnet run -- help               -> this help (no DB needed)
+var seedingResult = await SeedingCommands.TryHandleAsync(args, app);
+if (seedingResult.Handled)
 {
-    Console.WriteLine("""
-        Marketplace — seeding help
-          dotnet run -- setup                    Migrate DB + seed roles, users (seller/premium/admin), categories
-          dotnet run -- seed:demo               Create 25 demo ads (requires setup first)
-          dotnet run -- seed:demo --count 50    Create 50 demo ads (1..200)
-          dotnet run -- --seed-demo=25          Backward compat alias for seed:demo
-        Order for first-time dev: setup → seed:demo → dotnet run
-        """);
-    return;
-}
-
-if (isSetup)
-{
-    var seeder = new DataSeeder(app.Services);
-    await seeder.SeedRoles();
-    await seeder.SeedUsers();
-    await seeder.SeedCategories();
-    Console.WriteLine("Setup complete — roles, users (seller/premium/admin), categories seeded. Next: dotnet run -- seed:demo");
-    return;
-}
-
-if (isDemo || args.Any(a => a.StartsWith("--seed-demo", StringComparison.OrdinalIgnoreCase)))
-{
-    int count = 25;
-    // Support: seed:demo --count 50, --seed-demo=25, --count=50
-    var countArg = args.FirstOrDefault(a => a.StartsWith("--count", StringComparison.OrdinalIgnoreCase));
-    if (countArg != null)
-    {
-        var val = countArg.Contains('=') ? countArg.Split('=', 2)[1] : args.SkipWhile(x => x != countArg).Skip(1).FirstOrDefault();
-        if (int.TryParse(val, out var parsed)) count = Math.Clamp(parsed, 1, 200);
-    }
-    var demoEq = args.FirstOrDefault(a => a.StartsWith("--seed-demo=", StringComparison.OrdinalIgnoreCase) || a.StartsWith("seed:demo=", StringComparison.OrdinalIgnoreCase));
-    if (demoEq != null && demoEq.Contains('=') && int.TryParse(demoEq.Split('=', 2)[1], out var parsed2)) count = Math.Clamp(parsed2, 1, 200);
-
-    var demoSeeder = new DemoDataSeeder(app.Services);
-    int created = await demoSeeder.SeedAsync(count);
-    Console.WriteLine($"Demo seeding finished: {created} advertisements created.");
+    if (seedingResult.ExitCode != 0)
+        Environment.Exit(seedingResult.ExitCode);
     return;
 }
 

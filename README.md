@@ -22,7 +22,7 @@ Each user has a profile that can be visited. You can browse through the items th
 - Navbar unread badge + toast updates instantly
 - Block/unblock (admins cannot be blocked), paginated Inbox (12) and Thread (50), scrollbars, responsive
 
-## How to run (Linux / CachyOS dev — HTTP default)
+## How to run (Linux / CachyOS dev, HTTP default)
 
 1. Clone: `git clone https://github.com/nikoladevelops/Marketplace.git && cd Marketplace`
 2. Restore: `dotnet restore`
@@ -33,26 +33,39 @@ Each user has a profile that can be visited. You can browse through the items th
    AI_API_URL=
    AI_API_KEY=
    ```
-4. First-time setup (migrate + seed core):
+4. First-time setup (migrate and seed essential data):
    ```
    dotnet run --project Marketplace -- setup
+   # aliases: seed:core, seed-core
    ```
-   Seeds roles, users (`seller`/`premium`/`admin` — pass `aaaaaaA!1`), categories (`Furniture` … `Sports & Outdoors`). Idempotent — safe to re-run.
+   Uses `Utility/Seeding/IdentityAndCatalogSeeder.cs` to seed roles (`Seller`/`Premium`/`Admin`), users (`seller`/`premium`/`admin` with password `aaaaaaA!1`), and categories (`Furniture` ... `Sports & Outdoors`). Idempotent and safe to re-run.
 
 5. Then demo data (requires setup first):
    ```
    dotnet run --project Marketplace -- seed:demo            # 25 ads
    dotnet run --project Marketplace -- seed:demo --count 50 # 1..200
+   dotnet run --project Marketplace -- seed:demo --count=50 # same
    # compat: dotnet run --project Marketplace -- --seed-demo=25
    ```
+   Uses `Utility/Seeding/DemoContentSeeder.cs` to create 8 `demo_*@example.com` users and sample ads with images. Images are fetched online and fall back to `/plusSign.png` when offline. Missing categories are created automatically.
 
-6. Start app:
+6. Dev database reset (DEV only):
+   ```
+   dotnet run --project Marketplace -- db:reset --force          # wipe DB and uploads
+   dotnet run --project Marketplace -- db:reset --force --reseed # wipe and re-seed essential data
+   # aliases: reset:dev, db-reset, reset
+   ```
+   Guarded: refuses to run when `ASPNETCORE_ENVIRONMENT != Development` and requires `--force`. Clears `Advertisements`, `AdvertisementImages`, `ChatMessages`, `UserBlocks`, `AspNet*`, `Categories`, `DataProtectionKeys` and `wwwroot/uploads/{advertisements,profiles}`. Also resets Postgres sequences. Implemented in `Utility/Seeding/DevDatabaseCleaner.cs`.
+
+7. Start app:
    ```
    dotnet run --project Marketplace
    # opens http://localhost:5256 (dev default, no cert needed)
    ```
 
-Order matters: **setup → seed:demo → run**. Help: `dotnet run --project Marketplace -- help`.
+Order matters: **setup -> seed:demo -> run**. Help (no DB needed): `dotnet run --project Marketplace -- help`.
+
+Seeding implementation lives in `Marketplace/Utility/Seeding/` with `IdentityAndCatalogSeeder.cs`, `DemoContentSeeder.cs`, `DevDatabaseCleaner.cs` and `SeedingCommands.cs` (CLI dispatcher).
 
 Windows / manual migrations alternative:
 ```
@@ -71,8 +84,8 @@ Real-time chat runs over SignalR (`/hubs/chat`) and needs the page and the hub o
 
 * Dev default is `http://localhost:5256` (no cert). Always open the app at that exact URL.
 * If you re-enable `https://localhost:7256` in `Properties/launchSettings.json`, trust the dev cert once: `dotnet dev-certs https --trust` (Linux: also `certutil -d sql:$HOME/.pki/nssdb -A` for Firefox/NSS).
-* If `Connection lost — reconnecting` appears, check browser Console ` [chat] start` and Network `POST /hubs/chat/negotiate` (should be `200` when logged in, `401` anon is normal).
-* Only one `dotnet run` at a time — kill stale holders if `Failed to bind to address … already in use`: `lsof -ti :5256 | xargs -r kill -9`.
+* If `Connection lost - reconnecting` appears, check browser Console ` [chat] start` and Network `POST /hubs/chat/negotiate` (should be `200` when logged in, `401` anon is normal).
+* Only one `dotnet run` at a time. If you see `Failed to bind to address ... already in use`, kill stale holders: `lsof -ti :5256 | xargs -r kill -9`.
 
 ## Production
 
