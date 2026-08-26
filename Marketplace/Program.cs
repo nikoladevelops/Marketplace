@@ -2,6 +2,7 @@ using Marketplace.Hubs;
 using Marketplace.Models;
 using Marketplace.Services;
 using Marketplace.Utility.Seeding;
+using Marketplace.Utility.Seeding.ImageProviders;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -34,10 +35,20 @@ builder.Services.AddHttpClient<IAiService, AiService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(60); // Generous timeout for vision model inference
 });
-builder.Services.AddHttpClient("DemoContentSeeder", client =>
+builder.Services.AddHttpClient("LoremFlickr", client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient("Unsplash", client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient("Picsum", client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient("DemoContentSeeder", client => client.Timeout = TimeSpan.FromSeconds(30));
+
+// Image providers for demo seeding, switchable via config and env var DEMO_IMAGE_PROVIDERS
+builder.Services.Configure<ImageProviderOptions>(builder.Configuration.GetSection("DemoSeeding"));
+builder.Services.AddScoped<LoremFlickrProvider>();
+builder.Services.AddScoped<UnsplashProvider>();
+builder.Services.AddScoped<PicsumProvider>();
+if (builder.Environment.IsDevelopment())
 {
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+    builder.Services.AddScoped<LocalFallbackProvider>();
+}
 
 // Seeding services for Utility/Seeding folder
 builder.Services.AddScoped<IdentityAndCatalogSeeder>();

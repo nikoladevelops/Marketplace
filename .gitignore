@@ -18,6 +18,8 @@
 [Ll]ogs/
 
 **/wwwroot/uploads/
+**/wwwroot/seed-fallback/
+**/wwwroot/seed-fallback/**
 
 
 # User-specific files

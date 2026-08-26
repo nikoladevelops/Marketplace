@@ -47,7 +47,9 @@ Each user has a profile that can be visited. You can browse through the items th
    dotnet run --project Marketplace -- seed:demo --count=50 # same
    # compat: dotnet run --project Marketplace -- --seed-demo=25
    ```
-   Uses `Utility/Seeding/DemoContentSeeder.cs` to create 8 `demo_*@example.com` users and sample ads with images. Images are fetched online and fall back to `/plusSign.png` when offline. Missing categories are created automatically.
+   Uses `Utility/Seeding/DemoContentSeeder.cs` to create 8 `demo_*@example.com` users and sample ads. Each ad gets at least 2 images (1 main + 1-2 extras). Images are fetched title and category related via a switchable provider chain with generic fallback, so no ad ever ends up with a placeholder. Missing categories abort with a clear message suggesting `setup` first.
+
+   Image providers live in `Utility/Seeding/ImageProviders/` (`LoremFlickr`, `Unsplash`, `Picsum`, `LocalFallback`) and are order-configurable via `appsettings.json` key `DemoSeeding:ImageProviders` or env var `DEMO_IMAGE_PROVIDERS` (e.g. `DEMO_IMAGE_PROVIDERS=LoremFlickr,Picsum dotnet run -- seed:demo`). The chain automatically switches on failure or rate limit (429/500) and logs which provider failed for which title/category. A per-category local fallback in `wwwroot/seed-fallback/` guarantees offline operation.
 
 6. Dev database reset (DEV only):
    ```
@@ -65,7 +67,7 @@ Each user has a profile that can be visited. You can browse through the items th
 
 Order matters: **setup -> seed:demo -> run**. Help (no DB needed): `dotnet run --project Marketplace -- help`.
 
-Seeding implementation lives in `Marketplace/Utility/Seeding/` with `IdentityAndCatalogSeeder.cs`, `DemoContentSeeder.cs`, `DevDatabaseCleaner.cs` and `SeedingCommands.cs` (CLI dispatcher).
+Seeding implementation lives in `Marketplace/Utility/Seeding/` with `IdentityAndCatalogSeeder.cs`, `DemoContentSeeder.cs`, `DevDatabaseCleaner.cs`, `SeedingCommands.cs` (CLI dispatcher) and `ImageProviders/` (switchable image sources).
 
 Windows / manual migrations alternative:
 ```
