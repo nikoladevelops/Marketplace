@@ -64,6 +64,8 @@ namespace Marketplace.Controllers
             var countFilteredAds = currentQuery.Count();
 
             var adsResult = currentQuery
+                .Include(x => x.User)
+                .Include(x => x.Category)
                 .Skip(pageNumber * loadAdsPerPage)
                 .Take(loadAdsPerPage)
                 .Select(x => new SimplifiedAdvertisementViewModel()
@@ -71,9 +73,11 @@ namespace Marketplace.Controllers
                     Id = x.Id,
                     Title = x.Title,
                     Price = x.Price,
-                    ImagePath = x.ImagePath, // Swapped from Base64 blob conversion to disk path
+                    ImagePath = x.ImagePath,
                     Location = x.Location,
-                    Category = x.Category.Name
+                    Category = x.Category.Name,
+                    UserName = x.User != null ? (x.User.UserName ?? "Unknown") : "Unknown",
+                    DateCreatedOn = x.DateCreatedOn
                 }).ToList();
 
             var homeVM = new HomeViewModel()

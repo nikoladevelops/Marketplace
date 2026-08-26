@@ -15,7 +15,7 @@ namespace Marketplace.ViewModels
         public string CategoryName { get; set; }
 
         [Display(Name = "Date Created")]
-        public string DateCreatedOn { get; set; }
+        public DateTime DateCreatedOn { get; set; }
 
         public string ImagePath { get; set; }
         public IList<string>? AdditionalImagePaths { get; set; }

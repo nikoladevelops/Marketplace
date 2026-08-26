@@ -265,7 +265,7 @@ namespace Marketplace.Controllers
                     Longitude = x.Longitude,
                     ImagePath = x.ImagePath,
                     UserId = x.UserId,
-                    DateCreatedOn = x.DateCreatedOn.ToShortDateString(),
+                    DateCreatedOn = x.DateCreatedOn,
                     CategoryName = x.CategoryId.ToString()
                 })
                 .FirstOrDefault(x => x.Id == id);
