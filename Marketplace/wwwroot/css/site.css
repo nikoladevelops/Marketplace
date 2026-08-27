@@ -783,6 +783,20 @@ img { max-width: 100%; }
 [data-theme="dark"] .chat-status-connecting { color: #ffe083; }
 [data-theme="dark"] .chat-status-offline { color: #ff9faa; }
 
+/* Chat send form: themed background that follows data-theme without relying
+   on Bootstrap's bg-body (which uses --bs-body-bg and isn't themed here). */
+.chat-send-form {
+    background-color: var(--bg);
+    bottom: 0;
+    z-index: 2;
+}
+/* Guard against the input rendering with a dark background in light mode
+   (e.g. if some browser quirk or extension overrides .form-control). */
+[data-theme="light"] .chat-send-form .form-control {
+    background-color: #ffffff;
+    color: var(--text);
+}
+
 /* Temporary inline error raised by the live send path */
 .chat-alert-temporary {
     animation: none;

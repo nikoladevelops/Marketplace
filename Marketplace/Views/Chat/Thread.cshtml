@@ -134,7 +134,7 @@
     <!-- Send form -->
     @if (Model.CanSend)
     {
-        <form id="chatForm" class="d-flex gap-2 sticky-bottom bg-body pt-2 pb-1" style="background: var(--bg); bottom: 0; z-index: 2;">
+        <form id="chatForm" class="d-flex gap-2 sticky-bottom chat-send-form pt-2 pb-1">
             <input type="text" name="message" id="messageInput" class="form-control rounded-3" maxlength="1000"
                    placeholder="Write a message…" autocomplete="off" required />
             <button type="submit" id="sendButton" class="btn btn-primary px-3 px-sm-4 flex-shrink-0 rounded-3">Send ➤</button>
