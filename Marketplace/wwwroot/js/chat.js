@@ -42,10 +42,14 @@
         statusEl.classList.remove("chat-status-connecting", "chat-status-online", "chat-status-offline");
         if (state === "online") {
             statusEl.classList.add("chat-status-online");
-            statusEl.textContent = "● online";
+            // This badge reflects the *client's* SignalR socket state, not
+            // the partner's online presence (we don't track presence). The
+            // wording is intentionally neutral so it can't be misread as
+            // "the other person is online right now."
+            statusEl.textContent = "● connected";
         } else if (state === "offline") {
             statusEl.classList.add("chat-status-offline");
-            statusEl.textContent = "● offline — reconnecting…";
+            statusEl.textContent = "● reconnecting…";
         } else {
             statusEl.classList.add("chat-status-connecting");
             statusEl.textContent = "connecting…";

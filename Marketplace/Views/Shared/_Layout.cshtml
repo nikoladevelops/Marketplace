@@ -22,7 +22,7 @@
         })();
     </script>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header>
         <nav class="navbar navbar-expand-md navbar-toggleable-md border-bottom box-shadow mb-3 sticky-top">
             <div class="container-fluid position-relative">
@@ -39,15 +39,50 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
+    <main role="main" class="flex-grow-1 pb-3">
         <div class="container">
-            &copy; 2026 - Marketplace - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="site-footer border-top text-muted mt-4">
+        <div class="container py-4">
+            <div class="site-footer-grid">
+                <div class="site-footer-brand">
+                    <a class="d-inline-flex align-items-center gap-2 text-decoration-none" asp-area="" asp-controller="Home" asp-action="Index">
+                        <img src="~/img/brand.svg" alt="" width="24" height="24" class="brand-icon" />
+                        <span class="fw-bold text-body">Marketplace</span>
+                    </a>
+                    <p class="small mb-0 mt-2">Buy and sell locally. Discover listings, chat with sellers, and list your own in minutes.</p>
+                </div>
+                <div class="site-footer-col">
+                    <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">Browse</h6>
+                    <ul class="list-unstyled m-0 d-flex flex-column gap-1">
+                        <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">All listings</a></li>
+                        <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">Categories</a></li>
+                        <li><a asp-controller="Chat" asp-action="Inbox" class="site-footer-link">Inbox</a></li>
+                    </ul>
+                </div>
+                <div class="site-footer-col">
+                    <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">Support</h6>
+                    <ul class="list-unstyled m-0 d-flex flex-column gap-1">
+                        <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">Help center</a></li>
+                        <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">Contact admin</a></li>
+                        <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">Report a problem</a></li>
+                    </ul>
+                </div>
+                <div class="site-footer-col">
+                    <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">About</h6>
+                    <ul class="list-unstyled m-0 d-flex flex-column gap-1">
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy" class="site-footer-link">Privacy</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy" class="site-footer-link">Terms</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy" class="site-footer-link">Cookies</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="site-footer-bottom d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3 border-top">
+                <small>&copy; @DateTime.UtcNow.Year Marketplace &middot; Built with care</small>
+            </div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
