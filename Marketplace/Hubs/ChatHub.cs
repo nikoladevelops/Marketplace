@@ -11,8 +11,7 @@ namespace Marketplace.Hubs
     /// Real-time chat transport (SignalR-only, no HTTP post fallback).
     /// Business rules: authenticated 1-1000 chars, no self-msg, admins bypass blocks,
     /// ad must exist. Every connection joins its personal `user-{id}` group on connect
-    /// so messages + read receipts are broadcast to the two participants' groups only —
-    /// each connected tab receives every event exactly once.
+    /// so messages + read receipts are broadcast to the two participants' groups only - each connected tab receives every event exactly once.
     /// Clients also call GetMessagesSince on (re)connect + visibility change so no
     /// message is lost while the socket was down.
     /// </summary>
@@ -61,7 +60,7 @@ namespace Marketplace.Hubs
 
         /// <summary>
         /// Called on page load / reconnect to mark this thread's pending messages as read.
-        /// Uses explicit `with` — not DB inference — so the first-message case and
+        /// Uses explicit `with` - not DB inference - so the first-message case and
         /// multi-partner same-ad cases are correct.
         /// </summary>
         public async Task JoinThread(int adId, string with)

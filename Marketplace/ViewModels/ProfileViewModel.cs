@@ -5,8 +5,22 @@ namespace Marketplace.ViewModels
         public string Username { get; set; } = "";
         public string? ProfilePicturePath { get; set; }
         public string? Description { get; set; }
+
+        // Raw (owner) – for edit
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public bool ShowEmail { get; set; }
+        public bool ShowPhone { get; set; }
+
+        // Viewer-aware display
+        public string? DisplayEmail { get; set; }
+        public string? DisplayPhone { get; set; }
+        public bool CanViewEmail { get; set; }
+        public bool CanViewPhone { get; set; }
+        public bool IsCensoredEmail { get; set; }
+        public bool IsCensoredPhone { get; set; }
+        public bool IsAuthenticated { get; set; }
+
         public bool IsOwner { get; set; }
         public bool IsAdmin { get; set; }
         public string CurrentUserId { get; set; } = "";

@@ -3,6 +3,7 @@ using System;
 using Marketplace.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Marketplace.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260827073528_AddContactVisibility")]
+    partial class AddContactVisibility
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -42,7 +45,7 @@ namespace Marketplace.Migrations
 
                     b.HasIndex("AdvertisementId");
 
-                    b.ToTable("AdvertisementImages", (string)null);
+                    b.ToTable("AdvertisementImages");
                 });
 
             modelBuilder.Entity("Marketplace.Models.AdvertisementModel", b =>
@@ -64,6 +67,7 @@ namespace Marketplace.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ImagePath")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<double?>("Latitude")
@@ -114,7 +118,7 @@ namespace Marketplace.Migrations
 
                     b.HasIndex("CategoryId", "Price");
 
-                    b.ToTable("Advertisements", (string)null);
+                    b.ToTable("Advertisements");
                 });
 
             modelBuilder.Entity("Marketplace.Models.ApplicationUser", b =>
@@ -207,7 +211,7 @@ namespace Marketplace.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("Marketplace.Models.ChatMessage", b =>
@@ -248,7 +252,7 @@ namespace Marketplace.Migrations
 
                     b.HasIndex("ReceiverId", "IsReadByReceiver");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("Marketplace.Models.UserBlock", b =>
@@ -274,7 +278,7 @@ namespace Marketplace.Migrations
                     b.HasIndex("BlockerId", "BlockedId")
                         .IsUnique();
 
-                    b.ToTable("UserBlocks", (string)null);
+                    b.ToTable("UserBlocks");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
@@ -293,7 +297,7 @@ namespace Marketplace.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DataProtectionKeys", (string)null);
+                    b.ToTable("DataProtectionKeys");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

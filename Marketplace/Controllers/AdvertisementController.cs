@@ -63,7 +63,7 @@ namespace Marketplace.Controllers
             }
 
             // Save main image to disk
-            string mainImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
+            string mainImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment)!;
 
             var advertisement = new AdvertisementModel()
             {
@@ -74,7 +74,7 @@ namespace Marketplace.Controllers
                 Location = viewModel.Location,
                 Latitude = SanitizeCoordinate(viewModel.Latitude, -90, 90),
                 Longitude = SanitizeCoordinate(viewModel.Longitude, -180, 180),
-                UserId = User.FindFirst(ClaimTypes.NameIdentifier).Value,
+                UserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User not authenticated"),
                 CategoryId = viewModel.CategoryId,
                 DateCreatedOn = DateTime.UtcNow
             };
@@ -88,7 +88,7 @@ namespace Marketplace.Controllers
             {
                 if (img != null && img.Length > 0)
                 {
-                    string additionalPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment);
+                    string additionalPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment)!;
                     var advertisementImage = new AdvertisementImageModel()
                     {
                         ImagePath = additionalPath,
@@ -178,7 +178,7 @@ namespace Marketplace.Controllers
             if (model.Image != null)
             {
                 Helper.DeleteImage(advertisement.ImagePath, _webHostEnvironment);
-                advertisement.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
+                advertisement.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment)!;
             }
             else if (string.IsNullOrEmpty(model.ExistingImagePath))
             {
@@ -201,7 +201,7 @@ namespace Marketplace.Controllers
 
             for (int i = 0; i < 3; i++)
             {
-                AdvertisementImageModel dbImage = i < orderedExisting.Count ? orderedExisting[i] : null;
+                AdvertisementImageModel? dbImage = i < orderedExisting.Count ? orderedExisting[i] : null;
                 var newFile = newFiles[i];
                 var existingPathTracker = i < model.ExistingAdditionalImagePaths.Count ? model.ExistingAdditionalImagePaths[i] : "";
 
@@ -210,11 +210,11 @@ namespace Marketplace.Controllers
                     if (dbImage != null)
                     {
                         Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
-                        dbImage.ImagePath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+                        dbImage.ImagePath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment)!;
                     }
                     else
                     {
-                        string addPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+                        string addPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment)!;
                         _context.AdvertisementImages.Add(new AdvertisementImageModel
                         {
                             ImagePath = addPath,
@@ -294,15 +294,29 @@ namespace Marketplace.Controllers
 
             var adOwnerData = _context.Users
                 .Where(x => x.Id == ad.UserId)
-                .Select(x => new { x.UserName, x.ProfilePicturePath, x.Email, x.PhoneNumber })
+                .Select(x => new { x.UserName, x.ProfilePicturePath, x.Email, x.PhoneNumber, x.ShowEmail, x.ShowPhone })
                 .Single();
 
             ad.CategoryName = GetCategoryName(int.Parse(ad.CategoryName));
             ad.AdditionalImagePaths = additionalImages;
-            ad.UserName = adOwnerData.UserName;
+            ad.UserName = adOwnerData.UserName ?? "";
             ad.ProfilePicturePath = adOwnerData.ProfilePicturePath;
-            ad.Email = adOwnerData.Email;
+            ad.Email = adOwnerData.Email ?? "";
             ad.PhoneNumber = adOwnerData.PhoneNumber;
+
+            // Resolve contact visibility for viewer
+            var ownerForVisibility = new ApplicationUser { Id = ad.UserId, Email = adOwnerData.Email, PhoneNumber = adOwnerData.PhoneNumber, ShowEmail = adOwnerData.ShowEmail, ShowPhone = adOwnerData.ShowPhone };
+            var phoneView = ContactVisibilityHelper.ResolvePhone(ownerForVisibility, User);
+            var emailView = ContactVisibilityHelper.ResolveEmail(ownerForVisibility, User);
+            ad.DisplayPhone = phoneView.Display;
+            ad.CanViewPhone = phoneView.CanView;
+            ad.IsCensoredPhone = phoneView.IsCensored;
+            ad.DisplayEmail = emailView.Display;
+            ad.CanViewEmail = emailView.CanView;
+            ad.IsCensoredEmail = emailView.IsCensored;
+            ad.ViewerIsAuthenticated = User.Identity?.IsAuthenticated == true;
+            ad.IsOwner = ad.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier);
+            ad.IsAdmin = User.IsInRole(Helper.AdminRole);
 
             return View("Show", ad);
         }

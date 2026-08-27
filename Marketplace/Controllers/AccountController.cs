@@ -25,17 +25,22 @@ namespace Marketplace.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        public IActionResult Register() => _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View();
-        public IActionResult Login() => _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View();
+        public IActionResult Register(string? returnUrl = null) { ViewData["ReturnUrl"] = returnUrl; return _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View(); }
+        public IActionResult Login(string? returnUrl = null) { ViewData["ReturnUrl"] = returnUrl; return _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View(); }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel viewModel)
+        public async Task<IActionResult> Login(LoginViewModel viewModel, string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
                 var result = await _signInManager.PasswordSignInAsync(viewModel.Username, viewModel.Password, viewModel.RememberMe, false);
-                if (result.Succeeded) return RedirectToAction("Index", "Home");
+                if (result.Succeeded)
+                {
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+                    return RedirectToAction("Index", "Home");
+                }
                 ModelState.AddModelError(string.Empty, "Invalid log in attempt.");
             }
             return View(viewModel);
@@ -43,8 +48,9 @@ namespace Marketplace.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel viewModel)
+        public async Task<IActionResult> Register(RegisterViewModel viewModel, string? returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
                 var user = new ApplicationUser { UserName = viewModel.Username, Email = viewModel.Email };
@@ -55,6 +61,7 @@ namespace Marketplace.Controllers
                     await _userManager.AddToRoleAsync(user, Helper.SellerRole);
                     await _context.SaveChangesAsync();
                     await _signInManager.SignInAsync(user, isPersistent: false);
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
                     return RedirectToAction("Index", "Home");
                 }
                 foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
@@ -81,7 +88,7 @@ namespace Marketplace.Controllers
             var currentUser = _context.Users.FirstOrDefault(x => x.Id == userId);
             if (currentUser == null) return NotFound();
 
-            // Validate and prepare ProfileViewModel for re-render on error (unified profile)
+            // Prepare error profile with visibility handling
             ProfileViewModel BuildErrorProfile()
             {
                 var isAdmin = User.IsInRole(Helper.AdminRole);
@@ -93,9 +100,12 @@ namespace Marketplace.Controllers
                     Description = currentUser.Description,
                     Email = currentUser.Email,
                     PhoneNumber = currentUser.PhoneNumber,
+                    ShowEmail = currentUser.ShowEmail,
+                    ShowPhone = currentUser.ShowPhone,
                     IsOwner = true,
                     IsAdmin = isAdmin,
                     CurrentUserId = userId,
+                    IsAuthenticated = true,
                     PageNumber = 0,
                     MaxCountPages = 0,
                     TotalCount = 0,
@@ -104,6 +114,15 @@ namespace Marketplace.Controllers
                     EditForm = viewModel,
                     ShowEditForm = true
                 };
+                // Populate censored display for error view
+                var phoneView = ContactVisibilityHelper.ResolvePhone(currentUser, User);
+                var emailView = ContactVisibilityHelper.ResolveEmail(currentUser, User);
+                vm.DisplayPhone = phoneView.Display;
+                vm.CanViewPhone = phoneView.CanView;
+                vm.IsCensoredPhone = phoneView.IsCensored;
+                vm.DisplayEmail = emailView.Display;
+                vm.CanViewEmail = emailView.CanView;
+                vm.IsCensoredEmail = emailView.IsCensored;
                 return vm;
             }
 
@@ -112,32 +131,38 @@ namespace Marketplace.Controllers
                 return View("Profile", BuildErrorProfile());
             }
 
-            // Phone validation
-            if (viewModel.PhoneNumber != null)
+            // Phone validation – only required if ShowPhone is true
+            var phoneRaw = viewModel.PhoneNumber?.Trim();
+            if (viewModel.ShowPhone)
             {
-                if (!viewModel.PhoneNumberAgreement)
+                if (string.IsNullOrWhiteSpace(phoneRaw))
                 {
-                    ViewBag.AgreementError = "You need to click the checkbox";
+                    ViewBag.PhoneError = "Phone number is required when you choose to show it.";
                     return View("Profile", BuildErrorProfile());
                 }
-                if (viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8 || !viewModel.PhoneNumber.All(char.IsDigit))
+                if (phoneRaw.Length > 15 || phoneRaw.Length < 8 || !phoneRaw.All(char.IsDigit))
                 {
                     ViewBag.PhoneError = "The phone number is incorrect.";
                     return View("Profile", BuildErrorProfile());
                 }
-                currentUser.PhoneNumber = viewModel.PhoneNumber;
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(phoneRaw) && (phoneRaw.Length > 15 || phoneRaw.Length < 8 || !phoneRaw.All(char.IsDigit)))
             {
-                currentUser.PhoneNumber = null;
+                ViewBag.PhoneError = "The phone number is incorrect.";
+                return View("Profile", BuildErrorProfile());
             }
+
+            // Persist phone & visibility
+            currentUser.PhoneNumber = string.IsNullOrWhiteSpace(phoneRaw) ? null : phoneRaw;
+            currentUser.ShowPhone = viewModel.ShowPhone;
+            currentUser.ShowEmail = viewModel.ShowEmail;
 
             currentUser.Description = viewModel.Description;
 
             if (viewModel.ProfilePicture != null)
             {
                 Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
-                currentUser.ProfilePicturePath = await Helper.SaveImageAsync(viewModel.ProfilePicture, "profiles", _webHostEnvironment);
+                currentUser.ProfilePicturePath = await Helper.SaveImageAsync(viewModel.ProfilePicture, "profiles", _webHostEnvironment)!;
             }
             else if (string.IsNullOrEmpty(viewModel.ExistingProfilePicturePath) && !string.IsNullOrEmpty(currentUser.ProfilePicturePath))
             {
@@ -158,6 +183,7 @@ namespace Marketplace.Controllers
             var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var isOwner = currentUserId != null && currentUserId == user.Id;
             var isAdmin = User.IsInRole(Helper.AdminRole);
+            var isAuthed = User.Identity?.IsAuthenticated == true;
 
             const int pageSize = 12;
             var baseQuery = _context.Advertisements.Where(x => x.UserId == user.Id);
@@ -183,10 +209,8 @@ namespace Marketplace.Controllers
                 })
                 .ToList();
 
-            // Phone visibility: show if set; for anonymous always show if exists, for owner/admin always show own
-            string? visiblePhone = user.PhoneNumber;
-            // If you want to hide phone for visitors when not agreed, you could check a dedicated flag;
-            // currently agreement is implied by phone != null, so show always when exists.
+            var phoneView = ContactVisibilityHelper.ResolvePhone(user, User);
+            var emailView = ContactVisibilityHelper.ResolveEmail(user, User);
 
             var vm = new ProfileViewModel
             {
@@ -194,7 +218,16 @@ namespace Marketplace.Controllers
                 ProfilePicturePath = user.ProfilePicturePath,
                 Description = user.Description,
                 Email = user.Email,
-                PhoneNumber = visiblePhone,
+                PhoneNumber = user.PhoneNumber,
+                ShowEmail = user.ShowEmail,
+                ShowPhone = user.ShowPhone,
+                DisplayPhone = phoneView.Display,
+                CanViewPhone = phoneView.CanView,
+                IsCensoredPhone = phoneView.IsCensored,
+                DisplayEmail = emailView.Display,
+                CanViewEmail = emailView.CanView,
+                IsCensoredEmail = emailView.IsCensored,
+                IsAuthenticated = isAuthed,
                 IsOwner = isOwner,
                 IsAdmin = isAdmin,
                 CurrentUserId = currentUserId ?? "",
@@ -209,7 +242,8 @@ namespace Marketplace.Controllers
                     ExistingProfilePicturePath = user.ProfilePicturePath,
                     Description = user.Description,
                     PhoneNumber = user.PhoneNumber,
-                    PhoneNumberAgreement = user.PhoneNumber != null
+                    ShowPhone = user.ShowPhone,
+                    ShowEmail = user.ShowEmail
                 } : null
             };
 

@@ -11,7 +11,16 @@ namespace Marketplace.ViewModels
         [StringLength(250)]
         public string? Description { get; set; }
 
-        public bool PhoneNumberAgreement { get; set; }
+        // New opt-in flags: default hidden (false). Keep PhoneNumberAgreement as obsolete shim.
+        public bool ShowPhone { get; set; } = false;
+        public bool ShowEmail { get; set; } = false;
+
+        [Obsolete("Use ShowPhone")]
+        public bool PhoneNumberAgreement
+        {
+            get => ShowPhone;
+            set => ShowPhone = value;
+        }
 
         [DataType(DataType.PhoneNumber)]
         public string? PhoneNumber { get; set; }

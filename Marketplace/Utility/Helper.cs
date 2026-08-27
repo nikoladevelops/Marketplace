@@ -14,7 +14,7 @@
             }
         }
         
-        public static async Task<string> SaveImageAsync(IFormFile imageFile, string subFolder, IWebHostEnvironment webHostEnvironment)
+        public static async Task<string?> SaveImageAsync(IFormFile? imageFile, string subFolder, IWebHostEnvironment webHostEnvironment)
         {
             if (imageFile == null || imageFile.Length == 0)
             {
@@ -38,7 +38,7 @@
             return $"/uploads/{subFolder}/{uniqueFileName}";
         }
 
-        public static void DeleteImage(string imagePath, IWebHostEnvironment webHostEnvironment)
+        public static void DeleteImage(string? imagePath, IWebHostEnvironment webHostEnvironment)
         {
             if (string.IsNullOrEmpty(imagePath))
             {

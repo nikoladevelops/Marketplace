@@ -70,7 +70,7 @@
     <!-- State banners -->
     @if (Model.HasBlockedMe)
     {
-        <div class="alert alert-warning rounded-4 border-0 d-flex gap-2 py-2"><span>🔒</span><span>You cannot send messages here — this user has blocked you.</span></div>
+        <div class="alert alert-warning rounded-4 border-0 d-flex gap-2 py-2"><span>🔒</span><span>You cannot send messages here - this user has blocked you.</span></div>
     }
     else if (Model.IsBlockedByMe)
     {
@@ -109,7 +109,7 @@
             <div id="messageList">
                 @if (Model.Messages.Count == 0)
                 {
-                    <p id="emptyState" class="text-muted text-center my-4 mb-0">No messages yet — say hello 👋</p>
+                    <p id="emptyState" class="text-muted text-center my-4 mb-0">No messages yet - say hello 👋</p>
                 }
                 else
                 {

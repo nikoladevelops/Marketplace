@@ -19,15 +19,21 @@
             <small class="text-muted d-block mt-2">Click avatar to view • 1:1 square</small>
         </div>
         <div class="col-md-8">
-            <label class="form-label fw-semibold text-secondary mb-2">Contact Info</label>
+            <label class="form-label fw-semibold text-secondary mb-2">Contact Info &amp; Privacy</label>
             <div class="border rounded-4 p-3 bg-light h-100">
+                <p class="small text-muted mb-2">Choose what to show on your public profile and ads. <strong>Default: hidden</strong> - nobody sees it until you opt in.</p>
                 <label asp-for="PhoneNumber" class="form-label small fw-semibold">Phone number</label>
-                <input asp-for="PhoneNumber" class="form-control mb-2" placeholder="Number" />
-                <div class="form-check">
-                    <input asp-for="PhoneNumberAgreement" type="checkbox" class="form-check-input" />
-                    <label asp-for="PhoneNumberAgreement" class="form-check-label small">I agree that everybody can view this information on my profile page and on my advertisements</label>
+                <input asp-for="PhoneNumber" class="form-control mb-2" placeholder="Number (only needed if you want to show it)" />
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="ShowPhone" class="form-check-input" type="checkbox" role="switch" />
+                    <label asp-for="ShowPhone" class="form-check-label small">Show phone number on public profile &amp; ads</label>
                 </div>
-                <span class="d-block small field-validation-error">@ViewBag.AgreementError</span>
+                <small class="text-muted d-block mb-2">When on: logged-in users see full number, anonymous sees censored ••• + login CTA. When off: hidden from everyone.</small>
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="ShowEmail" class="form-check-input" type="checkbox" role="switch" />
+                    <label asp-for="ShowEmail" class="form-check-label small">Show email on public profile &amp; ads</label>
+                </div>
+                <small class="text-muted d-block mb-2">When on: same as phone. When off: hidden from everyone.</small>
                 <span class="d-block small field-validation-error">@ViewBag.PhoneError</span>
             </div>
         </div>

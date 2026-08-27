@@ -4,8 +4,9 @@
     var profilePictureSrc = !string.IsNullOrEmpty(Model.ProfilePicturePath) ? Model.ProfilePicturePath : "/noProfilePicture.png";
     var mainImageSrc = !string.IsNullOrEmpty(Model.ImagePath) ? Model.ImagePath : "/plusSign.png";
     var additionalPaths = Model.AdditionalImagePaths?.ToList() ?? new List<string>();
+    var loginReturnUrl = $"/Advertisement/Show/{Model.Id}";
+    var chatReturnUrl = $"/Chat/Thread?with={Uri.EscapeDataString(Model.UserName)}&adId={Model.Id}";
 }
-
 <div class="container">
     <div class="page-header justify-content-center border-0 pb-0 mb-3">
         <h3>Listing Details</h3>
@@ -69,15 +70,22 @@
                         </div>
                     </div>
                 </div>
-                @if (User.Identity.IsAuthenticated && User.Identity.Name != Model.UserName)
+
+                @if (Model.IsOwner)
+                {
+                    <button class="btn btn-outline-secondary fw-semibold py-2 mt-3 w-100" onclick="showModal('contactInfoModal')">Your contact info (as others see it)</button>
+                }
+                else if (!Model.ViewerIsAuthenticated)
+                {
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(chatReturnUrl)" class="btn btn-success fw-semibold py-2 mt-3 w-100">🔒 Login to message seller</a>
+                    <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (login to reveal)</button>
+                    <small class="text-muted text-center d-block mt-1">Anonymous users see censored contact to avoid spam. <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)">Login</a> or <a href="/Account/Register">Register</a> to contact.</small>
+                }
+                else // authenticated, not owner
                 {
                     <a class="btn btn-success fw-semibold py-2 mt-3 w-100" asp-controller="Chat" asp-action="Thread"
                        asp-route-with="@Model.UserName" asp-route-adId="@Model.Id">💬 Message Seller</a>
                     <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (email/phone)</button>
-                }
-                else
-                {
-                    <button class="btn btn-success fw-semibold py-2 mt-3" onclick="showModal('contactInfoModal')">Contact Seller</button>
                 }
             </div>
         </div>
@@ -93,10 +101,47 @@
                 <button onclick="closeModal('contactInfoModal')" type="button" class="btn-close" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-2">Email: <span class="badge bg-success p-2">@Model.Email</span></p>
-                @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                @if (Model.CanViewEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
                 {
-                    <p class="mb-0">Phone Number: <span class="badge bg-success p-2">@Model.PhoneNumber</span></p>
+                    <p class="mb-2">Email: <span class="badge bg-success p-2">@Model.DisplayEmail</span> @if (Model.IsAdmin && Model.DisplayEmail != Model.Email) { <small class="text-info">👁 Admin view</small> }</p>
+                }
+                else if (Model.IsCensoredEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
+                {
+                    <p class="mb-2">Email: <span class="badge bg-secondary p-2">@Model.DisplayEmail</span></p>
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mb-2">🔒 Login to reveal email</a>
+                }
+                else
+                {
+                    <p class="mb-2">Email: <span class="text-muted"><em>Not shared</em></span></p>
+                }
+
+                @if (Model.CanViewPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
+                {
+                    <p class="mb-0">Phone Number: <span class="badge bg-success p-2">@Model.DisplayPhone</span> @if (Model.IsAdmin && Model.DisplayPhone != Model.PhoneNumber) { <small class="text-info">👁 Admin view</small> }</p>
+                }
+                else if (Model.IsCensoredPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
+                {
+                    <p class="mb-0">Phone Number: <span class="badge bg-secondary p-2">@Model.DisplayPhone</span></p>
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mt-1">🔒 Login to reveal phone</a>
+                    <small class="text-muted d-block mt-1">Censored to protect from bots.</small>
+                }
+                else if (!string.IsNullOrEmpty(Model.PhoneNumber) && Model.ViewerIsAuthenticated && !Model.CanViewPhone)
+                {
+                    <p class="mb-0">Phone Number: <span class="text-muted"><em>Not shared</em></span></p>
+                }
+                else if (!Model.ViewerIsAuthenticated && !string.IsNullOrEmpty(Model.PhoneNumber) && !Model.CanViewPhone && !Model.IsCensoredPhone)
+                {
+                    <p class="mb-0">Phone Number: <span class="text-muted"><em>Not shared</em></span></p>
+                }
+                else
+                {
+                    <p class="mb-0">Phone Number: <span class="text-muted"><em>Not shared</em></span></p>
+                }
+
+                @if (!Model.ViewerIsAuthenticated)
+                {
+                    <hr class="my-3" />
+                    <p class="small text-muted mb-2"><a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)">Login</a> or <a href="/Account/Register">Register</a> to see full contact details this user chose to share. Anonymous view is censored to avoid spam.</p>
                 }
             </div>
         </div>
