@@ -31,6 +31,8 @@ namespace Marketplace.ViewModels
         public int MaxCountPages { get; set; }
         public int TotalCount { get; set; }
         public int PageSize { get; set; } = 12;
+        public int MaxAdvertisements { get; set; }
+        public bool IsPremium { get; set; }
 
         // For inline edit when ?edit=1 and IsOwner
         public MyProfileViewModel? EditForm { get; set; }

@@ -797,6 +797,15 @@ img { max-width: 100%; }
     color: var(--text);
 }
 
+/* Own-profile role chips under the username. Small, pill-style, centered. */
+.profile-self-badges { max-width: 220px; margin-left: auto; margin-right: auto; }
+.profile-self-badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.3rem 0.6rem;
+    letter-spacing: 0.01em;
+}
+
 /* Temporary inline error raised by the live send path */
 .chat-alert-temporary {
     animation: none;

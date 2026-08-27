@@ -199,6 +199,9 @@ namespace Marketplace.Controllers
             var isAdmin = User.IsInRole(Helper.AdminRole);
             var isAuthed = User.Identity?.IsAuthenticated == true;
 
+            var isPremium = User.IsInRole(Helper.PremiumRole);
+            var maxAds = Helper.MaxAdsForRoles(isPremium);
+
             const int pageSize = 12;
             var baseQuery = _context.Advertisements.Where(x => x.UserId == user.Id);
             var totalCount = baseQuery.Count();
@@ -250,6 +253,8 @@ namespace Marketplace.Controllers
                 MaxCountPages = maxCountPages,
                 TotalCount = totalCount,
                 PageSize = pageSize,
+                MaxAdvertisements = maxAds,
+                IsPremium = isPremium,
                 ShowEditForm = edit && isOwner,
                 EditForm = (edit && isOwner) ? new MyProfileViewModel
                 {

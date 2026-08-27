@@ -5,6 +5,11 @@
         public const string AdminRole = "Admin";
         public const string SellerRole = "Seller";
         public const string PremiumRole = "Premium";
+
+        public const int SellerMaxAds = 20;
+        public const int PremiumMaxAds = 40;
+
+        public static int MaxAdsForRoles(bool isPremium) => isPremium ? PremiumMaxAds : SellerMaxAds;
         public static async Task<byte[]> GetByteArrayFromImage(IFormFile file)
         {
             using (var target = new MemoryStream())

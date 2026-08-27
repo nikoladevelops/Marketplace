@@ -7,15 +7,6 @@
     var returnUrl = Url.Action("Profile", new { username = Model.Username });
 }
 
-@if (User.IsInRole(Helper.AdminRole))
-{
-    <div class="alert alert-success text-center rounded-4 border-0">You are logged in as Admin</div>
-}
-@if (User.IsInRole(Helper.PremiumRole))
-{
-    <div class="alert alert-warning text-center rounded-4 border-0 mb-0 bg-warning bg-opacity-10 text-dark">You have Premium ✨</div>
-}
-
 <div class="container">
     <div class="row g-4">
         <div class="col-md-4 col-lg-3 text-center">
@@ -24,6 +15,23 @@
                 <img src="@avatarSrc" class="w-100 h-100 object-fit-cover" alt="Profile Picture">
             </div>
             <p class="fw-semibold mt-2 mb-0">@@@Model.Username</p>
+            @if (Model.IsOwner)
+            {
+                <div class="profile-self-badges d-flex flex-wrap justify-content-center gap-1 mt-2">
+                    @if (User.IsInRole(Helper.AdminRole))
+                    {
+                        <span class="badge rounded-pill bg-danger profile-self-badge">🛡️ Admin</span>
+                    }
+                    @if (User.IsInRole(Helper.PremiumRole))
+                    {
+                        <span class="badge rounded-pill bg-warning text-dark profile-self-badge">✨ Premium</span>
+                    }
+                    @if (User.IsInRole(Helper.SellerRole))
+                    {
+                        <span class="badge rounded-pill bg-info text-dark profile-self-badge">Seller</span>
+                    }
+                </div>
+            }
             @if (Model.IsOwner && !Model.ShowEditForm)
             {
                 <a href="@Url.Action("Profile", new { username = Model.Username, edit = true })" class="btn btn-sm btn-outline-primary mt-2 rounded-3">Edit Profile</a>
@@ -155,7 +163,7 @@
     <div class="page-header">
         <h3>
             @(Model.IsOwner ? "My Advertisements" : "User Advertisements")
-            <small class="text-muted fs-6 fw-normal">(@Model.TotalCount)</small>
+            <small class="text-muted fs-6 fw-normal">(@Model.TotalCount@(Model.IsOwner ? $"/{Model.MaxAdvertisements}" : ""))</small>
         </h3>
         @if (canCreate && Model.TotalCount > 0)
         {
