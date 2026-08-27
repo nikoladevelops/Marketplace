@@ -83,6 +83,13 @@ body {
 }
 .form-control::placeholder { color: var(--text-muted); opacity: 1; }
 .form-control[readonly] { background-color: var(--surface-2); color: var(--text-muted); }
+
+/* Filter bar: keep inputs/selects the same height as the action buttons */
+#filterCollapse .form-control,
+#filterCollapse .form-select,
+#filterCollapse .btn { min-height: 44px; }
+#filterCollapse .form-control,
+#filterCollapse .form-select { display: flex; align-items: center; }
 .form-check-input:checked { background-color: var(--primary-strong); border-color: var(--primary-strong); }
 .input-group-text {
     background-color: var(--surface-2);

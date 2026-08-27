@@ -16,16 +16,16 @@
         Filters
     </button>
     <div id="filterCollapse" class="collapse d-md-block">
-        <div class="row g-3 justify-content-center mb-2">
+        <div class="row g-2 align-items-end justify-content-center mb-3">
             <div class="col-12 col-md-5">
                 <input asp-for="SearchTerm" id="searchBar" class="form-control" placeholder="🔍 Search listings" />
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-6 col-md-2">
                 <select id="categoryDropDown" asp-items="@Model.CategoryDropDown" asp-for="CategoryId" class="form-select text-center">
                     <option value="-1">All</option>
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-6 col-md-2">
                 <select id="filterDropDown" asp-for="Filter" class="form-select text-center">
                     <option>New</option>
                     <option>Old</option>
@@ -36,16 +36,15 @@
             <div class="col-12 col-md-2">
                 <input id="locationInput" asp-for="Location" class="form-control text-center" placeholder="📍 Location" />
             </div>
-            <div class="col-12 col-md-1 d-grid">
-                <a id="searchButton" href="#" class="btn btn-primary fw-semibold" aria-label="Search" style="min-height: 44px; display:flex; align-items:center; justify-content:center;">Go</a>
-            </div>
-        </div>
-        <div class="row g-3 justify-content-center mb-3">
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-6 col-md-2">
                 <input id="minimumPriceInput" asp-for="MinimumPrice" class="form-control text-center" placeholder="Min price (EUR)" type="number" step="0.01" min="0" />
             </div>
-            <div class="col-12 col-sm-6 col-md-2">
+            <div class="col-6 col-md-2">
                 <input id="maximumPriceInput" asp-for="MaximumPrice" class="form-control text-center" placeholder="Max price (EUR)" type="number" step="0.01" min="0" />
+            </div>
+            <div class="col-12 col-md-2 d-flex gap-2">
+                <a id="searchButton" href="#" class="btn btn-primary fw-semibold flex-grow-1 d-flex align-items-center justify-content-center" aria-label="Search">Go</a>
+                <button type="button" id="clearFiltersButton" class="btn btn-primary fw-semibold flex-shrink-0 d-flex align-items-center justify-content-center" title="Clear filters" aria-label="Clear filters">Clear filters</button>
             </div>
         </div>
     </div>
@@ -72,9 +71,9 @@
             const maximumPrice = document.querySelector("#maximumPriceInput").value.trim();
 
             const params = new URLSearchParams();
-            params.set("pageNumber", pageNumber ?? 0);
-            params.set("filter", filter);
-            params.set("category", category);
+            if ((pageNumber ?? 0) > 0) params.set("pageNumber", pageNumber);
+            if (filter && filter !== "New") params.set("filter", filter);
+            if (category && category !== "-1" && category !== "all") params.set("category", category);
             if (searchTerm) params.set("searchTerm", searchTerm);
             if (location) params.set("location", location);
             if (minimumPrice) params.set("minimumPrice", minimumPrice);
@@ -100,7 +99,7 @@
                 temp.innerHTML = html;
                 const newPag = temp.querySelector("[data-page]");
                 // we rely on server clamped pageNumber – push state after fetch
-                history.pushState(null, "", "/?" + query);
+                history.pushState(null, "", "/" + (query ? "?" + query : ""));
                 // Update container maxPages after fetch by re-parsing (server will have clamped)
                 // Re-attach maxPages from response: try to find pagination active span
                 const active = temp.querySelector(".pagination-links .active");
@@ -164,6 +163,23 @@
                 if (currentAbort) currentAbort.abort();
                 fetchGrid(0);
             });
+
+            const clearFiltersButton = document.getElementById("clearFiltersButton");
+            if (clearFiltersButton) {
+                clearFiltersButton.addEventListener("click", function () {
+                    ["searchBar", "locationInput", "minimumPriceInput", "maximumPriceInput"].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = "";
+                    });
+                    const categoryDropDown = document.getElementById("categoryDropDown");
+                    if (categoryDropDown) categoryDropDown.value = "-1";
+                    const filterDropDown = document.getElementById("filterDropDown");
+                    if (filterDropDown && filterDropDown.options.length) filterDropDown.selectedIndex = 0;
+                    clearTimeout(searchDebounce);
+                    if (currentAbort) currentAbort.abort();
+                    fetchGrid(0);
+                });
+            }
 
             const enterHandler = function (e) {
                 if (e.key === "Enter") {
