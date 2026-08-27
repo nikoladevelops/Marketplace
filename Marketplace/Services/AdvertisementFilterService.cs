@@ -42,9 +42,7 @@ namespace Marketplace.Services
 
             if (min.HasValue && max.HasValue && min > max)
             {
-                var tmp = min;
-                min = max;
-                max = tmp;
+                (min, max) = (max, min);
             }
 
             if (min.HasValue)

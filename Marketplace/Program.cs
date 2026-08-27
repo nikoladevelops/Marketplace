@@ -53,6 +53,10 @@ if (builder.Environment.IsDevelopment())
 
 // Filtering service
 builder.Services.AddScoped<AdvertisementFilterService>();
+builder.Services.AddScoped<UserAdministrationService>();
+builder.Services.AddScoped<AdvertisementService>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<ChatService>();
 
 // Seeding services for Utility/Seeding folder
 builder.Services.AddScoped<IdentityAndCatalogSeeder>();
