@@ -71,20 +71,32 @@
                     </div>
                 </div>
 
+                @{
+                    var canModify = Model.IsOwner || Model.IsAdmin;
+                }
+
+                @if (canModify)
+                {
+                    <div class="d-flex gap-2 flex-wrap mt-3">
+                        <a asp-controller="Advertisement" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning flex-fill fw-semibold">Edit</a>
+                        <button type="button" class="btn btn-outline-danger flex-fill fw-semibold" onclick="showDeleteAdModal('@Model.Title', @Model.Id)">Delete</button>
+                    </div>
+                }
+
                 @if (Model.IsOwner)
                 {
-                    <button class="btn btn-outline-secondary fw-semibold py-2 mt-3 w-100" onclick="showModal('contactInfoModal')">Your contact info (as others see it)</button>
+                    <button class="btn btn-outline-secondary fw-semibold py-2 mt-3 w-100" onclick="showModal('contactInfoModal')">Contact info (email/phone)</button>
                 }
                 else if (!Model.ViewerIsAuthenticated)
                 {
-                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(chatReturnUrl)" class="btn btn-success fw-semibold py-2 mt-3 w-100">🔒 Login to message seller</a>
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(chatReturnUrl)" class="btn btn-success fw-semibold py-2 mt-3 w-100">Login to message seller</a>
                     <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (login to reveal)</button>
                     <small class="text-muted text-center d-block mt-1">Anonymous users see censored contact to avoid spam. <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)">Login</a> or <a href="/Account/Register">Register</a> to contact.</small>
                 }
                 else // authenticated, not owner
                 {
                     <a class="btn btn-success fw-semibold py-2 mt-3 w-100" asp-controller="Chat" asp-action="Thread"
-                       asp-route-with="@Model.UserName" asp-route-adId="@Model.Id">💬 Message Seller</a>
+                       asp-route-with="@Model.UserName" asp-route-adId="@Model.Id">Message Seller</a>
                     <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (email/phone)</button>
                 }
             </div>
@@ -103,12 +115,12 @@
             <div class="modal-body">
                 @if (Model.CanViewEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
                 {
-                    <p class="mb-2">Email: <span class="badge bg-success p-2">@Model.DisplayEmail</span> @if (Model.IsAdmin && Model.DisplayEmail != Model.Email) { <small class="text-info">👁 Admin view</small> }</p>
+                    <p class="mb-2">Email: <span class="badge bg-success p-2">@Model.DisplayEmail</span> @if (Model.IsAdmin && Model.DisplayEmail != Model.Email) { <small class="text-info">Admin view</small> }</p>
                 }
                 else if (Model.IsCensoredEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
                 {
                     <p class="mb-2">Email: <span class="badge bg-secondary p-2">@Model.DisplayEmail</span></p>
-                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mb-2">🔒 Login to reveal email</a>
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mb-2">Login to reveal email</a>
                 }
                 else
                 {
@@ -117,12 +129,12 @@
 
                 @if (Model.CanViewPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
                 {
-                    <p class="mb-0">Phone Number: <span class="badge bg-success p-2">@Model.DisplayPhone</span> @if (Model.IsAdmin && Model.DisplayPhone != Model.PhoneNumber) { <small class="text-info">👁 Admin view</small> }</p>
+                    <p class="mb-0">Phone Number: <span class="badge bg-success p-2">@Model.DisplayPhone</span> @if (Model.IsAdmin && Model.DisplayPhone != Model.PhoneNumber) { <small class="text-info">Admin view</small> }</p>
                 }
                 else if (Model.IsCensoredPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
                 {
                     <p class="mb-0">Phone Number: <span class="badge bg-secondary p-2">@Model.DisplayPhone</span></p>
-                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mt-1">🔒 Login to reveal phone</a>
+                    <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mt-1">Login to reveal phone</a>
                     <small class="text-muted d-block mt-1">Censored to protect from bots.</small>
                 }
                 else if (!string.IsNullOrEmpty(Model.PhoneNumber) && Model.ViewerIsAuthenticated && !Model.CanViewPhone)
@@ -147,6 +159,28 @@
         </div>
     </div>
 </div>
+
+@if (Model.IsOwner || Model.IsAdmin)
+{
+    <form method="post" name="deleteAdForm" asp-controller="Advertisement" asp-action="Delete">
+        <div class="modal fade" id="deleteAdModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>You are about to delete "<span class="adToDeleteTitle"></span>". Are you sure?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+}
 
 @section Styles {
     <link rel="stylesheet" href="~/lib/leaflet/leaflet.css" />
@@ -173,4 +207,8 @@
         </script>
     }
     <script src="~/js/imageManipulation.js"></script>
+    @if (Model.IsOwner || Model.IsAdmin)
+    {
+        <script defer src="~/js/deleteAdvertisement.js"></script>
+    }
 }
