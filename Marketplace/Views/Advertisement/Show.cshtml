@@ -65,7 +65,7 @@
                         <img src="@profilePictureSrc" class="rounded-circle object-fit-cover" style="width: 64px; height: 64px;" alt="Seller profile picture">
                         <div class="flex-grow-1">
                             <p class="text-muted small mb-0">Seller</p>
-                            <a class="fw-semibold text-decoration-none stretched-link" asp-action="@Model.UserName" asp-controller="Users">@Model.UserName</a>
+                            <a class="fw-semibold text-decoration-none stretched-link" href="/Users/@Model.UserName">@Model.UserName</a>
                         </div>
                     </div>
                 </div>

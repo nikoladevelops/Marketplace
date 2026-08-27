@@ -44,7 +44,7 @@
         </div>
     </div>
 
-    <div id="adGridContainer" class="mt-2">
+    <div id="adGridContainer" class="mt-2" data-page="@Model.PageNumber" data-max-pages="@Model.MaxCountPages">
         <partial name="_AdGrid" model="Model" />
     </div>
 </div>
@@ -77,6 +77,9 @@
         }
 
         async function fetchGrid(pageNumber) {
+            const container = document.getElementById("adGridContainer");
+            const maxPages = parseInt(container?.dataset.maxPages || "1", 10);
+            if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages)) return;
             if (currentAbort) currentAbort.abort();
             currentAbort = new AbortController();
             const query = buildSearchParams(pageNumber);
@@ -85,20 +88,41 @@
                 const res = await fetch(url, { signal: currentAbort.signal, headers: { "X-Requested-With": "XMLHttpRequest" } });
                 if (!res.ok) throw new Error(res.statusText);
                 const html = await res.text();
-                document.getElementById("adGridContainer").innerHTML = html;
+                container.innerHTML = html;
+                // update data attributes from new pagination if present, else keep
+                const temp = document.createElement("div");
+                temp.innerHTML = html;
+                const newPag = temp.querySelector("[data-page]");
+                // we rely on server clamped pageNumber – push state after fetch
                 history.pushState(null, "", "/?" + query);
+                // Update container maxPages after fetch by re-parsing (server will have clamped)
+                // Re-attach maxPages from response: try to find pagination active span
+                const active = temp.querySelector(".pagination-links .active");
+                if (active) {
+                    const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
+                    if (!isNaN(cur)) container.dataset.page = cur;
+                } else {
+                    container.dataset.page = pageNumber;
+                }
             } catch (e) {
                 if (e.name !== "AbortError") console.error(e);
             }
         }
 
         function attachGridHandlers() {
-            document.getElementById("adGridContainer").addEventListener("click", function (e) {
+            const container = document.getElementById("adGridContainer");
+            if (!container) return;
+            container.addEventListener("click", function (e) {
                 const link = e.target.closest("a[data-page]");
                 if (!link) return;
+                if (link.classList.contains("disabled") || link.getAttribute("aria-disabled")==="true") {
+                    e.preventDefault();
+                    return;
+                }
                 e.preventDefault();
                 const page = parseInt(link.getAttribute("data-page"), 10);
-                if (isNaN(page) || page < 0) return;
+                const maxPages = parseInt(container.dataset.maxPages || "1", 10);
+                if (isNaN(page) || page < 0 || (maxPages>0 && page >= maxPages)) return;
                 fetchGrid(page);
             });
         }
@@ -137,10 +161,6 @@
                 if (!el) return;
                 const evt = el.tagName === "SELECT" ? "change" : "input";
                 el.addEventListener(evt, function () {
-                    // Don't double-trigger if Enter already handled
-                    if (evt === "input" && el.value === "" && document.activeElement === el) {
-                        // still debounce empty clear
-                    }
                     clearTimeout(searchDebounce);
                     searchDebounce = setTimeout(() => fetchGrid(0), el.tagName === "SELECT" ? 0 : 400);
                 });
@@ -148,11 +168,13 @@
 
             window.addEventListener("popstate", function () {
                 const params = new URLSearchParams(location.search);
-                fetchGrid(parseInt(params.get("pageNumber") || "0", 10));
+                const p = parseInt(params.get("pageNumber") || "0", 10);
+                const maxPages = parseInt(document.getElementById("adGridContainer")?.dataset.maxPages || "1", 10);
+                if (!isNaN(p) && p >=0 && (maxPages===0 || p < maxPages)) fetchGrid(p);
+                else fetchGrid(0);
             });
         });
 
-        // Fallback for non-JS pagination (kept for SEO) – also handle old backArrow helpers if called
         function backArrow(arrowElement, isBackArrow) { return false; }
         function changePage() { return false; }
         function searchFor() { fetchGrid(0); return false; }

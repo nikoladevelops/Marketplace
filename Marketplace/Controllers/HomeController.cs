@@ -34,7 +34,6 @@ namespace Marketplace.Controllers
 
         private HomeViewModel BuildHomeViewModel(int pageNumber, string filter, string? category, string? searchTerm, string? location, string? minimumPrice, string? maximumPrice)
         {
-            if (pageNumber < 0) pageNumber = 0;
             filter = (filter ?? "new").ToLowerInvariant();
             category ??= "all";
 
@@ -57,6 +56,8 @@ namespace Marketplace.Controllers
 
             int loadAdsPerPage = 24;
             var countFilteredAds = query.Count();
+            var maxCountPages = countFilteredAds == 0 ? 0 : (int)Math.Ceiling((double)countFilteredAds / loadAdsPerPage);
+            pageNumber = Math.Clamp(pageNumber, 0, Math.Max(0, maxCountPages - 1));
 
             var adsResult = query
                 .Include(x => x.User)
@@ -84,7 +85,11 @@ namespace Marketplace.Controllers
                 SearchTerm = searchTerm,
                 CategoryId = effectiveCategoryId == -1 ? -1 : effectiveCategoryId,
                 PageNumber = pageNumber,
-                MaxCountPages = (int)Math.Ceiling((double)countFilteredAds / loadAdsPerPage)
+                MaxCountPages = maxCountPages,
+                Filter = filter,
+                Location = location,
+                MinimumPrice = minimumPrice ?? "",
+                MaximumPrice = maximumPrice ?? ""
             };
         }
 

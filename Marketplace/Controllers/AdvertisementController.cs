@@ -99,13 +99,16 @@ namespace Marketplace.Controllers
             }
             await _context.SaveChangesAsync(cancellationToken);
 
-            return RedirectToAction("MyAdvertisements", "Account");
+            var me = User.Identity?.Name ?? "me";
+            return RedirectToAction("Profile", "Account", new { username = me });
+
         }
 
         [HttpGet]
         public IActionResult Edit(int id)
         {
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole(Helper.AdminRole);
 
             var ad = _context.Advertisements
                 .Select(x => new EditAdvertisementViewModel()
@@ -123,7 +126,7 @@ namespace Marketplace.Controllers
                 })
                 .FirstOrDefault(x => x.Id == id);
 
-            if (ad == null || currentLoggedInUserId != ad.UserId) return NotFound();
+            if (ad == null || (currentLoggedInUserId != ad.UserId && !isAdmin)) return NotFound();
 
             var additionalImages = _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
@@ -167,8 +170,9 @@ namespace Marketplace.Controllers
                 .FirstOrDefaultAsync(x => x.Id == model.Id, cancellationToken);
 
             var currentLoggedInUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole(Helper.AdminRole);
 
-            if (advertisement == null || currentLoggedInUserId != advertisement.UserId) return NotFound();
+            if (advertisement == null || (currentLoggedInUserId != advertisement.UserId && !isAdmin)) return NotFound();
 
             // 1. Handle Main Image update
             if (model.Image != null)
@@ -229,7 +233,8 @@ namespace Marketplace.Controllers
             }
 
             await _context.SaveChangesAsync(cancellationToken);
-            return RedirectToAction("MyAdvertisements", "Account");
+            var me2 = User.Identity?.Name ?? "me";
+            return RedirectToAction("Profile", "Account", new { username = me2 });
         }
 
         [HttpPost]
@@ -257,7 +262,7 @@ namespace Marketplace.Controllers
             await _context.SaveChangesAsync(cancellationToken);
 
             if (isUserAdmin) return RedirectToAction("Profile", "Account", new { username = ad.User.UserName });
-            return RedirectToAction("MyAdvertisements", "Account");
+            return RedirectToAction("Profile", "Account", new { username = User.Identity?.Name ?? ad.User.UserName });
         }
 
         [AllowAnonymous]

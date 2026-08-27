@@ -1,24 +1,18 @@
 ﻿@using Marketplace.Utility
-@using Marketplace.ViewModels
-@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
+@model Marketplace.ViewModels.ProfileViewModel
 @{
-    var profilePictureSrc = "/noProfilePicture.png";
-    var description = "This user has no description.";
+    var avatarSrc = !string.IsNullOrEmpty(Model.ProfilePicturePath) ? Model.ProfilePicturePath : "/noProfilePicture.png";
+    var descText = !string.IsNullOrEmpty(Model.Description) ? Model.Description : (Model.IsOwner ? "No description. Consider adding one." : "This user has no description.");
+    var canCreate = Model.IsOwner;
+}
 
-    if (ViewBag.ProfilePicturePath != null)
-    {
-        profilePictureSrc = ViewBag.ProfilePicturePath;
-    }
-
-    if (ViewBag.Description != null)
-    {
-        description = ViewBag.Description;
-    }
-
-    int pageNumber = ViewBag.PageNumber ?? 0;
-    int maxCountPages = ViewBag.MaxCountPages ?? 1;
-    int totalCount = ViewBag.TotalCount ?? Model.Count();
-    string username = ViewBag.Username as string ?? "";
+@if (User.IsInRole(Helper.AdminRole))
+{
+    <div class="alert alert-success text-center rounded-4 border-0">You are logged in as Admin</div>
+}
+@if (User.IsInRole(Helper.PremiumRole))
+{
+    <div class="alert alert-warning text-center rounded-4 border-0 mb-0 bg-warning bg-opacity-10 text-dark">You have Premium ✨</div>
 }
 
 <div class="container">
@@ -26,130 +20,142 @@
         <div class="col-md-4 col-lg-3 text-center">
             <h3 class="h5 fw-bold mb-3">Profile Picture</h3>
             <div class="profile-avatar-wrap mx-auto">
-                <img id="image1" src="@profilePictureSrc" class="w-100 h-100 object-fit-cover" alt="Profile Picture">
+                <img src="@avatarSrc" class="w-100 h-100 object-fit-cover" alt="Profile Picture">
             </div>
+            <p class="fw-semibold mt-2 mb-0">@@@Model.Username</p>
+            @if (Model.IsOwner && !Model.ShowEditForm)
+            {
+                <a href="@Url.Action("Profile", new { username = Model.Username, edit = true })" class="btn btn-sm btn-outline-primary mt-2 rounded-3">Edit Profile</a>
+            }
         </div>
         <div class="col-md-8">
             <div class="card h-100 p-0 border-0 shadow-sm rounded-4">
                 <h3 class="h5 fw-bold mb-2 px-3 pt-3">Contact Info</h3>
                 <div class="border rounded-4 text-center p-3 mx-3 mb-3 bg-light">
-                    @if (@ViewBag.PhoneNumber != null)
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
                     {
                         <label class="small text-muted">Phone number</label>
-                        <input readonly value="@ViewBag.PhoneNumber" class="form-control text-center mb-3"/>
+                        <input readonly value="@Model.PhoneNumber" class="form-control text-center mb-3" />
                     }
                     <label class="small text-muted">Email</label>
-                    <input readonly value="@ViewBag.Email" class="form-control text-center"/>
+                    <input readonly value="@Model.Email" class="form-control text-center" />
+                    @if (Model.IsOwner)
+                    {
+                        <small class="text-muted d-block mt-2">This is how others see your contact info. Edit to change visibility agreement.</small>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </div>
-<h3 class="mt-4">Description</h3>
-        @if (ViewBag.Description == null)
-        {
-            <textarea readonly name="description" placeholder="@description" class="form-control mb-3 rounded-3" rows="3"></textarea>
-        }
-        else
-        {
-            <textarea readonly name="description" class="form-control mb-3 rounded-3" rows="3">@description</textarea>
-        }
 
-@if (totalCount == 0)
-{
-    <h3>This user has no advertisements.</h3>
-}
-else
-{
-    <h3>User Advertisements <small class="text-muted fs-6 fw-normal">(@totalCount)</small></h3>
+<div class="container py-3">
+    @if (Model.ShowEditForm && Model.EditForm != null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                    <div class="page-header">
+                        <h3>👤 Edit Profile</h3>
+                    </div>
+                    <partial name="_EditProfileForm" model="Model.EditForm" />
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <h3 class="mt-4">Description</h3>
+        <textarea readonly class="form-control mb-3 rounded-3" rows="3" placeholder="@descText">@(Model.Description ?? "")</textarea>
+    }
+</div>
 
-    <div class="ad-grid">
-        <div class="row g-3">
-            @foreach (var currentAd in Model)
+<div class="container mt-2">
+    <div class="page-header">
+        <h3>
+            @(Model.IsOwner ? "My Advertisements" : "User Advertisements")
+            <small class="text-muted fs-6 fw-normal">(@Model.TotalCount)</small>
+        </h3>
+        @if (canCreate && Model.TotalCount > 0)
+        {
+            <a asp-controller="Advertisement" asp-action="Create" class="btn btn-primary ms-auto">+ Create New</a>
+        }
+    </div>
+
+    @if (Model.TotalCount == 0)
+    {
+        <div class="text-center py-4">
+            <p class="text-muted mb-3">@(Model.IsOwner ? "You have no advertisements yet." : "This user has no advertisements.")</p>
+            @if (Model.IsOwner)
             {
-                <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
-                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
-                        <div class="ad-card-img-wrap flex-shrink-0">
-                            <img src="@currentAd.ImagePath" loading="lazy" alt="Ad Image">
-                            <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                <a asp-controller="Advertisement" asp-action="Create" class="btn btn-primary px-4">+ Create An Advertisement</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="ad-grid">
+            <div class="row g-3">
+                @foreach (var ad in Model.Advertisements)
+                {
+                    var canModify = Model.IsAdmin || ad.UserId == Model.CurrentUserId;
+                    <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
+                        <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
+                            <div class="ad-card-img-wrap flex-shrink-0">
+                                <img src="@ad.ImagePath" loading="lazy" alt="Advertisement Image">
+                                <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@ad.Category</span>
+                            </div>
+                            <div class="card-body pb-2 d-flex flex-column flex-grow-1 position-relative">
+                                <h6 class="card-title fw-semibold text-truncate mb-1" title="@ad.Title">@ad.Title</h6>
+                                <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(ad.Price)</p>
+                                <p class="text-muted small mb-0">📍 @ad.Location</p>
+                                <a asp-controller="Advertisement" asp-action="Show" asp-route-id="@ad.Id" class="stretched-link" aria-label="View @ad.Title"></a>
+                            </div>
+                            <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto d-flex gap-1 gap-sm-2 flex-wrap position-relative" style="z-index:1;">
+                                <a asp-controller="Advertisement" asp-action="Show" asp-route-id="@ad.Id" class="btn btn-sm btn-primary flex-fill">View</a>
+                                @if (canModify)
+                                {
+                                    <a asp-controller="Advertisement" asp-action="Edit" asp-route-id="@ad.Id" class="btn btn-sm btn-outline-warning flex-fill">Edit</a>
+                                    <a class="btn btn-sm btn-outline-danger flex-fill" onclick="showDeleteAdModal('@ad.Title',@ad.Id)">Delete</a>
+                                }
+                            </div>
                         </div>
+                    </div>
+                }
+            </div>
+        </div>
 
-                        <div class="card-body pb-2 d-flex flex-column flex-grow-1 position-relative">
-                            <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
-                            <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(currentAd.Price)</p>
-                            <p class="text-muted small mb-0">📍 @currentAd.Location</p>
-                            <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="stretched-link" aria-label="View @currentAd.Title"></a>
+        <partial name="_Pagination" model='new Marketplace.ViewModels.PaginationViewModel { PageNumber = Model.PageNumber, MaxCountPages = Model.MaxCountPages, BaseUrl = Url.Action("Profile", new { username = Model.Username }) ?? $"/Users/{Model.Username}" }' />
+
+        <form method="post" name="deleteAdForm" asp-controller="Advertisement" asp-action="Delete">
+            <div class="modal fade" id="deleteAdModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
                         </div>
-                        <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto d-flex gap-2 position-relative" style="z-index:1;">
-                            <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="btn btn-sm btn-primary flex-fill">View</a>
-                            @if (User.IsInRole(Helper.AdminRole))
-                            {
-                                <a class="btn btn-sm btn-outline-danger flex-fill" onclick="event.stopPropagation(); showDeleteAdModal('@currentAd.Title',@currentAd.Id)">Delete</a>
-                            }
+                        <div class="modal-body">
+                            <p>You are about to delete "<span class="adToDeleteTitle"></span>". Are you sure?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
                         </div>
                     </div>
                 </div>
-            }
-        </div>
-    </div>
-
-    @if (maxCountPages > 1)
-    {
-        <div class="text-center pagination-links mt-4">
-            <a href="/Users/@username?pageNumber=@(pageNumber - 1)" class="page-nav @(pageNumber <= 0 ? "disabled pe-none opacity-50" : "")" title="Previous page">&#60;</a>
-            @{
-                int maximumDisplayedPages = 10;
-                int startingIndex = pageNumber - (pageNumber % maximumDisplayedPages);
-                int endingIndex = (pageNumber + maximumDisplayedPages) - (pageNumber % maximumDisplayedPages);
-                if (endingIndex > maxCountPages) endingIndex = maxCountPages;
-                @for (var i = startingIndex; i < endingIndex; i++)
-                {
-                    @if (i == pageNumber)
-                    {
-                        <a class="active" href="/Users/@username?pageNumber=@i">@i</a>
-                        continue;
-                    }
-                    <a href="/Users/@username?pageNumber=@i">@i</a>
-                }
-                if (!(endingIndex >= maxCountPages))
-                {
-                    var lastPageIndex = maxCountPages - 1;
-                    <span class="px-1 text-muted">...</span>
-                    <a href="/Users/@username?pageNumber=@lastPageIndex">@lastPageIndex</a>
-                }
-            }
-            <a href="/Users/@username?pageNumber=@(pageNumber + 1)" class="page-nav @(pageNumber >= maxCountPages - 1 ? "disabled pe-none opacity-50" : "")" title="Next page">&#62;</a>
-        </div>
-    }
-
-    @if (User.IsInRole(Helper.AdminRole))
-    {
-        <!-- Modal -->
-        <form method="post" name="deleteAdForm" asp-action="Delete" asp-controller="Advertisement">
-        <div class="modal fade" id="deleteAdModal" tabindex="-1">
-          <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
-              </div>
-              <div class="modal-body">
-                <p>You are about to delete - "<span class="adToDeleteTitle"></span>". Are you sure about that?</p>
-              </div>
-              <div class="modal-footer">
-                <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
-                <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
-              </div>
             </div>
-          </div>
-        </div>
         </form>
     }
-}
+</div>
 
 @section Scripts
 {
-    @if (User.IsInRole(Helper.AdminRole))
+    @if (Model.ShowEditForm)
     {
-       <script defer src="~/js/deleteAdvertisement.js"></script>
+        <script src="~/js/imageManipulation.js"></script>
+    }
+    @if (Model.TotalCount > 0)
+    {
+        <script defer src="~/js/deleteAdvertisement.js"></script>
     }
 }

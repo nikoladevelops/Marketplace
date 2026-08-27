@@ -333,10 +333,22 @@ img { max-width: 100%; }
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 .pagination-links a:hover { background-color: var(--surface-2); color: var(--text); }
-.pagination-links a.active {
+.pagination-links a.active,
+.pagination-links span.active {
     background-color: var(--primary-strong);
     color: #fff;
     font-weight: 600;
+    display: inline-block;
+    min-width: 2.2rem;
+    padding: 0.35rem 0.65rem;
+    margin: 0 0.15rem;
+    text-align: center;
+    border-radius: 0.55rem;
+}
+.pagination-links .page-nav.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    cursor: default;
 }
 
 /* ===== Theme toggle ===== */

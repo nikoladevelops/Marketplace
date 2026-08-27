@@ -25,8 +25,8 @@ namespace Marketplace.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        public IActionResult Register() => _signInManager.IsSignedIn(User) ? RedirectToAction("MyProfile") : View();
-        public IActionResult Login() => _signInManager.IsSignedIn(User) ? RedirectToAction("MyProfile") : View();
+        public IActionResult Register() => _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View();
+        public IActionResult Login() => _signInManager.IsSignedIn(User) ? RedirectToAction("Profile", new { username = User.Identity?.Name }) : View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -71,88 +71,59 @@ namespace Marketplace.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        [Authorize]
-        public IActionResult MyAdvertisements(int pageNumber = 0)
-        {
-            if (pageNumber < 0) pageNumber = 0;
-            const int pageSize = 12;
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-
-            var baseQuery = _context.Advertisements.Where(x => x.UserId == userId);
-
-            var totalCount = baseQuery.Count();
-            var maxCountPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            if (maxCountPages == 0) maxCountPages = 1;
-            if (pageNumber >= maxCountPages) pageNumber = maxCountPages - 1;
-
-            var ads = baseQuery
-                .OrderByDescending(x => x.DateCreatedOn)
-                .Skip(pageNumber * pageSize)
-                .Take(pageSize)
-                .Select(x => new SimplifiedAdvertisementViewModel()
-                {
-                    Id = x.Id,
-                    Title = x.Title,
-                    Price = x.Price,
-                    ImagePath = x.ImagePath,
-                    Category = x.Category.Name,
-                    Location = x.Location,
-                    DateCreatedOn = x.DateCreatedOn
-                })
-                .ToList();
-
-            var vm = new MyAdvertisementsViewModel
-            {
-                Advertisements = ads,
-                PageNumber = pageNumber,
-                MaxCountPages = maxCountPages,
-                TotalCount = totalCount,
-                PageSize = pageSize
-            };
-
-            return View(vm);
-        }
-
-        [Authorize]
-        public IActionResult MyProfile()
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            var profileVM = _context.Users
-                .Where(x => x.Id == userId)
-                .Select(x => new MyProfileViewModel()
-                {
-                    ExistingProfilePicturePath = x.ProfilePicturePath,
-                    Description = x.Description,
-                    PhoneNumber = x.PhoneNumber,
-                    PhoneNumberAgreement = x.PhoneNumber != null
-                })
-                .Single();
-
-            return View(profileVM);
-        }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
         public async Task<IActionResult> Update(MyProfileViewModel viewModel)
         {
-            if (!ModelState.IsValid) return View("MyProfile", viewModel);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Challenge();
+            var currentUser = _context.Users.FirstOrDefault(x => x.Id == userId);
+            if (currentUser == null) return NotFound();
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            var currentUser = _context.Users.First(x => x.Id == userId);
-            currentUser.Description = viewModel.Description;
+            // Validate and prepare ProfileViewModel for re-render on error (unified profile)
+            ProfileViewModel BuildErrorProfile()
+            {
+                var isAdmin = User.IsInRole(Helper.AdminRole);
+                const int pageSize = 12;
+                var vm = new ProfileViewModel
+                {
+                    Username = currentUser.UserName ?? "",
+                    ProfilePicturePath = currentUser.ProfilePicturePath,
+                    Description = currentUser.Description,
+                    Email = currentUser.Email,
+                    PhoneNumber = currentUser.PhoneNumber,
+                    IsOwner = true,
+                    IsAdmin = isAdmin,
+                    CurrentUserId = userId,
+                    PageNumber = 0,
+                    MaxCountPages = 0,
+                    TotalCount = 0,
+                    PageSize = pageSize,
+                    Advertisements = Enumerable.Empty<SimplifiedAdvertisementViewModel>(),
+                    EditForm = viewModel,
+                    ShowEditForm = true
+                };
+                return vm;
+            }
 
+            if (!ModelState.IsValid)
+            {
+                return View("Profile", BuildErrorProfile());
+            }
+
+            // Phone validation
             if (viewModel.PhoneNumber != null)
             {
                 if (!viewModel.PhoneNumberAgreement)
                 {
                     ViewBag.AgreementError = "You need to click the checkbox";
-                    return View("MyProfile", viewModel);
+                    return View("Profile", BuildErrorProfile());
                 }
                 if (viewModel.PhoneNumber.Length > 15 || viewModel.PhoneNumber.Length < 8 || !viewModel.PhoneNumber.All(char.IsDigit))
                 {
                     ViewBag.PhoneError = "The phone number is incorrect.";
-                    return View("MyProfile", viewModel);
+                    return View("Profile", BuildErrorProfile());
                 }
                 currentUser.PhoneNumber = viewModel.PhoneNumber;
             }
@@ -161,38 +132,38 @@ namespace Marketplace.Controllers
                 currentUser.PhoneNumber = null;
             }
 
+            currentUser.Description = viewModel.Description;
+
             if (viewModel.ProfilePicture != null)
             {
-                // Case 1: User uploaded a brand-new image
                 Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
                 currentUser.ProfilePicturePath = await Helper.SaveImageAsync(viewModel.ProfilePicture, "profiles", _webHostEnvironment);
             }
             else if (string.IsNullOrEmpty(viewModel.ExistingProfilePicturePath) && !string.IsNullOrEmpty(currentUser.ProfilePicturePath))
             {
-                // Case 2: User clicked "Delete" (Existing path was cleared out by JS)
                 Helper.DeleteImage(currentUser.ProfilePicturePath, _webHostEnvironment);
                 currentUser.ProfilePicturePath = null;
             }
-            // Case 3: User made no changes to the picture -> do nothing, keep existing path.
 
             await _context.SaveChangesAsync();
-            return RedirectToAction("MyProfile", "Account");
+            return RedirectToAction("Profile", new { username = currentUser.UserName });
         }
 
         [Route("/Users/{username}")]
-        public IActionResult Profile(string username, int pageNumber = 0)
+        public IActionResult Profile(string username, int pageNumber = 0, bool edit = false)
         {
             var user = _context.Users.SingleOrDefault(x => x.UserName == username);
             if (user == null) return NotFound();
 
-            if (pageNumber < 0) pageNumber = 0;
-            const int pageSize = 12;
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var isOwner = currentUserId != null && currentUserId == user.Id;
+            var isAdmin = User.IsInRole(Helper.AdminRole);
 
+            const int pageSize = 12;
             var baseQuery = _context.Advertisements.Where(x => x.UserId == user.Id);
             var totalCount = baseQuery.Count();
-            var maxCountPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            if (maxCountPages == 0) maxCountPages = 1;
-            if (pageNumber >= maxCountPages) pageNumber = maxCountPages - 1;
+            var maxCountPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+            pageNumber = Math.Clamp(pageNumber, 0, Math.Max(0, maxCountPages - 1));
 
             var userAds = baseQuery
                 .OrderByDescending(x => x.DateCreatedOn)
@@ -206,20 +177,43 @@ namespace Marketplace.Controllers
                     ImagePath = x.ImagePath,
                     Location = x.Location,
                     Category = x.Category.Name,
+                    UserId = x.UserId,
+                    UserName = x.User.UserName ?? "",
                     DateCreatedOn = x.DateCreatedOn
                 })
                 .ToList();
 
-            ViewBag.ProfilePicturePath = user.ProfilePicturePath;
-            ViewBag.Description = user.Description;
-            ViewBag.PhoneNumber = user.PhoneNumber;
-            ViewBag.Email = user.Email;
-            ViewBag.PageNumber = pageNumber;
-            ViewBag.MaxCountPages = maxCountPages;
-            ViewBag.TotalCount = totalCount;
-            ViewBag.Username = username;
+            // Phone visibility: show if set; for anonymous always show if exists, for owner/admin always show own
+            string? visiblePhone = user.PhoneNumber;
+            // If you want to hide phone for visitors when not agreed, you could check a dedicated flag;
+            // currently agreement is implied by phone != null, so show always when exists.
 
-            return View(userAds);
+            var vm = new ProfileViewModel
+            {
+                Username = user.UserName ?? username,
+                ProfilePicturePath = user.ProfilePicturePath,
+                Description = user.Description,
+                Email = user.Email,
+                PhoneNumber = visiblePhone,
+                IsOwner = isOwner,
+                IsAdmin = isAdmin,
+                CurrentUserId = currentUserId ?? "",
+                Advertisements = userAds,
+                PageNumber = pageNumber,
+                MaxCountPages = maxCountPages,
+                TotalCount = totalCount,
+                PageSize = pageSize,
+                ShowEditForm = edit && isOwner,
+                EditForm = (edit && isOwner) ? new MyProfileViewModel
+                {
+                    ExistingProfilePicturePath = user.ProfilePicturePath,
+                    Description = user.Description,
+                    PhoneNumber = user.PhoneNumber,
+                    PhoneNumberAgreement = user.PhoneNumber != null
+                } : null
+            };
+
+            return View(vm);
         }
     }
 }

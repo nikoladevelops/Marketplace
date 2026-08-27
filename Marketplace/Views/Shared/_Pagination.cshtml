@@ -1,0 +1,53 @@
+@model Marketplace.ViewModels.PaginationViewModel
+@{
+    bool hasPrev = Model.PageNumber > 0;
+    bool hasNext = Model.MaxCountPages > 0 && Model.PageNumber < Model.MaxCountPages - 1;
+    int maxPages = Model.MaxCountPages;
+    int current = Model.PageNumber;
+    string baseUrl = Model.BaseUrl ?? "";
+    // Ensure baseUrl contains ? or & for page param handling in caller
+}
+@if (maxPages > 1)
+{
+    <div class="text-center pagination-links mt-4">
+        @if (hasPrev)
+        {
+            <a href="@($"{baseUrl}{(baseUrl.Contains("?") ? "&" : "?")}pageNumber={current - 1}")" data-page="@(current - 1)" class="page-nav" title="Previous page" aria-label="Previous page">&#60;</a>
+        }
+        else
+        {
+            <span class="page-nav disabled" aria-disabled="true" title="Previous page">&#60;</span>
+        }
+
+        @{
+            int maximumDisplayedPages = 10;
+            int startingIndex = current - (current % maximumDisplayedPages);
+            int endingIndex = (current + maximumDisplayedPages) - (current % maximumDisplayedPages);
+            if (endingIndex > maxPages) endingIndex = maxPages;
+            for (var i = startingIndex; i < endingIndex; i++)
+            {
+                if (i == current)
+                {
+                    <span class="active" aria-current="page" data-page="@i">@i</span>
+                    continue;
+                }
+                <a href="@($"{baseUrl}{(baseUrl.Contains("?") ? "&" : "?")}pageNumber={i}")" data-page="@i">@i</a>
+            }
+            if (endingIndex < maxPages)
+            {
+                var lastPageIndex = maxPages - 1;
+                <span class="px-1 text-muted">...</span>
+                <a href="@($"{baseUrl}{(baseUrl.Contains("?") ? "&" : "?")}pageNumber={lastPageIndex}")" data-page="@lastPageIndex">@lastPageIndex</a>
+            }
+        }
+
+        @if (hasNext)
+        {
+            <a href="@($"{baseUrl}{(baseUrl.Contains("?") ? "&" : "?")}pageNumber={current + 1}")" data-page="@(current + 1)" class="page-nav" title="Next page" aria-label="Next page">&#62;</a>
+        }
+        else
+        {
+            <span class="page-nav disabled" aria-disabled="true" title="Next page">&#62;</span>
+        }
+    </div>
+}
