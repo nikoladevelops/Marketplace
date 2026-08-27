@@ -38,6 +38,17 @@ namespace Marketplace.Controllers
                 var result = await _signInManager.PasswordSignInAsync(viewModel.Username, viewModel.Password, viewModel.RememberMe, false);
                 if (result.Succeeded)
                 {
+                    // Block banned users with a specific, clear message so they
+                    // know why they can't sign in (and so admins can verify the
+                    // account is banned from the same screen).
+                    var signedInUser = await _userManager.FindByNameAsync(viewModel.Username);
+                    if (signedInUser != null && signedInUser.Status == Models.AccountStatus.Banned)
+                    {
+                        await _signInManager.SignOutAsync();
+                        ModelState.AddModelError(string.Empty, "This account has been suspended. Contact support if you believe this is a mistake.");
+                        return View(viewModel);
+                    }
+
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
                     return RedirectToAction("Index", "Home");
                 }
@@ -45,6 +56,9 @@ namespace Marketplace.Controllers
             }
             return View(viewModel);
         }
+
+        [HttpGet]
+        public IActionResult Banned() => View();
 
         [HttpPost]
         [ValidateAntiForgeryToken]

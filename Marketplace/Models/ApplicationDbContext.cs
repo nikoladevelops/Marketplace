@@ -14,6 +14,7 @@ namespace Marketplace.Models
         public DbSet<AdvertisementImageModel> AdvertisementImages { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<UserBlock> UserBlocks { get; set; }
+        public DbSet<UserBanHistory> UserBanHistories { get; set; }
 
         // Data Protection key ring storage (auth cookie validation across restarts).
         public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
@@ -58,6 +59,32 @@ namespace Marketplace.Models
             modelBuilder.Entity<UserBlock>()
                 .HasIndex(b => new { b.BlockerId, b.BlockedId })
                 .IsUnique();
+
+            modelBuilder.Entity<UserBanHistory>()
+                .HasIndex(h => new { h.UserId, h.PerformedAtUtc });
+            modelBuilder.Entity<UserBanHistory>()
+                .HasIndex(h => h.AdminUserId);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasIndex(u => u.Status);
+
+            modelBuilder.Entity<UserBanHistory>()
+                .HasOne(h => h.User)
+                .WithMany()
+                .HasForeignKey(h => h.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<UserBanHistory>()
+                .HasOne(h => h.AdminUser)
+                .WithMany()
+                .HasForeignKey(h => h.AdminUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasOne(u => u.BannedByUser)
+                .WithMany()
+                .HasForeignKey(u => u.BannedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ChatMessage>()
                 .HasIndex(m => new { m.ReceiverId, m.IsReadByReceiver });

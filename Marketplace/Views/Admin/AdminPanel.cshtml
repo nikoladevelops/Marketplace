@@ -1,114 +1,583 @@
 ﻿@using Marketplace.Utility
 @model Marketplace.ViewModels.AdminPanelViewModel
 @{
-    var hasSearched = !string.IsNullOrWhiteSpace(Model?.SearchTerm);
-    var hasResults = Model != null && Model.SearchResults != null && Model.SearchResults.Count > 0;
     var selectedUserId = Model?.UserId;
     var selectedUsername = Model?.Username;
-    var searchTerm = Model?.SearchTerm;
+    var searchTerm = Model?.SearchTerm ?? "";
+    var roleFilter = string.IsNullOrEmpty(Model?.RoleFilter) ? "all" : Model.RoleFilter;
+    var hasFilters = !string.IsNullOrEmpty(searchTerm) || roleFilter != "all";
 }
 <div class="container" style="max-width: 900px;">
     <div class="page-header">
         <h3>🛡️ Admin Panel</h3>
+        <p class="lead-subtitle mb-0">Browse, search, and manage every account on the marketplace.</p>
     </div>
 
     @if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrEmpty(statusMessage))
     {
-        <div class="alert alert-success rounded-4 border-0">@statusMessage</div>
+        <div class="alert alert-success rounded-4 border-0" role="status">@statusMessage</div>
     }
 
-    <div class="card shadow-sm border-0 rounded-4 bg-white p-4 mb-4">
-        <form method="get" asp-action="AdminPanel" asp-controller="Admin">
-            <label class="form-label fw-semibold">Search User</label>
-            <input asp-for="SearchTerm" name="searchTerm" class="form-control rounded-3 mb-2" placeholder="Username or email (partial names are fine)"/>
-            <small class="text-muted d-block mb-2">Type part of a username or email, e.g. "sell" finds "seller".</small>
-            <button class="btn btn-primary mt-2 px-4">🔍 Search</button>
+    <div class="card shadow-sm border-0 rounded-4 bg-white p-3 p-md-4 mb-4">
+        <form id="userSearchForm" method="get" asp-action="AdminPanel" asp-controller="Admin" role="search">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <label for="userSearchBar" class="form-label fw-semibold mb-1 small text-uppercase text-muted">Search</label>
+                    <div class="position-relative">
+                        <span class="position-absolute" style="left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" aria-hidden="true">🔍</span>
+                        <input id="userSearchBar" name="searchTerm" value="@searchTerm" class="form-control rounded-3" style="padding-left: 2.25rem; padding-right: 2.5rem;" placeholder="Username or email…" autocomplete="off" inputmode="search"/>
+                        <span id="userSearchSpinner" class="search-spinner" aria-hidden="true"></span>
+                    </div>
+                </div>
+                <div class="col-7 col-md-3 col-lg-3">
+                    <label for="userRoleFilter" class="form-label fw-semibold mb-1 small text-uppercase text-muted">Role</label>
+                    <select id="userRoleFilter" name="roleFilter" class="form-select rounded-3">
+                        <option value="all" selected="@(roleFilter == "all")">All</option>
+                        <option value="admin" selected="@(roleFilter == "admin")">Admin</option>
+                        <option value="premium" selected="@(roleFilter == "premium")">Premium</option>
+                        <option value="seller" selected="@(roleFilter == "seller")">Seller</option>
+                    </select>
+                </div>
+                <div class="col-5 col-md-3 col-lg-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1 d-md-none" aria-label="Search">
+                        <span aria-hidden="true">🔍</span>
+                    </button>
+                    <button type="submit" class="btn btn-primary flex-grow-1 d-none d-md-inline-flex align-items-center justify-content-center gap-2">
+                        <span aria-hidden="true">🔍</span> Search
+                    </button>
+                    @if (hasFilters)
+                    {
+                        <a asp-controller="Admin" asp-action="AdminPanel" class="btn btn-outline-secondary" title="Clear filters" aria-label="Clear filters">✕</a>
+                    }
+                </div>
+            </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2">
+                <small class="text-muted">Results update as you type.</small>
+                <a asp-controller="Admin" asp-action="AdminPanel" class="small text-decoration-none d-none d-md-inline">Clear filters</a>
+            </div>
         </form>
     </div>
 
-    @if (hasSearched)
-    {
-        @if (hasResults)
-        {
-            <div class="card shadow-sm border-0 rounded-4 bg-white p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">👥 Results</h5>
-                    <span class="badge bg-secondary rounded-pill">@Model.SearchResults.Count found</span>
-                </div>
-
-                @foreach (var user in Model.SearchResults)
-                {
-                    var isSelected = user.UserId == selectedUserId;
-                    var initial = string.IsNullOrEmpty(user.UserName) ? "?" : user.UserName.Substring(0, 1).ToUpper();
-                    <div class="d-flex align-items-center gap-3 py-2 @(isSelected ? "" : "border-bottom")">
-                        <div class="rounded-circle bg-primary bg-gradient text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                             style="width: 42px; height: 42px;">
-                            @initial
-                        </div>
-                        <div class="flex-grow-1 min-width-0">
-                            <div class="fw-semibold text-truncate">@user.UserName</div>
-                            <div class="text-muted small text-truncate">@user.Email</div>
-                        </div>
-                        <div class="d-flex gap-1 flex-shrink-0">
-                            @if (user.IsAdmin)
-                            {
-                                <span class="badge rounded-pill bg-danger">Admin</span>
-                            }
-                            @if (user.IsPremium)
-                            {
-                                <span class="badge rounded-pill bg-warning text-dark">Premium</span>
-                            }
-                            @if (user.IsSeller)
-                            {
-                                <span class="badge rounded-pill bg-info text-dark">Seller</span>
-                            }
-                        </div>
-                        <a asp-controller="Admin" asp-action="AdminPanel"
-                           asp-route-searchTerm="@searchTerm"
-                           asp-route-selectedUserId="@user.UserId"
-                           class="btn btn-sm @(isSelected ? "btn-primary" : "btn-outline-primary") flex-shrink-0">
-                            @(isSelected ? "Managing" : "Manage")
-                        </a>
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="card shadow-sm border-0 rounded-4 bg-white p-5 text-center">
-                <div class="display-6 mb-2">🕵️</div>
-                <h6 class="fw-semibold mb-1">No users found for "@searchTerm"</h6>
-                <p class="text-muted small mb-0">Try a shorter fragment - partial usernames and emails both work.</p>
-            </div>
-        }
-    }
+    <div id="userListContainer" data-page="@Model.PageNumber" data-max-pages="@Model.MaxCountPages" aria-busy="false" aria-live="polite">
+        <partial name="_AdminUserList" model="Model" />
+    </div>
 
     @if (!string.IsNullOrEmpty(selectedUserId))
     {
-        <div class="card shadow-sm border-0 rounded-4 bg-white p-4 mt-4">
+        <div id="managePanel" class="card shadow-sm border-0 rounded-4 bg-white p-3 p-md-4 mt-4">
             <form method="post">
                 <input type="hidden" name="searchTerm" value="@searchTerm"/>
-                <h5 class="mb-1">Managing <span class="text-primary">@selectedUsername</span></h5>
-                <p class="text-muted small">You can edit this user's account.</p>
-                <div class="mb-3">
+                <input type="hidden" name="roleFilter" value="@roleFilter"/>
+                <input type="hidden" name="pageNumber" value="@Model.PageNumber"/>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                    <h5 class="mb-0">Managing <span class="text-primary text-break">@selectedUsername</span></h5>
+                    <button type="button" class="btn-close d-md-none" aria-label="Close" onclick="document.getElementById('managePanel')?.scrollIntoView({behavior:'smooth', block:'start'});"></button>
+                </div>
+                @if (Model.TargetStatus == Marketplace.Models.AccountStatus.Banned)
+                {
+                    <div class="alert alert-danger rounded-4 border-0 px-3 py-3 mt-2 mb-3 d-flex align-items-start gap-2" role="alert">
+                        <span class="fs-5" aria-hidden="true">🚫</span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">This account is currently banned.</div>
+                            @if (!string.IsNullOrWhiteSpace(Model.TargetBanReason))
+                            {
+                                <div class="small mt-1 opacity-75">Reason: @Model.TargetBanReason</div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">You can edit this user's account.</p>
+                }
+                <div class="mb-3 d-flex gap-2 flex-wrap">
                     <a asp-controller="Users" asp-action="@selectedUsername" class="btn btn-outline-primary btn-sm">Show Profile</a>
                 </div>
                 <hr>
-                <h6 class="fw-semibold text-secondary mb-2">Premium</h6>
-                <div class="d-flex gap-2 mb-3">
-                    <button type="submit" asp-controller="Admin" asp-action="GiveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.PremiumRole" class="btn btn-success btn-sm">Give Premium</button>
-                    <button type="submit" asp-controller="Admin" asp-action="RemoveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.PremiumRole" class="btn btn-outline-danger btn-sm">Remove Premium</button>
+                <h6 class="fw-semibold text-secondary mb-2 small text-uppercase">Premium</h6>
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#givePremiumModal" id="givePremiumTrigger">Give Premium</button>
+                    <button type="submit" asp-controller="Admin" asp-action="GiveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.PremiumRole" class="d-none" id="givePremiumRealSubmit" tabindex="-1" aria-hidden="true">Give Premium</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#removePremiumModal" id="removePremiumTrigger">Remove Premium</button>
+                    <button type="submit" asp-controller="Admin" asp-action="RemoveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.PremiumRole" class="d-none" id="removePremiumRealSubmit" tabindex="-1" aria-hidden="true">Remove Premium</button>
                 </div>
-                <h6 class="fw-semibold text-secondary mb-2">Admin</h6>
-                <div class="d-flex gap-2 mb-3">
-                    <button type="submit" asp-controller="Admin" asp-action="GiveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.AdminRole" class="btn btn-success btn-sm">Make Admin</button>
-                    <button type="submit" asp-controller="Admin" asp-action="RemoveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.AdminRole" class="btn btn-outline-danger btn-sm">Remove Admin</button>
+                <h6 class="fw-semibold text-secondary mb-2 small text-uppercase">Admin</h6>
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#makeAdminModal" id="makeAdminTrigger">Make Admin</button>
+                    <button type="submit" asp-controller="Admin" asp-action="GiveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.AdminRole" class="d-none" id="makeAdminRealSubmit" tabindex="-1" aria-hidden="true">Make Admin</button>
+                    @if (!Model.IsTargetSelf)
+                    {
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#removeAdminModal" id="removeAdminTrigger">Remove Admin</button>
+                        <button type="submit" asp-controller="Admin" asp-action="RemoveUserRole" asp-route-userId="@selectedUserId" asp-route-roleName="@Helper.AdminRole" class="d-none" id="removeAdminRealSubmit" tabindex="-1" aria-hidden="true">Remove Admin</button>
+                    }
                 </div>
                 <hr>
-                <div>
-                    <button type="submit" asp-controller="Admin" asp-action="DeleteAccount" asp-route-userId="@selectedUserId" class="btn btn-danger btn-sm" onclick="return confirm('Permanently delete the account @(selectedUsername)? This cannot be undone.');">Delete Account</button>
-                </div>
+                <h6 class="fw-semibold text-secondary mb-2 small text-uppercase">Account status</h6>
+                @if (Model.IsTargetAdmin)
+                {
+                    <p class="text-muted small mb-3">Admins cannot be banned.</p>
+                }
+                else if (Model.IsTargetSelf)
+                {
+                    <p class="text-muted small mb-3">You cannot ban your own account.</p>
+                }
+                else if (Model.TargetStatus == Marketplace.Models.AccountStatus.Banned)
+                {
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <button type="submit" asp-controller="Admin" asp-action="UnbanUser" asp-route-userId="@selectedUserId" class="btn btn-success btn-sm">Unban account</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label for="banReason" class="form-label small text-muted mb-1">Reason (optional, shown to the user)</label>
+                        <textarea id="banReason" name="reason" class="form-control rounded-3" rows="2" maxlength="500" placeholder="Why is this account being banned?"></textarea>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap mb-3">
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#banConfirmModal" id="banConfirmTrigger">Ban account</button>
+                        <button type="submit" asp-controller="Admin" asp-action="BanUser" asp-route-userId="@selectedUserId" class="d-none" id="banRealSubmit" tabindex="-1" aria-hidden="true">Ban account</button>
+                    </div>
+                }
+                <hr>
+                @if (!Model.IsTargetAdmin && !Model.IsTargetSelf)
+                {
+                    <div>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal" id="deleteConfirmTrigger">Delete account</button>
+                        <button type="submit" asp-controller="Admin" asp-action="DeleteAccount" asp-route-userId="@selectedUserId" class="d-none" id="deleteRealSubmit" tabindex="-1" aria-hidden="true">Delete account</button>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">@(Model.IsTargetSelf ? "You cannot delete your own account." : "Admins cannot be deleted. Demote them first.")</p>
+                }
             </form>
+        </div>
+
+        <!-- Ban confirmation modal -->
+        <div class="modal fade" id="banConfirmModal" tabindex="-1" aria-labelledby="banConfirmModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="banConfirmModalTitle">
+                            <span class="badge rounded-circle bg-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">🚫</span>
+                            Ban account
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Ban <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">They will be signed out immediately and won't be able to log in again until an admin unbans them.</span>
+                        </p>
+                        <div class="bg-light rounded-3 p-3 small" style="background-color: var(--surface-2) !important;">
+                            <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 0.7rem; letter-spacing: 0.04em;">Reason</div>
+                            <div id="banReasonPreview" class="text-body">No reason provided.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="banConfirmSubmit">Ban account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete confirmation modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="deleteConfirmModalTitle">
+                            <span class="badge rounded-circle bg-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">🗑️</span>
+                            Delete account
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Permanently delete <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">This removes the account, all of their listings, chat history, and blocks. This cannot be undone.</span>
+                        </p>
+                        <div class="alert alert-warning rounded-4 border-0 d-flex align-items-start gap-2 mb-0 py-2 px-3" role="alert">
+                            <span class="fw-bold" aria-hidden="true">⚠️</span>
+                            <div class="small">Consider banning instead if you want to preserve the account for review.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="deleteConfirmSubmit">Delete account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Give Premium confirmation modal -->
+        <div class="modal fade" id="givePremiumModal" tabindex="-1" aria-labelledby="givePremiumModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="givePremiumModalTitle">
+                            <span class="badge rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">⭐</span>
+                            Give Premium
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Grant Premium to <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">Their listings will be highlighted as Premium across the marketplace. You can revoke it any time.</span>
+                        </p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" id="givePremiumConfirmSubmit">Give Premium</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Make Admin confirmation modal -->
+        <div class="modal fade" id="makeAdminModal" tabindex="-1" aria-labelledby="makeAdminModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="makeAdminModalTitle">
+                            <span class="badge rounded-circle bg-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">🛡️</span>
+                            Make Admin
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Promote <strong class="text-break">@selectedUsername</strong> to admin?
+                            <span class="d-block text-muted small mt-1">They'll be able to manage users, ban accounts, and promote others. Only existing admins can revoke this.</span>
+                        </p>
+                        <div class="alert alert-warning rounded-4 border-0 d-flex align-items-start gap-2 mb-0 py-2 px-3" role="alert">
+                            <span class="fw-bold" aria-hidden="true">⚠️</span>
+                            <div class="small">Admins cannot be banned. Make sure you trust this account.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="makeAdminConfirmSubmit">Make Admin</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remove Premium confirmation modal -->
+        <div class="modal fade" id="removePremiumModal" tabindex="-1" aria-labelledby="removePremiumModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="removePremiumModalTitle">
+                            <span class="badge rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">⭐</span>
+                            Remove Premium
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Remove Premium from <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">Their listings will lose the Premium highlight. You can re-grant Premium any time.</span>
+                        </p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="removePremiumConfirmSubmit">Remove Premium</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remove Admin confirmation modal -->
+        <div class="modal fade" id="removeAdminModal" tabindex="-1" aria-labelledby="removeAdminModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="removeAdminModalTitle">
+                            <span class="badge rounded-circle bg-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">🛡️</span>
+                            Remove Admin
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Remove admin privileges from <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">They'll lose access to the admin panel, ban controls, and role management. You can re-grant admin any time.</span>
+                        </p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="removeAdminConfirmSubmit">Remove Admin</button>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 </div>
+
+@section Scripts
+{
+    <script defer>
+        let userSearchDebounce = null;
+        let userListAbort = null;
+        const SEARCH_DEBOUNCE_MS = 350;
+
+        function getSpinner() { return document.getElementById("userSearchSpinner"); }
+        function setLoading(isLoading) {
+            const spinner = getSpinner();
+            if (spinner) spinner.classList.toggle("is-active", isLoading);
+            const container = document.getElementById("userListContainer");
+            if (container) container.setAttribute("aria-busy", isLoading ? "true" : "false");
+        }
+
+        function buildUserSearchParams(pageNumber) {
+            const searchTerm = document.getElementById("userSearchBar")?.value.trim() ?? "";
+            const roleFilter = document.getElementById("userRoleFilter")?.value ?? "all";
+            const params = new URLSearchParams();
+            params.set("pageNumber", pageNumber ?? 0);
+            params.set("roleFilter", roleFilter);
+            if (searchTerm) params.set("searchTerm", searchTerm);
+            return params.toString();
+        }
+
+        function pushUserListUrl(query) {
+            history.pushState(null, "", "/Admin/AdminPanel?" + query);
+        }
+
+        function skeletonHtml(count) {
+            let html = '<div class="card shadow-sm border-0 rounded-4 bg-white p-3 p-md-4" aria-hidden="true">';
+            for (let i = 0; i < count; i++) {
+                html += '<div class="admin-user-skeleton">' +
+                    '<div class="sk sk-avatar"></div>' +
+                    '<div class="sk sk-line"></div>' +
+                    '<div class="sk sk-line short d-none d-sm-block"></div>' +
+                    '<div class="sk sk-cta"></div>' +
+                '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        async function fetchUserList(pageNumber) {
+            const container = document.getElementById("userListContainer");
+            if (!container) return;
+            const maxPages = parseInt(container.dataset.maxPages || "0", 10);
+            if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages)) return;
+
+            if (userListAbort) userListAbort.abort();
+            userListAbort = new AbortController();
+
+            const query = buildUserSearchParams(pageNumber);
+            const url = "/Admin/SearchUsers?" + query;
+
+            setLoading(true);
+            // Briefly show a skeleton if the request is slow.
+            let skeletonTimer = setTimeout(() => {
+                if (container && !container.dataset.loaded) {
+                    container.innerHTML = skeletonHtml(6);
+                }
+            }, 120);
+            container.dataset.loaded = "";
+
+            try {
+                const res = await fetch(url, {
+                    signal: userListAbort.signal,
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                });
+                if (!res.ok) throw new Error(res.statusText);
+                const html = await res.text();
+                container.innerHTML = html;
+                container.dataset.loaded = "1";
+
+                pushUserListUrl(query);
+
+                const temp = document.createElement("div");
+                temp.innerHTML = html;
+                const maxPagesEl = temp.querySelector("#userListMaxPages");
+                if (maxPagesEl) container.dataset.maxPages = maxPagesEl.getAttribute("data-max-pages") || "0";
+                const active = temp.querySelector(".pagination-links .active");
+                if (active) {
+                    const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
+                    if (!isNaN(cur)) container.dataset.page = cur;
+                } else {
+                    container.dataset.page = pageNumber;
+                }
+            } catch (e) {
+                if (e.name !== "AbortError") console.error(e);
+            } finally {
+                clearTimeout(skeletonTimer);
+                setLoading(false);
+            }
+        }
+
+        function attachUserListHandlers() {
+            const container = document.getElementById("userListContainer");
+            if (!container) return;
+            container.addEventListener("click", function (e) {
+                const link = e.target.closest("a[data-page]");
+                if (!link) return;
+                if (link.classList.contains("disabled") || link.getAttribute("aria-disabled") === "true") {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                const page = parseInt(link.getAttribute("data-page"), 10);
+                const maxPages = parseInt(container.dataset.maxPages || "0", 10);
+                if (isNaN(page) || page < 0 || (maxPages > 0 && page >= maxPages)) return;
+                fetchUserList(page);
+            });
+        }
+
+        // When an admin clicks "Manage" on a user, scroll the management panel into view on small screens.
+        function attachManageScroll() {
+            const manage = document.getElementById("managePanel");
+            if (!manage) return;
+            const container = document.getElementById("userListContainer");
+            if (!container) return;
+            container.addEventListener("click", function (e) {
+                const link = e.target.closest(".admin-user-link");
+                if (!link) return;
+                // Defer to browser navigation; after full reload, scroll into view.
+                setTimeout(() => {
+                    if (window.innerWidth < 768) {
+                        manage.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                }, 50);
+            });
+        }
+
+        // Generic destructive-action modal: confirm button clicks a hidden
+        // real submit button so the existing asp-action form binding still works.
+        function attachConfirmModal(opts) {
+            const modalEl = document.getElementById(opts.modalId);
+            const trigger = document.getElementById(opts.triggerId);
+            const confirmBtn = document.getElementById(opts.confirmId);
+            const realSubmit = document.getElementById(opts.realSubmitId);
+            if (!modalEl || !trigger || !confirmBtn || !realSubmit) return;
+
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            if (typeof opts.onShow === "function") {
+                modalEl.addEventListener("show.bs.modal", opts.onShow);
+            }
+            if (opts.previewSourceId && opts.previewTargetId) {
+                const src = document.getElementById(opts.previewSourceId);
+                const dst = document.getElementById(opts.previewTargetId);
+                if (src && dst) {
+                    const refresh = () => {
+                        const v = (src.value || "").trim();
+                        dst.textContent = v || (opts.previewEmptyText || "No reason provided.");
+                        dst.classList.toggle("text-muted", !v);
+                    };
+                    src.addEventListener("input", refresh);
+                    modalEl.addEventListener("show.bs.modal", refresh);
+                }
+            }
+
+            confirmBtn.addEventListener("click", function () {
+                bsModal.hide();
+                // Defer the submit so the modal can finish its hide transition
+                // (avoids a focus-jump flicker on mobile).
+                setTimeout(() => realSubmit.click(), 80);
+            });
+
+            // Return focus to the trigger on close.
+            modalEl.addEventListener("hidden.bs.modal", function () {
+                trigger.focus();
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            attachUserListHandlers();
+            attachManageScroll();
+
+            attachConfirmModal({
+                modalId: "banConfirmModal",
+                triggerId: "banConfirmTrigger",
+                confirmId: "banConfirmSubmit",
+                realSubmitId: "banRealSubmit",
+                previewSourceId: "banReason",
+                previewTargetId: "banReasonPreview"
+            });
+            attachConfirmModal({
+                modalId: "deleteConfirmModal",
+                triggerId: "deleteConfirmTrigger",
+                confirmId: "deleteConfirmSubmit",
+                realSubmitId: "deleteRealSubmit"
+            });
+            attachConfirmModal({
+                modalId: "givePremiumModal",
+                triggerId: "givePremiumTrigger",
+                confirmId: "givePremiumConfirmSubmit",
+                realSubmitId: "givePremiumRealSubmit"
+            });
+            attachConfirmModal({
+                modalId: "makeAdminModal",
+                triggerId: "makeAdminTrigger",
+                confirmId: "makeAdminConfirmSubmit",
+                realSubmitId: "makeAdminRealSubmit"
+            });
+            attachConfirmModal({
+                modalId: "removePremiumModal",
+                triggerId: "removePremiumTrigger",
+                confirmId: "removePremiumConfirmSubmit",
+                realSubmitId: "removePremiumRealSubmit"
+            });
+            attachConfirmModal({
+                modalId: "removeAdminModal",
+                triggerId: "removeAdminTrigger",
+                confirmId: "removeAdminConfirmSubmit",
+                realSubmitId: "removeAdminRealSubmit"
+            });
+
+            const searchInput = document.getElementById("userSearchBar");
+            const roleSelect = document.getElementById("userRoleFilter");
+
+            if (searchInput) {
+                searchInput.addEventListener("keyup", function (e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        clearTimeout(userSearchDebounce);
+                        if (userListAbort) userListAbort.abort();
+                        fetchUserList(0);
+                        return;
+                    }
+                    clearTimeout(userSearchDebounce);
+                    userSearchDebounce = setTimeout(() => fetchUserList(0), SEARCH_DEBOUNCE_MS);
+                });
+                // Cancel pending fetch on Escape, return to last fetched state.
+                searchInput.addEventListener("keydown", function (e) {
+                    if (e.key === "Escape") {
+                        e.target.blur();
+                        clearTimeout(userSearchDebounce);
+                        if (userListAbort) userListAbort.abort();
+                    }
+                });
+            }
+
+            if (roleSelect) {
+                roleSelect.addEventListener("change", function () {
+                    clearTimeout(userSearchDebounce);
+                    if (userListAbort) userListAbort.abort();
+                    fetchUserList(0);
+                });
+            }
+
+            window.addEventListener("popstate", function () {
+                const params = new URLSearchParams(location.search);
+                const p = parseInt(params.get("pageNumber") || "0", 10);
+                const maxPages = parseInt(document.getElementById("userListContainer")?.dataset.maxPages || "0", 10);
+                if (!isNaN(p) && p >= 0 && (maxPages === 0 || p < maxPages)) fetchUserList(p);
+                else fetchUserList(0);
+            });
+
+            // On initial load, if we landed with a selected user on a small screen, scroll the panel into view.
+            if (window.innerWidth < 768 && document.getElementById("managePanel")) {
+                setTimeout(() => {
+                    document.getElementById("managePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 150);
+            }
+        });
+    </script>
+}

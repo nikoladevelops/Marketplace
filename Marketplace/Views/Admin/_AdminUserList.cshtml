@@ -1,0 +1,107 @@
+@using Marketplace.Utility
+@model Marketplace.ViewModels.AdminPanelViewModel
+@{
+    var selectedUserId = Model?.UserId;
+    var searchTerm = Model?.SearchTerm ?? "";
+    var roleFilter = string.IsNullOrEmpty(Model?.RoleFilter) ? "all" : Model.RoleFilter;
+    var pageNumber = Model?.PageNumber ?? 0;
+    var pageSize = Model?.PageSize > 0 ? Model.PageSize : 20;
+    var total = Model?.TotalCount ?? 0;
+    var from = total == 0 ? 0 : (pageNumber * pageSize) + 1;
+    var to = Math.Min(total, (pageNumber + 1) * pageSize);
+    var hasResults = Model != null && Model.SearchResults != null && Model.SearchResults.Count > 0;
+    var paginationBaseUrl = Url.Action("AdminPanel", "Admin", new { searchTerm, roleFilter, selectedUserId }) ?? "/Admin/AdminPanel";
+    var headerSuffix = string.IsNullOrEmpty(searchTerm) && roleFilter == "all" ? "all users" : (roleFilter != "all" ? $"{char.ToUpper(roleFilter[0])}{roleFilter.Substring(1)} users" : $"matching \"{searchTerm}\"");
+}
+
+<span id="userListMaxPages" data-max-pages="@Model.MaxCountPages" class="d-none"></span>
+
+@if (hasResults)
+{
+    <div class="card shadow-sm border-0 rounded-4 bg-white p-3 p-md-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h5 class="fw-bold mb-0">👥 Users</h5>
+            <div class="d-flex align-items-center gap-2 small text-muted">
+                <span class="badge bg-secondary rounded-pill">@total @(total == 1 ? "user" : "users")</span>
+                @if (total > 0)
+                {
+                    <span>Showing @from–@to</span>
+                }
+            </div>
+        </div>
+
+        <ul class="list-unstyled m-0 admin-user-list">
+            @foreach (var user in Model.SearchResults)
+            {
+                var isSelected = user.UserId == selectedUserId;
+                var initial = string.IsNullOrEmpty(user.UserName) ? "?" : user.UserName.Substring(0, 1).ToUpper();
+                <li class="admin-user-row @(isSelected ? "is-selected" : "")">
+                    <a asp-controller="Admin" asp-action="AdminPanel"
+                       asp-route-searchTerm="@searchTerm"
+                       asp-route-roleFilter="@roleFilter"
+                       asp-route-pageNumber="@pageNumber"
+                       asp-route-selectedUserId="@user.UserId"
+                       class="admin-user-link d-flex align-items-center gap-3 p-2 rounded-3 text-decoration-none @(isSelected ? "active" : "")">
+                        <div class="admin-user-avatar rounded-circle bg-primary bg-gradient text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0">
+                            @initial
+                        </div>
+                        <div class="admin-user-identity flex-grow-1 min-width-0">
+                            <div class="fw-semibold text-truncate">@user.UserName</div>
+                            <div class="text-muted small text-truncate">@user.Email</div>
+                        </div>
+                        <div class="admin-user-badges d-none d-sm-flex gap-1 flex-shrink-0">
+                            @if (user.Status == Marketplace.Models.AccountStatus.Banned)
+                            {
+                                <span class="badge rounded-pill bg-dark">Banned</span>
+                            }
+                            @if (user.IsAdmin)
+                            {
+                                <span class="badge rounded-pill bg-danger">Admin</span>
+                            }
+                            @if (user.IsPremium)
+                            {
+                                <span class="badge rounded-pill bg-warning text-dark">Premium</span>
+                            }
+                            @if (user.IsSeller)
+                            {
+                                <span class="badge rounded-pill bg-info text-dark">Seller</span>
+                            }
+                        </div>
+                        <span class="admin-user-cta btn btn-sm @(isSelected ? "btn-primary" : "btn-outline-primary") flex-shrink-0">
+                            @(isSelected ? "✓ Managing" : "Manage")
+                        </span>
+                    </a>
+                    <div class="admin-user-badges-mobile d-flex d-sm-none gap-1 flex-wrap px-2 pb-2">
+                        @if (user.Status == Marketplace.Models.AccountStatus.Banned)
+                        {
+                            <span class="badge rounded-pill bg-dark">Banned</span>
+                        }
+                        @if (user.IsAdmin)
+                        {
+                            <span class="badge rounded-pill bg-danger">Admin</span>
+                        }
+                        @if (user.IsPremium)
+                        {
+                            <span class="badge rounded-pill bg-warning text-dark">Premium</span>
+                        }
+                        @if (user.IsSeller)
+                        {
+                            <span class="badge rounded-pill bg-info text-dark">Seller</span>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <partial name="_Pagination" model='new Marketplace.ViewModels.PaginationViewModel { PageNumber = Model.PageNumber, MaxCountPages = Model.MaxCountPages, BaseUrl = paginationBaseUrl }' />
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0 rounded-4 bg-white p-4 p-md-5 text-center">
+        <div class="display-6 mb-2">🕵️</div>
+        <h6 class="fw-semibold mb-1">No users match your filters</h6>
+        <p class="text-muted small mb-3">@(string.IsNullOrEmpty(searchTerm) ? "Try a different role filter." : $"No {headerSuffix} found. Try a shorter search term or switch the role filter back to \"All\".")</p>
+        <a asp-controller="Admin" asp-action="AdminPanel" class="btn btn-sm btn-outline-primary">Reset filters</a>
+    </div>
+}

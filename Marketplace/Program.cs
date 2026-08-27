@@ -1,4 +1,5 @@
 using Marketplace.Hubs;
+using Marketplace.Middleware;
 using Marketplace.Models;
 using Marketplace.Services;
 using Marketplace.Utility.Seeding;
@@ -118,6 +119,8 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication();
+
+app.UseMiddleware<BannedUserMiddleware>();
 
 app.UseAuthorization();
 
