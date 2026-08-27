@@ -51,6 +51,11 @@ namespace Marketplace.Controllers
         {
             if (CheckIfMaximumAdsReached()) return View("ReachedMaximumAds");
 
+            if (viewModel.CategoryId != -1 && !_context.Categories.Any(c => c.Id == viewModel.CategoryId))
+            {
+                ModelState.AddModelError(nameof(viewModel.CategoryId), "You need to select a category.");
+            }
+
             if (!ModelState.IsValid)
             {
                 viewModel.CategoryDropDown = LoadCategoryDropDown();
@@ -143,6 +148,11 @@ namespace Marketplace.Controllers
             if (model.Image == null && string.IsNullOrEmpty(model.ExistingImagePath))
             {
                 ModelState.AddModelError("Image", "The main advertisement image is mandatory.");
+            }
+
+            if (model.CategoryId != -1 && !_context.Categories.Any(c => c.Id == model.CategoryId))
+            {
+                ModelState.AddModelError(nameof(model.CategoryId), "You need to select a category.");
             }
 
             if (!ModelState.IsValid)

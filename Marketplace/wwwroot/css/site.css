@@ -263,8 +263,10 @@ body {
 .ad-card .ad-badge { font-size: 0.78rem; padding: 0.25rem 0.6rem; margin: 0; }
 
 /* Fix grid wrapping: allow cols/cards to shrink below intrinsic width and use flex fill for equal heights */
-#adGridContainer .row > [class*="col-"] { min-width: 0; }
-#adGridContainer .col-6.d-flex > a { flex: 1 1 0; min-width: 0; width: auto !important; }
+#adGridContainer .row > [class*="col-"],
+.ad-grid .row > [class*="col-"] { min-width: 0; }
+#adGridContainer .col-6.d-flex > a,
+.ad-grid .col-6.d-flex > a { flex: 1 1 0; min-width: 0; width: auto !important; }
 .ad-card, .ad-card .card-body, .ad-card-img-wrap { min-width: 0; }
 
 /* ===== Image slots (uniform, responsive fitting) ===== */

@@ -1,10 +1,10 @@
-﻿@using Marketplace.ViewModels
-@model IEnumerable<Marketplace.ViewModels.SimplifiedAdvertisementViewModel>
+﻿@using Marketplace.Utility
+@model Marketplace.ViewModels.MyAdvertisementsViewModel
 @{
-    var countAds = @Model.Count();
+    var hasAds = Model.TotalCount > 0 && Model.Advertisements.Any();
 }
 
-@if (countAds == 0)
+@if (Model.TotalCount == 0)
 {
     <div class="text-center py-5">
         <h3 class="mb-2">You have no advertisements</h3>
@@ -15,30 +15,24 @@
 else
 {
     <div class="page-header">
-        <h3>My Advertisements</h3>
+        <h3>My Advertisements <small class="text-muted fs-6 fw-normal">(@Model.TotalCount)</small></h3>
         <a asp-action="Create" asp-controller="Advertisement" class="btn btn-primary ms-auto">+ Create New</a>
     </div>
     
-    <div class="container">
-        @for (var i = 0; i < countAds; i += 4)
-        {
-            <div class="row g-3">
-            @for (var j = 0; j < 4; j++)
+    <div class="ad-grid">
+        <div class="row g-3">
+            @foreach (var currentAd in Model.Advertisements)
             {
-                @if (i + j == countAds)
-                {
-                    break;
-                }
+                <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
+                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
+                        <div class="ad-card-img-wrap flex-shrink-0">
+                            <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
+                            <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
+                        </div>
 
-                var currentAd = Model.ElementAt(i + j);
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm h-100 position-relative">
-                        <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">
-                        <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@currentAd.Category</span>
-
-                        <div class="card-body pb-2 position-relative">
+                        <div class="card-body pb-2 d-flex flex-column flex-grow-1 position-relative">
                             <h6 class="card-title fw-semibold text-truncate mb-1" title="@currentAd.Title">@currentAd.Title</h6>
-                            <p class="ad-price h5 mb-1">@currentAd.Price EUR</p>
+                            <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(currentAd.Price)</p>
                             <p class="text-muted small mb-0">📍 @currentAd.Location</p>
                             <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="stretched-link" aria-label="View @currentAd.Title"></a>
                         </div>
@@ -50,9 +44,37 @@ else
                     </div>
                 </div>
             }
-            </div>
-        }
+        </div>
     </div>
+
+    @if (Model.MaxCountPages > 1)
+    {
+        <div class="text-center pagination-links mt-4">
+            <a href="/Account/MyAdvertisements?pageNumber=@(Model.PageNumber - 1)" class="page-nav @(Model.PageNumber <= 0 ? "disabled pe-none opacity-50" : "")" title="Previous page">&#60;</a>
+            @{
+                int maximumDisplayedPages = 10;
+                int startingIndex = Model.PageNumber - (Model.PageNumber % maximumDisplayedPages);
+                int endingIndex = (Model.PageNumber + maximumDisplayedPages) - (Model.PageNumber % maximumDisplayedPages);
+                if (endingIndex > Model.MaxCountPages) endingIndex = Model.MaxCountPages;
+                @for (var i = startingIndex; i < endingIndex; i++)
+                {
+                    @if (i == Model.PageNumber)
+                    {
+                        <a class="active" href="/Account/MyAdvertisements?pageNumber=@i">@i</a>
+                        continue;
+                    }
+                    <a href="/Account/MyAdvertisements?pageNumber=@i">@i</a>
+                }
+                if (!(endingIndex >= Model.MaxCountPages))
+                {
+                    var lastPageIndex = Model.MaxCountPages - 1;
+                    <span class="px-1 text-muted">...</span>
+                    <a href="/Account/MyAdvertisements?pageNumber=@lastPageIndex">@lastPageIndex</a>
+                }
+            }
+            <a href="/Account/MyAdvertisements?pageNumber=@(Model.PageNumber + 1)" class="page-nav @(Model.PageNumber >= Model.MaxCountPages - 1 ? "disabled pe-none opacity-50" : "")" title="Next page">&#62;</a>
+        </div>
+    }
 
 <!-- Modal -->
 <form method="post" name="deleteAdForm" asp-action="Delete" asp-controller="Advertisement">

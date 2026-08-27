@@ -34,7 +34,7 @@ namespace Marketplace.ViewModels
         public string? UserId { get; set; }
 
         [Required(ErrorMessage = "You need to select a category.")]
-        [Range(1, 9, ErrorMessage = "You need to select a category.")]
+        [Range(1, int.MaxValue, ErrorMessage = "You need to select a category.")]
         public int CategoryId { get; set; }
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }

@@ -72,11 +72,23 @@ namespace Marketplace.Controllers
         }
 
         [Authorize]
-        public IActionResult MyAdvertisements()
+        public IActionResult MyAdvertisements(int pageNumber = 0)
         {
+            if (pageNumber < 0) pageNumber = 0;
+            const int pageSize = 12;
             var userId = User.FindFirst(ClaimTypes.NameIdentifier).Value;
-            var ads = _context.Advertisements
-                .Where(x => x.UserId == userId)
+
+            var baseQuery = _context.Advertisements.Where(x => x.UserId == userId);
+
+            var totalCount = baseQuery.Count();
+            var maxCountPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (maxCountPages == 0) maxCountPages = 1;
+            if (pageNumber >= maxCountPages) pageNumber = maxCountPages - 1;
+
+            var ads = baseQuery
+                .OrderByDescending(x => x.DateCreatedOn)
+                .Skip(pageNumber * pageSize)
+                .Take(pageSize)
                 .Select(x => new SimplifiedAdvertisementViewModel()
                 {
                     Id = x.Id,
@@ -84,11 +96,21 @@ namespace Marketplace.Controllers
                     Price = x.Price,
                     ImagePath = x.ImagePath,
                     Category = x.Category.Name,
-                    Location = x.Location
+                    Location = x.Location,
+                    DateCreatedOn = x.DateCreatedOn
                 })
                 .ToList();
 
-            return View(ads);
+            var vm = new MyAdvertisementsViewModel
+            {
+                Advertisements = ads,
+                PageNumber = pageNumber,
+                MaxCountPages = maxCountPages,
+                TotalCount = totalCount,
+                PageSize = pageSize
+            };
+
+            return View(vm);
         }
 
         [Authorize]
@@ -158,13 +180,24 @@ namespace Marketplace.Controllers
         }
 
         [Route("/Users/{username}")]
-        public IActionResult Profile(string username)
+        public IActionResult Profile(string username, int pageNumber = 0)
         {
             var user = _context.Users.SingleOrDefault(x => x.UserName == username);
             if (user == null) return NotFound();
 
-            var userAds = _context.Advertisements
-                .Where(x => x.UserId == user.Id)
+            if (pageNumber < 0) pageNumber = 0;
+            const int pageSize = 12;
+
+            var baseQuery = _context.Advertisements.Where(x => x.UserId == user.Id);
+            var totalCount = baseQuery.Count();
+            var maxCountPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (maxCountPages == 0) maxCountPages = 1;
+            if (pageNumber >= maxCountPages) pageNumber = maxCountPages - 1;
+
+            var userAds = baseQuery
+                .OrderByDescending(x => x.DateCreatedOn)
+                .Skip(pageNumber * pageSize)
+                .Take(pageSize)
                 .Select(x => new SimplifiedAdvertisementViewModel()
                 {
                     Id = x.Id,
@@ -172,7 +205,8 @@ namespace Marketplace.Controllers
                     Price = x.Price,
                     ImagePath = x.ImagePath,
                     Location = x.Location,
-                    Category = x.Category.Name
+                    Category = x.Category.Name,
+                    DateCreatedOn = x.DateCreatedOn
                 })
                 .ToList();
 
@@ -180,6 +214,10 @@ namespace Marketplace.Controllers
             ViewBag.Description = user.Description;
             ViewBag.PhoneNumber = user.PhoneNumber;
             ViewBag.Email = user.Email;
+            ViewBag.PageNumber = pageNumber;
+            ViewBag.MaxCountPages = maxCountPages;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.Username = username;
 
             return View(userAds);
         }
