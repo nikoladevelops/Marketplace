@@ -57,6 +57,7 @@ builder.Services.AddScoped<AdvertisementFilterService>();
 builder.Services.AddScoped<IdentityAndCatalogSeeder>();
 builder.Services.AddScoped<DemoContentSeeder>();
 builder.Services.AddScoped<DevDatabaseCleaner>();
+builder.Services.AddScoped<UserSeeder>();
 
 // Add Identity support + tables
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()

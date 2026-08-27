@@ -152,6 +152,10 @@ namespace Marketplace.Utility.Seeding
         /// <summary>Ensures demo users exist, then creates up to <paramref name="adCount"/> advertisements.</summary>
         /// <returns>The number of ads actually created.</returns>
         public async Task<int> SeedAsync(int adCount, CancellationToken ct = default)
+            => await SeedAsync(adCount, null, ct);
+
+        /// <summary>Creates ads for a specific user if <paramref name="targetUsername"/> is set, otherwise round-robin demo users.</summary>
+        public async Task<int> SeedAsync(int adCount, string? targetUsername, CancellationToken ct = default)
         {
             adCount = Math.Clamp(adCount, 1, 200);
 
@@ -178,11 +182,32 @@ namespace Marketplace.Utility.Seeding
                 return 0;
             }
 
-            var users = await EnsureDemoUsersAsync(ct);
-            if (users.Count == 0)
+            List<ApplicationUser> users;
+            if (!string.IsNullOrWhiteSpace(targetUsername))
             {
-                Console.WriteLine("Demo seeding aborted: could not create demo users. Ensure roles exist by running 'dotnet run -- setup' first.");
-                return 0;
+                var trimmed = targetUsername.Trim();
+                using var userScope = _scopeFactory.CreateScope();
+                var userManager = userScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var targetUser = await userManager.FindByNameAsync(trimmed) ?? await userManager.FindByEmailAsync(trimmed);
+                if (targetUser == null)
+                {
+                    var msg = $"Demo seeding aborted: user '{trimmed}' not found. Check spelling or run 'dotnet run -- setup' and 'dotnet run -- user:create --username {trimmed} --email {trimmed}@example.com' first.";
+                    Console.Error.WriteLine(msg);
+                    _logger.LogError(msg);
+                    return 0;
+                }
+                users = new List<ApplicationUser> { targetUser };
+                Console.WriteLine($"Seeding {adCount} ads for specific user '{targetUser.UserName}' (Id={targetUser.Id})");
+                _logger.LogInformation("Per-user seeding for {UserName} with {Count} ads", targetUser.UserName, adCount);
+            }
+            else
+            {
+                users = await EnsureDemoUsersAsync(ct);
+                if (users.Count == 0)
+                {
+                    Console.WriteLine("Demo seeding aborted: could not create demo users. Ensure roles exist by running 'dotnet run -- setup' first.");
+                    return 0;
+                }
             }
 
             using var scope = _scopeFactory.CreateScope();
