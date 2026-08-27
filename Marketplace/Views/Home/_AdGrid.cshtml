@@ -15,8 +15,16 @@ else
     <div class="row g-3">
         @foreach (var currentAd in Model.Advertisements)
         {
+            var recentPayload = System.Text.Json.JsonSerializer.Serialize(new {
+                id = currentAd.Id,
+                title = currentAd.Title,
+                price = PriceFormatter.ToEur(currentAd.Price),
+                imagePath = currentAd.ImagePath,
+                userId = currentAd.UserId,
+                userName = currentAd.UserName
+            });
             <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
-                <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none flex-fill d-flex w-100">
+                <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none flex-fill d-flex w-100 ad-card-link" data-recent-ad="@recentPayload">
                     <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
                         <div class="ad-card-img-wrap flex-shrink-0">
                             <img src="@currentAd.ImagePath" loading="lazy" alt="Advertisement Image">

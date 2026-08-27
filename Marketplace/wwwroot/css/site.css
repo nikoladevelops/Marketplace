@@ -441,6 +441,100 @@ img { max-width: 100%; }
     margin-top: 0.25rem;
 }
 
+/* ===== Recently browsed (Home page horizontal strip) ===== */
+.recently-browsed {
+    /* Soft container that matches the page surface in both themes. */
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 0.75rem 0.85rem;
+}
+.recent-header-title { font-size: 0.95rem; color: var(--text); }
+.recent-clear { color: var(--text-muted); text-decoration: none; }
+.recent-clear:hover { color: var(--text); }
+.recent-nav {
+    min-width: 32px;
+    height: 32px;
+    line-height: 1;
+}
+
+.recent-track {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 0.6rem;
+    padding: 0.25rem 0.1rem 0.5rem;
+    scroll-behavior: smooth;
+    /* Snap so cards land cleanly at their edges. */
+    scroll-snap-type: x proximity;
+    /* iOS momentum + hide the bar visually. */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.recent-track::-webkit-scrollbar { height: 6px; }
+.recent-track::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.recent-track::-webkit-scrollbar-track { background: transparent; }
+
+.recent-card {
+    flex: 0 0 auto;
+    width: 144px;
+    scroll-snap-align: start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.4rem;
+    color: var(--text);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.recent-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+    color: var(--text);
+}
+.recent-card-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    background: var(--surface-2);
+    display: block;
+}
+.recent-card-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--text);
+    /* Single line with ellipsis. */
+    max-width: 100%;
+}
+.recent-card-price {
+    font-size: 0.78rem;
+    color: var(--success);
+    font-weight: 600;
+}
+
+@media (min-width: 576px) {
+    .recent-card { width: 160px; }
+}
+@media (min-width: 768px) {
+    .recently-browsed { padding: 0.85rem 1rem; }
+    .recent-card { width: 172px; }
+    .recent-card-title { font-size: 0.85rem; }
+}
+@media (min-width: 1200px) {
+    .recent-card { width: 180px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .recent-track { scroll-behavior: auto; }
+    .recent-card { transition: none; }
+}
+
 /* ===== Theme toggle ===== */
 .theme-toggle {
     background: var(--surface-2);

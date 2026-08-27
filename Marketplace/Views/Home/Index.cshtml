@@ -5,6 +5,12 @@
 }
 
 <div>
+    <div id="recentlyBrowsedContainer"
+         class="recently-browsed mb-3"
+         data-current-user-id="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")"
+         hidden>
+    </div>
+
     <button class="btn btn-outline-secondary d-md-none w-100 mb-2 d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" style="min-height:44px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="7" cy="6" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg>
         Filters
@@ -125,10 +131,32 @@
                 if (isNaN(page) || page < 0 || (maxPages>0 && page >= maxPages)) return;
                 fetchGrid(page);
             });
+
+            // Record an ad view before navigation. We do NOT preventDefault:
+            // the click is allowed to proceed to /Advertisement/Show/{id}.
+            // Middle-click / cmd-click / right-click also work because the
+            // browser fires `click` for primary-button activations only.
+            container.addEventListener("click", function (e) {
+                const card = e.target.closest("a[data-recent-ad]");
+                if (!card) return;
+                if (!window.RecentlyViewed) return;
+                var raw = card.getAttribute("data-recent-ad");
+                if (!raw) return;
+                try {
+                    var ad = JSON.parse(raw);
+                    window.RecentlyViewed.record(ad);
+                } catch (_) { /* malformed payload — skip */ }
+            });
         }
 
         document.addEventListener("DOMContentLoaded", function () {
             attachGridHandlers();
+
+            // Render the Recently Browsed strip on initial load.
+            var recentEl = document.getElementById("recentlyBrowsedContainer");
+            if (recentEl && window.RecentlyViewed) {
+                window.RecentlyViewed.render(recentEl);
+            }
 
             document.getElementById("searchButton").addEventListener("click", function (e) {
                 e.preventDefault();
