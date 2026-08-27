@@ -137,7 +137,7 @@ namespace Marketplace.Services
                 PageSize = ProfilePageSize,
                 MaxAdvertisements = Helper.MaxAdsForRoles(isPremium),
                 IsPremium = isPremium,
-                ShowEditForm = isOwner,
+                ShowEditForm = false,
                 EditForm = isOwner ? new MyProfileViewModel
                 {
                     ExistingProfilePicturePath = user.ProfilePicturePath,
