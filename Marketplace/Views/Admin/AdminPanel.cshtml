@@ -60,7 +60,6 @@
             </div>
 
             <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2">
-                <small class="text-muted">Results update as you type.</small>
                 <a asp-controller="Admin" asp-action="AdminPanel" class="small text-decoration-none d-none d-md-inline">Clear filters</a>
             </div>
         </form>
@@ -458,10 +457,12 @@
                 const temp = document.createElement("div");
                 temp.innerHTML = html;
                 const maxPagesEl = temp.querySelector("#userListMaxPages");
-                if (maxPagesEl) container.dataset.maxPages = maxPagesEl.getAttribute("data-max-pages")
+
+                if (maxPagesEl)
                 {
-                    || "0";
+                    container.dataset.maxPages = maxPagesEl.getAttribute("data-max-pages") || "0";
                 }
+
                 const active = temp.querySelector(".pagination-links .active");
                 if (active) {
                     const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
