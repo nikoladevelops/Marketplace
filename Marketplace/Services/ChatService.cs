@@ -8,12 +8,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Services
 {
+    // ChatService - handles inbox, threads, read receipts and blocking.
     public class ChatService
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<ChatHub> _chatHub;
 
+        // ChatService - set up DB, user manager and SignalR hub.
         public ChatService(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<ChatHub> chatHub)
         {
             _context = context;
@@ -21,7 +23,7 @@ namespace Marketplace.Services
             _chatHub = chatHub;
         }
 
-
+        // GetInboxAsync - builds the chat inbox grouped by ad and partner.
         public async Task<ChatInboxViewModel> GetInboxAsync(string userId, int page = 1, int pageSize = 12)
         {
             page = Math.Max(1, page);
@@ -59,7 +61,9 @@ namespace Marketplace.Services
                 .Select(g =>
                 {
                     var last = g.OrderByDescending(m => m.SentAt).First();
+
                     ads.TryGetValue(g.Key.AdvertisementId, out var ad);
+
                     return new ChatInboxItemViewModel
                     {
                         AdvertisementId = g.Key.AdvertisementId,
@@ -76,7 +80,9 @@ namespace Marketplace.Services
 
             var total = allConversations.Count;
             var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+
             page = Math.Clamp(page, 1, totalPages);
+
             var paged = allConversations.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
             return new ChatInboxViewModel
@@ -88,10 +94,9 @@ namespace Marketplace.Services
             };
         }
 
-
+        // GetUnreadCountAsync - counts unread messages for a user.
         public async Task<int> GetUnreadCountAsync(string userId) =>
             await _context.ChatMessages.CountAsync(m => m.ReceiverId == userId && !m.IsReadByReceiver);
-
 
         public enum ThreadOutcome
         {
@@ -100,6 +105,7 @@ namespace Marketplace.Services
             AdNotFound
         }
 
+        // GetThreadAsync - loads a chat thread, marks messages read, returns paging info.
         public async Task<(ThreadOutcome Outcome, ChatThreadViewModel? ViewModel)> GetThreadAsync(
             string with, int adId, string viewerId, string viewerName, bool viewerIsAdmin, int page = 1, int pageSize = 50)
         {
@@ -107,25 +113,41 @@ namespace Marketplace.Services
             pageSize = Math.Clamp(pageSize, 10, 100);
 
             var partner = await _userManager.FindByNameAsync(with);
-            if (partner == null) return (ThreadOutcome.PartnerNotFound, null);
+
+            if (partner == null)
+            {
+                return (ThreadOutcome.PartnerNotFound, null);
+            }
 
             var ad = await _context.Advertisements.FindAsync(adId);
-            if (ad == null) return (ThreadOutcome.AdNotFound, null);
+
+            if (ad == null)
+            {
+                return (ThreadOutcome.AdNotFound, null);
+            }
 
             var partnerIsAdmin = await _userManager.IsInRoleAsync(partner, Helper.AdminRole);
 
-            // Opening the thread marks the partner's messages as read
+            // Opening the thread marks the partner's messages as read.
+
             var unread = await _context.ChatMessages
                 .Where(m => m.AdvertisementId == adId
                             && m.ReceiverId == viewerId
                             && m.SenderId == partner.Id
                             && !m.IsReadByReceiver)
                 .ToListAsync();
-            foreach (var m in unread) m.IsReadByReceiver = true;
+
+            foreach (var m in unread)
+            {
+                m.IsReadByReceiver = true;
+            }
+
             if (unread.Count > 0)
             {
                 await _context.SaveChangesAsync();
+
                 var receipt = new { byUserName = viewerName };
+
                 await _chatHub.Clients.Group(ChatHub.UserGroup(viewerId)).SendAsync("MessagesRead", receipt);
                 await _chatHub.Clients.Group(ChatHub.UserGroup(partner.Id)).SendAsync("MessagesRead", receipt);
             }
@@ -137,9 +159,11 @@ namespace Marketplace.Services
 
             var totalMessages = await baseQuery.CountAsync();
             var totalPages = Math.Max(1, (int)Math.Ceiling(totalMessages / (double)pageSize));
+
             page = Math.Clamp(page, 1, totalPages);
 
             // Page 1 = newest (most recent), page 2 = older, etc.
+
             var messages = await baseQuery
                 .OrderByDescending(m => m.SentAt)
                 .Skip((page - 1) * pageSize)
@@ -158,6 +182,7 @@ namespace Marketplace.Services
 
             var blockedByMe = await _context.UserBlocks
                 .AnyAsync(b => b.BlockerId == viewerId && b.BlockedId == partner.Id);
+
             var hasBlockedMe = await _context.UserBlocks
                 .AnyAsync(b => b.BlockerId == partner.Id && b.BlockedId == viewerId);
 
@@ -187,36 +212,63 @@ namespace Marketplace.Services
             AdminTarget
         }
 
+        // BlockAsync - block a user unless self or admin.
         public async Task<(BlockOutcome Outcome, ApplicationUser? Partner)> BlockAsync(string viewerId, string with)
         {
             var partner = await _userManager.FindByNameAsync(with);
-            if (partner == null) return (BlockOutcome.Ok, null);
-            if (viewerId == partner.Id) return (BlockOutcome.SelfBlock, partner);
+
+            if (partner == null)
+            {
+                return (BlockOutcome.Ok, null);
+            }
+
+            if (viewerId == partner.Id)
+            {
+                return (BlockOutcome.SelfBlock, partner);
+            }
+
             if (await _userManager.IsInRoleAsync(partner, Helper.AdminRole))
+            {
                 return (BlockOutcome.AdminTarget, partner);
+            }
 
             var exists = await _context.UserBlocks
                 .AnyAsync(b => b.BlockerId == viewerId && b.BlockedId == partner.Id);
+
             if (!exists)
             {
-                _context.UserBlocks.Add(new UserBlock { BlockerId = viewerId, BlockedId = partner.Id });
+                _context.UserBlocks.Add(new UserBlock
+                {
+                    BlockerId = viewerId,
+                    BlockedId = partner.Id
+                });
+
                 await _context.SaveChangesAsync();
             }
+
             return (BlockOutcome.Ok, partner);
         }
 
+        // UnblockAsync - remove a block if it exists.
         public async Task<ApplicationUser?> UnblockAsync(string viewerId, string with)
         {
             var partner = await _userManager.FindByNameAsync(with);
-            if (partner == null) return null;
+
+            if (partner == null)
+            {
+                return null;
+            }
 
             var block = await _context.UserBlocks
                 .FirstOrDefaultAsync(b => b.BlockerId == viewerId && b.BlockedId == partner.Id);
+
             if (block != null)
             {
                 _context.UserBlocks.Remove(block);
+
                 await _context.SaveChangesAsync();
             }
+
             return partner;
         }
     }

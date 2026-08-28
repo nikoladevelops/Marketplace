@@ -1,5 +1,6 @@
 ﻿@model Marketplace.ViewModels.EditAdvertisementViewModel
 
+@* Edit ad page - allows owner to update images and details *@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-9">
@@ -13,10 +14,11 @@
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <span class="text-danger d-block mb-2" asp-validation-for="Image"></span>
 
-                    <!-- Image Gallery Section -->
+                    @* Image gallery - main plus three extra images *@
                     <label class="form-label fw-semibold text-secondary mb-2">Product Images (Click box to upload, click image to zoom)</label>
+
                     <div class="row g-3 mb-4">
-                        <!-- Main Image -->
+                        @* Main image slot *@
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border-2 border-primary rounded-3 overflow-hidden shadow-sm">
                                 <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
@@ -33,11 +35,13 @@
                             <small class="text-muted d-block text-center mt-1">Main Image *</small>
                         </div>
 
-                        <!-- Additional Image 1 -->
+                        @* Additional image 1 *@
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
                                 <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
-                                    @{ var p0 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(0) ?? ""; }
+                                    @{
+                                        var p0 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(0) ?? "";
+                                    }
                                     <img id="image2" src="@(!string.IsNullOrEmpty(p0) ? p0 : "/plusSign.png")"
                                          data-existing-path="@p0"
                                          class="w-100 h-100 object-fit-cover cursor-pointer"
@@ -51,11 +55,13 @@
                             <small class="text-muted d-block text-center mt-1">Extra 1</small>
                         </div>
 
-                        <!-- Additional Image 2 -->
+                        @* Additional image 2 *@
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
                                 <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
-                                    @{ var p1 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(1) ?? ""; }
+                                    @{
+                                        var p1 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(1) ?? "";
+                                    }
                                     <img id="image3" src="@(!string.IsNullOrEmpty(p1) ? p1 : "/plusSign.png")"
                                          data-existing-path="@p1"
                                          class="w-100 h-100 object-fit-cover cursor-pointer"
@@ -69,11 +75,13 @@
                             <small class="text-muted d-block text-center mt-1">Extra 2</small>
                         </div>
 
-                        <!-- Additional Image 3 -->
+                        @* Additional image 3 *@
                         <div class="col-6 col-md-3">
                             <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
                                 <div class="card-body p-0 position-relative bg-light text-center d-flex align-items-center justify-content-center img-slot">
-                                    @{ var p2 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(2) ?? ""; }
+                                    @{
+                                        var p2 = Model.ExistingAdditionalImagePaths?.ElementAtOrDefault(2) ?? "";
+                                    }
                                     <img id="image4" src="@(!string.IsNullOrEmpty(p2) ? p2 : "/plusSign.png")"
                                          data-existing-path="@p2"
                                          class="w-100 h-100 object-fit-cover cursor-pointer"
@@ -88,15 +96,15 @@
                         </div>
                     </div>
 
-                    <!-- AI Auto-Fill Banner -->
+                    @* AI helper - scan images to refresh title and description *@
                     <div class="p-3 mb-4 bg-light rounded-3 border border-primary-subtle text-center">
                         <button type="button" id="aiGenerateBtn" onclick="triggerSmartListingAI()" class="btn btn-primary fw-semibold px-4 shadow-sm" disabled>
-                            ✨ Re-Scan & Refresh Details with AI
+                            ✨ Re-Scan and Refresh Details with AI
                         </button>
                         <small class="text-muted d-block mt-1">AI will analyze your images to update your title and description.</small>
                     </div>
 
-                    <!-- Form Inputs -->
+                    @* Title and description inputs *@
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-semibold"></label>
                         <input class="form-control form-control-lg rounded-3" asp-for="Title" placeholder="e.g. iPhone 15 Pro Max 256GB"/>
@@ -109,6 +117,7 @@
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
+                    @* Price and location row *@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="Price" class="form-label fw-semibold"></label>
@@ -119,6 +128,7 @@
                             <small class="text-muted">Price in EUR</small>
                             <span asp-validation-for="Price" class="text-danger small"></span>
                         </div>
+
                         <div class="col-md-6 mb-3">
                             <label asp-for="Location" class="form-label fw-semibold"></label>
                             <div class="d-flex gap-2">
@@ -130,7 +140,7 @@
                         </div>
                     </div>
 
-                    <!-- Location Map Picker -->
+                    @* Interactive map for picking exact meeting point *@
                     <div class="mb-4">
                         <div id="locationMap" class="location-map-inline rounded-3 border"></div>
                         <div class="d-flex justify-content-between align-items-center mt-1">
@@ -141,6 +151,7 @@
                         <input type="hidden" asp-for="Longitude"/>
                     </div>
 
+                    @* Category dropdown *@
                     <div class="mb-4">
                         <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
                         <select asp-for="CategoryId" asp-items="@Model.CategoryDropDown" class="form-select rounded-3">
@@ -149,13 +160,13 @@
                         <span asp-validation-for="CategoryId" class="text-danger small"></span>
                     </div>
 
-                    <!-- Action Buttons -->
+                    @* Form actions - save or cancel *@
                     <div class="d-flex gap-2 pt-3 border-top">
                         <button type="submit" class="btn btn-success px-4 fw-semibold rounded-3 shadow-sm">Save Changes</button>
                         <a class="btn btn-light px-4 rounded-3 border" href="/Users/@User.Identity?.Name">Cancel</a>
                     </div>
 
-                    <!-- Hidden Path Trackers -->
+                    @* Hidden fields to track existing image paths for the server *@
                     <input asp-for="ExistingImagePath" type="hidden" id="existingMainPath"/>
                     <input name="ExistingAdditionalImagePaths[0]" type="hidden" id="existingAdditionalPath0" value="@p0"/>
                     <input name="ExistingAdditionalImagePaths[1]" type="hidden" id="existingAdditionalPath1" value="@p1"/>

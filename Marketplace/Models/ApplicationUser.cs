@@ -2,24 +2,35 @@
 
 namespace Marketplace.Models
 {
+    // This is our user model. It extends the built in Identity user with extra fields.
+    // Keeps profile info and ban info together in one place.
     public class ApplicationUser : IdentityUser
     {
+        // Optional profile picture path
         public string? ProfilePicturePath { get; set; }
+
+        // Short bio or description shown on profile
         public string? Description { get; set; }
 
-        /// <summary>Opt-in visibility: default hidden (false) to avoid spam. Owner can toggle.</summary>
+        // If true, other users can see your email. False by default to avoid spam.
         public bool ShowEmail { get; set; } = false;
+
+        // If true, other users can see your phone number. Also false by default.
         public bool ShowPhone { get; set; } = false;
 
-        /// <summary>Account-level status. Admins can ban/unban; banned users cannot sign in.</summary>
+        // Account status - admins can ban or keep active. Banned users cannot sign in.
         public AccountStatus Status { get; set; } = AccountStatus.Active;
 
-        /// <summary>Reason recorded at the time of ban. Null when active.</summary>
+        // Why the user was banned, if they are banned
         public string? BanReason { get; set; }
 
+        // When the ban happened (UTC)
         public DateTime? BannedAtUtc { get; set; }
 
+        // Which admin performed the ban
         public string? BannedByUserId { get; set; }
+
+        // Navigation to the admin who banned this user
         public ApplicationUser? BannedByUser { get; set; }
     }
 }

@@ -5,10 +5,12 @@
     var endIdx = Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount);
 }
 
+@* Inbox page - lists all conversations for the current user *@
 <div class="container px-2 px-sm-3" style="max-width: 760px;" id="inboxRoot"
      data-my-user-name="@User.Identity?.Name">
     <div class="page-header flex-wrap gap-2">
         <h3 class="mb-0">📥 Inbox</h3>
+
         @if (Model.TotalCount > 0)
         {
             <span class="badge rounded-pill bg-secondary fw-normal ms-1">@Model.TotalCount @(Model.TotalCount==1?"conversation":"conversations")</span>
@@ -31,25 +33,30 @@
                 @foreach (var convo in Model.Items)
                 {
                     var imagePath = !string.IsNullOrEmpty(convo.AdvertisementImagePath) ? convo.AdvertisementImagePath : "/plusSign.png";
+
                     <a asp-controller="Chat" asp-action="Thread"
                        asp-route-with="@convo.PartnerName" asp-route-adId="@convo.AdvertisementId"
                        class="text-decoration-none text-body inbox-row d-block"
                        data-partner="@convo.PartnerName">
                         <div class="d-flex align-items-center gap-2 gap-sm-3 p-2 p-sm-3 rounded-3 conversation-row @(convo != Model.Items.Last() ? "border-bottom" : "")">
                             <img src="@imagePath" class="rounded-3 object-fit-cover flex-shrink-0" style="width: 56px; height: 56px;" alt="Advertisement image">
+
                             <div class="flex-grow-1 min-width-0 overflow-hidden">
                                 <div class="d-flex justify-content-between align-items-center gap-2">
                                     <span class="fw-semibold text-truncate">@convo.PartnerName</span>
+
                                     @if (convo.UnreadCount > 0)
                                     {
                                         <span class="badge rounded-pill bg-danger flex-shrink-0 unread-badge"
                                               data-key="@convo.AdvertisementId|@convo.PartnerName">@convo.UnreadCount</span>
                                     }
                                 </div>
+
                                 <small class="text-muted text-truncate d-block" style="max-width: 100%;">@convo.AdvertisementTitle</small>
                                 <small class="text-body text-truncate d-block inbox-snippet fw-normal opacity-75"
                                        data-key="@convo.AdvertisementId|@convo.PartnerName">@convo.Snippet</small>
                             </div>
+
                             <small class="text-muted flex-shrink-0 d-none d-sm-block" style="font-size: 0.78rem; white-space: nowrap;">@convo.LastSentAt.ToLocalTime().ToString("dd MMM HH:mm")</small>
                             <small class="text-muted flex-shrink-0 d-sm-none" style="font-size: 0.72rem;">@convo.LastSentAt.ToLocalTime().ToString("HH:mm")</small>
                         </div>
@@ -57,18 +64,21 @@
                 }
             </div>
 
+            @* Pagination for inbox when there are many conversations *@
             @if (Model.TotalPages > 1)
             {
                 <div class="border-top p-2 p-sm-3 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2 bg-light bg-opacity-50">
-                    <small class="text-muted">Showing @startIdx–@endIdx of @Model.TotalCount</small>
+                    <small class="text-muted">Showing @startIdx-@endIdx of @Model.TotalCount</small>
+
                     <nav aria-label="Inbox pages">
                         <ul class="pagination pagination-sm mb-0">
                             <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
                                 <a class="page-link rounded-3" asp-action="Inbox" asp-route-page="@(Model.CurrentPage-1)">‹ Prev</a>
                             </li>
+
                             @for (int p = 1; p <= Model.TotalPages; p++)
                             {
-                                // Show first, last, current ±1, with ellipsis
+                                // Show first, last, current plus or minus one, with ellipsis
                                 if (p == 1 || p == Model.TotalPages || (p >= Model.CurrentPage - 1 && p <= Model.CurrentPage + 1))
                                 {
                                     <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
@@ -80,6 +90,7 @@
                                     <li class="page-item disabled"><span class="page-link border-0 bg-transparent">…</span></li>
                                 }
                             }
+
                             <li class="page-item @(Model.HasNext ? "" : "disabled")">
                                 <a class="page-link rounded-3" asp-action="Inbox" asp-route-page="@(Model.CurrentPage+1)">Next ›</a>
                             </li>
@@ -88,6 +99,7 @@
                 </div>
             }
         </div>
+
         <p class="text-muted small mt-2 mb-0 d-block d-sm-none text-center">Tap a conversation to open chat • Scroll for more</p>
     }
 </div>

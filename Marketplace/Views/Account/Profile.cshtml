@@ -7,14 +7,18 @@
     var returnUrl = Url.Action("Profile", new { username = Model.Username });
 }
 
+@* Profile header - avatar, username and badges *@
 <div class="container">
     <div class="row g-4">
         <div class="col-md-4 col-lg-3 text-center">
             <h3 class="h5 fw-bold mb-3">Profile Picture</h3>
+
             <div class="profile-avatar-wrap mx-auto">
                 <img src="@avatarSrc" class="w-100 h-100 object-fit-cover" alt="Profile Picture">
             </div>
+
             <p class="fw-semibold mt-2 mb-0">@@@Model.Username</p>
+
             @if (Model.IsOwner)
             {
                 <div class="profile-self-badges d-flex flex-wrap justify-content-center gap-1 mt-2">
@@ -22,32 +26,39 @@
                     {
                         <span class="badge rounded-pill bg-danger profile-self-badge">🛡️ Admin</span>
                     }
+
                     @if (User.IsInRole(Helper.PremiumRole))
                     {
                         <span class="badge rounded-pill bg-warning text-dark profile-self-badge">✨ Premium</span>
                     }
+
                     @if (User.IsInRole(Helper.SellerRole))
                     {
                         <span class="badge rounded-pill bg-info text-dark profile-self-badge">Seller</span>
                     }
                 </div>
             }
+
             @if (Model.IsOwner && !Model.ShowEditForm)
             {
                 <a href="@Url.Action("Profile", new { username = Model.Username, edit = true })" class="btn btn-sm btn-outline-primary mt-2 rounded-3">Edit Profile</a>
             }
         </div>
+
+        @* Contact info card - shows phone and email with privacy rules *@
         <div class="col-md-8">
             <div class="card h-100 p-0 border-0 shadow-sm rounded-4">
                 <h3 class="h5 fw-bold mb-2 px-3 pt-3">Contact Info</h3>
+
                 <div class="border rounded-4 text-center p-3 mx-3 mb-3 bg-light">
-                    @* Phone *@
+                    @* Phone number section - owner sees full details *@
                     @if (Model.IsOwner)
                     {
                         if (!string.IsNullOrEmpty(Model.PhoneNumber))
                         {
                             <label class="small text-muted">Phone number</label>
                             <input readonly value="@Model.PhoneNumber" class="form-control text-center mb-1" />
+
                             @if (Model.ShowPhone)
                             {
                                 <small class="text-success small d-block mb-2">✓ Visible to logged-in users (anonymous sees censored)</small>
@@ -66,6 +77,7 @@
                     {
                         <label class="small text-muted">Phone number</label>
                         <input readonly value="@Model.DisplayPhone" class="form-control text-center mb-1" />
+
                         @if (Model.IsAdmin)
                         {
                             <small class="text-info small d-block mb-2">👁 Admin view</small>
@@ -83,13 +95,14 @@
                         <div class="text-muted small mb-2">Phone: <em>Not shared</em></div>
                     }
 
-                    @* Email *@
+                    @* Email section - similar privacy handling *@
                     @if (Model.IsOwner)
                     {
                         if (!string.IsNullOrEmpty(Model.Email))
                         {
                             <label class="small text-muted">Email</label>
                             <input readonly value="@Model.Email" class="form-control text-center mb-2" />
+
                             @if (Model.ShowEmail)
                             {
                                 <small class="text-success small d-block mb-1">✓ Visible to logged-in users (anonymous sees censored)</small>
@@ -108,6 +121,7 @@
                     {
                         <label class="small text-muted">Email</label>
                         <input readonly value="@Model.DisplayEmail" class="form-control text-center mb-2" />
+
                         @if (Model.IsAdmin)
                         {
                             <small class="text-info small d-block mb-1">👁 Admin view</small>
@@ -138,6 +152,7 @@
     </div>
 </div>
 
+@* Description and edit form area *@
 <div class="container py-3">
     @if (Model.ShowEditForm && Model.EditForm != null)
     {
@@ -147,6 +162,7 @@
                     <div class="page-header">
                         <h3>👤 Edit Profile</h3>
                     </div>
+
                     <partial name="_EditProfileForm" model="Model.EditForm" />
                 </div>
             </div>
@@ -159,12 +175,14 @@
     }
 </div>
 
+@* User advertisements grid with pagination *@
 <div class="container mt-2">
     <div class="page-header">
         <h3>
             @(Model.IsOwner ? "My Advertisements" : "User Advertisements")
             <small class="text-muted fs-6 fw-normal">(@Model.TotalCount@(Model.IsOwner ? $"/{Model.MaxAdvertisements}" : ""))</small>
         </h3>
+
         @if (canCreate && Model.TotalCount > 0)
         {
             <a asp-controller="Advertisement" asp-action="Create" class="btn btn-primary ms-auto">+ Create New</a>
@@ -175,6 +193,7 @@
     {
         <div class="text-center py-4">
             <p class="text-muted mb-3">@(Model.IsOwner ? "You have no advertisements yet." : "This user has no advertisements.")</p>
+
             @if (Model.IsOwner)
             {
                 <a asp-controller="Advertisement" asp-action="Create" class="btn btn-primary px-4">+ Create An Advertisement</a>
@@ -188,20 +207,24 @@
                 @foreach (var ad in Model.Advertisements)
                 {
                     var canModify = Model.IsAdmin || ad.UserId == Model.CurrentUserId;
+
                     <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
                         <div class="card ad-card border-0 rounded-4 overflow-hidden shadow-sm flex-fill w-100 position-relative d-flex flex-column">
                             <div class="ad-card-img-wrap flex-shrink-0">
                                 <img src="@ad.ImagePath" loading="lazy" alt="Advertisement Image">
                                 <span class="badge bg-success ad-badge position-absolute top-0 end-0 m-2">@ad.Category</span>
                             </div>
+
                             <div class="card-body pb-2 d-flex flex-column flex-grow-1 position-relative">
                                 <h6 class="card-title fw-semibold text-truncate mb-1" title="@ad.Title">@ad.Title</h6>
                                 <p class="ad-price h5 mb-1">@PriceFormatter.ToEur(ad.Price)</p>
                                 <p class="text-muted small mb-0">📍 @ad.Location</p>
                                 <a asp-controller="Advertisement" asp-action="Show" asp-route-id="@ad.Id" class="stretched-link" aria-label="View @ad.Title"></a>
                             </div>
+
                             <div class="card-footer bg-transparent border-0 pt-0 px-3 pb-3 mt-auto d-flex gap-1 gap-sm-2 flex-wrap position-relative" style="z-index:1;">
                                 <a asp-controller="Advertisement" asp-action="Show" asp-route-id="@ad.Id" class="btn btn-sm btn-primary flex-fill">View</a>
+
                                 @if (canModify)
                                 {
                                     <a asp-controller="Advertisement" asp-action="Edit" asp-route-id="@ad.Id" class="btn btn-sm btn-outline-warning flex-fill">Edit</a>
@@ -216,6 +239,7 @@
 
         <partial name="_Pagination" model='new Marketplace.ViewModels.PaginationViewModel { PageNumber = Model.PageNumber, MaxCountPages = Model.MaxCountPages, BaseUrl = Url.Action("Profile", new { username = Model.Username }) ?? $"/Users/{Model.Username}" }' />
 
+        @* Delete confirmation modal for ads on profile *@
         <form method="post" name="deleteAdForm" asp-controller="Advertisement" asp-action="Delete">
             <div class="modal fade" id="deleteAdModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
@@ -223,9 +247,11 @@
                         <div class="modal-header">
                             <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
                         </div>
+
                         <div class="modal-body">
                             <p>You are about to delete "<span class="adToDeleteTitle"></span>". Are you sure?</p>
                         </div>
+
                         <div class="modal-footer">
                             <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
                             <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
@@ -243,6 +269,7 @@
     {
         <script src="~/js/imageManipulation.js"></script>
     }
+
     @if (Model.TotalCount > 0)
     {
         <script defer src="~/js/deleteAdvertisement.js"></script>

@@ -11,11 +11,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Marketplace.Utility.Seeding
 {
-    /// <summary>
-    /// Creates demo users and sample advertisements with images.
-    /// Categories are taken from the database. Requires setup to have run first.
-    /// Each ad gets at least 2 images and the main image always has a valid file.
-    /// </summary>
+    // Creates demo users and sample ads with images.
+    // Reads categories from the database, so setup must run first.
+    // Every ad gets a main image plus 1 to 2 extra images, always with a valid file.
     public class DemoContentSeeder
     {
         private readonly IServiceScopeFactory _scopeFactory;
@@ -139,6 +137,7 @@ namespace Marketplace.Utility.Seeding
             "Small cosmetic scratches, mechanically perfect."
         ];
 
+        // Sets up the seeder with all needed services.
         public DemoContentSeeder(IServiceScopeFactory scopeFactory, IConfiguration config, IServiceProvider serviceProvider, IWebHostEnvironment webEnv, IHostEnvironment hostEnv, ILogger<DemoContentSeeder> logger)
         {
             _scopeFactory = scopeFactory;
@@ -149,12 +148,14 @@ namespace Marketplace.Utility.Seeding
             _logger = logger;
         }
 
-        /// <summary>Ensures demo users exist, then creates up to <paramref name="adCount"/> advertisements.</summary>
-        /// <returns>The number of ads actually created.</returns>
+        // Creates demo ads using the default round robin demo users.
         public async Task<int> SeedAsync(int adCount, CancellationToken ct = default)
-            => await SeedAsync(adCount, null, ct);
+        {
+            return await SeedAsync(adCount, null, ct);
+        }
 
-        /// <summary>Creates ads for a specific user if <paramref name="targetUsername"/> is set, otherwise round-robin demo users.</summary>
+        // Main seeding method. Creates ads for a specific user or for all demo users.
+        // Returns how many ads were actually created.
         public async Task<int> SeedAsync(int adCount, string? targetUsername, CancellationToken ct = default)
         {
             adCount = Math.Clamp(adCount, 1, 200);
@@ -174,38 +175,48 @@ namespace Marketplace.Utility.Seeding
             using var preScope = _scopeFactory.CreateScope();
             var preContext = preScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var dbCategoriesFirst = await preContext.Categories.AsNoTracking().ToListAsync(ct);
+
             if (dbCategoriesFirst.Count == 0)
             {
                 var msg = "Demo seeding aborted: no categories found in database. Run 'dotnet run -- setup' first to seed categories.";
                 Console.Error.WriteLine(msg);
                 _logger.LogError(msg);
+
                 return 0;
             }
 
             List<ApplicationUser> users;
+
             if (!string.IsNullOrWhiteSpace(targetUsername))
             {
                 var trimmed = targetUsername.Trim();
+
                 using var userScope = _scopeFactory.CreateScope();
                 var userManager = userScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var targetUser = await userManager.FindByNameAsync(trimmed) ?? await userManager.FindByEmailAsync(trimmed);
+
                 if (targetUser == null)
                 {
                     var msg = $"Demo seeding aborted: user '{trimmed}' not found. Check spelling or run 'dotnet run -- setup' and 'dotnet run -- user:create --username {trimmed} --email {trimmed}@example.com' first.";
                     Console.Error.WriteLine(msg);
                     _logger.LogError(msg);
+
                     return 0;
                 }
+
                 users = new List<ApplicationUser> { targetUser };
+
                 Console.WriteLine($"Seeding {adCount} ads for specific user '{targetUser.UserName}' (Id={targetUser.Id})");
                 _logger.LogInformation("Per-user seeding for {UserName} with {Count} ads", targetUser.UserName, adCount);
             }
             else
             {
                 users = await EnsureDemoUsersAsync(ct);
+
                 if (users.Count == 0)
                 {
                     Console.WriteLine("Demo seeding aborted: could not create demo users. Ensure roles exist by running 'dotnet run -- setup' first.");
+
                     return 0;
                 }
             }
@@ -215,11 +226,13 @@ namespace Marketplace.Utility.Seeding
             var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
             var dbCategories = await context.Categories.AsNoTracking().ToListAsync(ct);
+
             if (dbCategories.Count == 0)
             {
                 var msg = "Demo seeding aborted: no categories found in database. Run 'dotnet run -- setup' first to seed categories.";
                 Console.Error.WriteLine(msg);
                 _logger.LogError(msg);
+
                 return 0;
             }
 
@@ -246,41 +259,63 @@ namespace Marketplace.Utility.Seeding
                         title = content.Titles[random.Next(content.Titles.Length)];
                         minPrice = content.MinPrice;
                         maxPrice = content.MaxPrice;
-                        if (title.Length > 35) title = title.Substring(0, 35);
-                        if (title.Length < 3) title = categoryName + " item";
+
+                        if (title.Length > 35)
+                        {
+                            title = title.Substring(0, 35);
+                        }
+
+                        if (title.Length < 3)
+                        {
+                            title = categoryName + " item";
+                        }
                     }
                     else
                     {
                         var fallbackTitles = CategoryContent.Values.SelectMany(v => v.Titles).ToArray();
                         title = fallbackTitles[random.Next(fallbackTitles.Length)];
-                        if (title.Length > 35) title = title.Substring(0, 35);
+
+                        if (title.Length > 35)
+                        {
+                            title = title.Substring(0, 35);
+                        }
+
                         minPrice = 20m;
                         maxPrice = 500m;
+
                         _logger.LogDebug("Using fallback title for unknown category {Category}", categoryName);
                     }
 
                     var city = Cities[random.Next(Cities.Length)];
                     var price = Math.Round(minPrice + (decimal)random.NextDouble() * (maxPrice - minPrice), 2);
-                    if (price < 1) price = 1m;
 
-                    // Main image: guaranteed to return a file via provider chain + local fallback
+                    if (price < 1)
+                    {
+                        price = 1m;
+                    }
+
+                    // Main image: guaranteed to return a file via provider chain plus local fallback
                     var mainImage = await FetchImageWithChainAsync(title, categoryName, ct);
+
                     if (mainImage == null)
                     {
                         var msg = $"Failed to obtain any image for ad '{title}' [{categoryName}] even after provider chain and local fallback. Skipping this ad.";
                         Console.Error.WriteLine(msg);
                         _logger.LogError(msg);
                         failed++;
+
                         continue;
                     }
 
                     var imagePath = await Helper.SaveImageAsync(mainImage, "advertisements", env);
+
                     if (imagePath == null)
                     {
                         var msg = $"Failed to save image for ad '{title}' [{categoryName}]: Helper returned null.";
                         Console.Error.WriteLine(msg);
                         _logger.LogError(msg);
                         failed++;
+
                         continue;
                     }
 
@@ -299,31 +334,41 @@ namespace Marketplace.Utility.Seeding
                         CategoryId = category.Id,
                         DateCreatedOn = DateTime.UtcNow.AddDays(-random.Next(0, 90))
                     };
+
                     context.Advertisements.Add(ad);
+
                     await context.SaveChangesAsync(ct);
 
                     // At least 1 extra, up to 2 extras, all guaranteed via chain
                     int extraCount = random.Next(1, 3);
                     int extrasCreated = 0;
+
                     for (int e = 0; e < extraCount; e++)
                     {
                         var extraImage = await FetchImageWithChainAsync(title, categoryName, ct);
+
                         if (extraImage == null)
                         {
                             _logger.LogWarning("Extra image {Index} for ad '{Title}' [{Category}] failed to fetch from all providers, skipping this extra", e, title, categoryName);
+
                             continue;
                         }
+
                         var extraPath = await Helper.SaveImageAsync(extraImage, "advertisements", env);
+
                         if (extraPath == null)
                         {
                             _logger.LogWarning("Failed to save extra image {Index} for ad '{Title}'", e, title);
+
                             continue;
                         }
+
                         context.AdvertisementImages.Add(new AdvertisementImageModel
                         {
                             ImagePath = extraPath,
                             AdvertisementId = ad.Id
                         });
+
                         extrasCreated++;
                     }
 
@@ -331,9 +376,11 @@ namespace Marketplace.Utility.Seeding
                     if (extrasCreated == 0)
                     {
                         var fallbackExtra = await FetchImageWithChainAsync(title, categoryName, ct);
+
                         if (fallbackExtra != null)
                         {
                             var extraPath = await Helper.SaveImageAsync(fallbackExtra, "advertisements", env);
+
                             if (extraPath != null)
                             {
                                 context.AdvertisementImages.Add(new AdvertisementImageModel
@@ -349,12 +396,14 @@ namespace Marketplace.Utility.Seeding
 
                     // Verify at least 2 images total
                     var totalImages = 1 + await context.AdvertisementImages.CountAsync(a => a.AdvertisementId == ad.Id, ct);
+
                     if (totalImages < 2)
                     {
                         _logger.LogWarning("Ad '{Title}' ended with only {Count} images, this should not happen", title, totalImages);
                     }
 
                     created++;
+
                     if (created % 5 == 0)
                     {
                         Console.WriteLine($"  ...{created} demo ads created so far.");
@@ -366,6 +415,7 @@ namespace Marketplace.Utility.Seeding
                     var msg = $"Failed to create demo ad #{i + 1}: {ex.GetType().Name}: {ex.Message}";
                     Console.Error.WriteLine(msg);
                     _logger.LogError(ex, "Failed to create demo ad #{Index}", i + 1);
+
                     // Continue to next ad instead of aborting whole batch
                 }
             }
@@ -379,15 +429,18 @@ namespace Marketplace.Utility.Seeding
             return created;
         }
 
+        // Makes sure the demo users exist and have the right roles.
         private async Task<List<ApplicationUser>> EnsureDemoUsersAsync(CancellationToken ct)
         {
             var result = new List<ApplicationUser>();
+
             using var scope = _scopeFactory.CreateScope();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             foreach (var name in DemoUsers)
             {
                 var user = await userManager.FindByNameAsync(name);
+
                 if (user == null)
                 {
                     user = new ApplicationUser
@@ -396,22 +449,32 @@ namespace Marketplace.Utility.Seeding
                         Email = $"{name}@example.com",
                         EmailConfirmed = true
                     };
+
                     var createResult = await userManager.CreateAsync(user, DemoPassword);
+
                     if (!createResult.Succeeded)
                     {
                         Console.WriteLine($"Could not create demo user '{name}': {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+
                         continue;
                     }
+
                     user = await userManager.FindByNameAsync(name);
                 }
-                if (user == null) continue;
+
+                if (user == null)
+                {
+                    continue;
+                }
 
                 var role = PremiumUsers.Contains(name) ? Helper.PremiumRole : Helper.SellerRole;
+
                 try
                 {
                     if (!await userManager.IsInRoleAsync(user, role))
                     {
                         var roleResult = await userManager.AddToRoleAsync(user, role);
+
                         if (!roleResult.Succeeded)
                         {
                             Console.WriteLine($"Could not add role '{role}' to demo user '{name}': {string.Join(", ", roleResult.Errors.Select(e => e.Description))}. Run 'dotnet run -- setup' first.");
@@ -423,27 +486,36 @@ namespace Marketplace.Utility.Seeding
                     Console.WriteLine($"Could not add role '{role}' to demo user '{name}': {ex.Message}. Run 'dotnet run -- setup' first to create roles.");
                     _logger.LogWarning(ex, "Missing role {Role} for demo user {User}", role, name);
                 }
+
                 result.Add(user);
             }
 
             return result;
         }
 
+        // Picks the best image keyword for a title and category.
         private string GetKeyword(string title, string categoryName)
         {
             if (!string.IsNullOrEmpty(title) && TitleKeywords.TryGetValue(title, out var titleKw))
+            {
                 return titleKw;
+            }
+
             if (CategoryKeywords.TryGetValue(categoryName, out var catKw))
             {
                 var lockPreview = _imageLock;
+
                 return catKw[lockPreview % catKw.Length];
             }
+
             return categoryName.ToLowerInvariant()
                 .Replace(" & ", "-")
                 .Replace(" ", "-")
                 .Replace("/", "-");
         }
 
+        // Tries each image provider in order until one returns bytes.
+        // Wraps the bytes as an IFormFile for the Helper save method.
         private async Task<IFormFile?> FetchImageWithChainAsync(string title, string categoryName, CancellationToken ct)
         {
             var keyword = GetKeyword(title, categoryName);
@@ -453,20 +525,27 @@ namespace Marketplace.Utility.Seeding
             foreach (var providerName in orderedProviders)
             {
                 var provider = ResolveProvider(providerName);
+
                 if (provider == null)
                 {
                     _logger.LogWarning("Image provider '{Name}' not registered, skipping", providerName);
+
                     continue;
                 }
 
                 try
                 {
                     var bytes = await provider.FetchAsync(keyword, lockId, ct);
+
                     if (bytes != null && bytes.Length > 0)
                     {
                         if (provider.Name != "LocalFallback")
+                        {
                             _logger.LogDebug("Image for '{Title}' [{Category}] fetched via {Provider} with keyword '{Keyword}'", title, categoryName, provider.Name, keyword);
+                        }
+
                         var safeName = string.IsNullOrEmpty(title) ? categoryName : title;
+
                         return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "Image", $"{safeName}-{lockId}.jpg")
                         {
                             Headers = new HeaderDictionary(),
@@ -493,9 +572,11 @@ namespace Marketplace.Utility.Seeding
             var finalMsg = $"All image providers failed for ad '{title}' [{categoryName}] keyword '{keyword}' lock {lockId}";
             Console.Error.WriteLine(finalMsg);
             _logger.LogError(finalMsg);
+
             return null;
         }
 
+        // Finds the provider instance by name from DI.
         private IImageProvider? ResolveProvider(string name)
         {
             return name.ToLowerInvariant() switch
@@ -508,28 +589,44 @@ namespace Marketplace.Utility.Seeding
             };
         }
 
+        // Returns the provider order from env var, config, or defaults.
         private string[] GetOrderedProviders()
         {
             // Env var takes precedence for easy switching: DEMO_IMAGE_PROVIDERS=LoremFlickr,Picsum
             var env = Environment.GetEnvironmentVariable("DEMO_IMAGE_PROVIDERS");
+
             if (!string.IsNullOrWhiteSpace(env))
             {
                 var parts = env.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (parts.Length > 0) return FilterProvidersForEnv(parts);
+
+                if (parts.Length > 0)
+                {
+                    return FilterProvidersForEnv(parts);
+                }
             }
 
             var configProviders = _config.GetSection("DemoSeeding:ImageProviders").Get<string[]>();
-            if (configProviders != null && configProviders.Length > 0) return FilterProvidersForEnv(configProviders);
+
+            if (configProviders != null && configProviders.Length > 0)
+            {
+                return FilterProvidersForEnv(configProviders);
+            }
 
             return FilterProvidersForEnv(["LoremFlickr", "Unsplash", "Picsum", "LocalFallback"]);
         }
 
+        // Removes LocalFallback when not in Development.
         private string[] FilterProvidersForEnv(string[] providers)
         {
-            if (_hostEnv.IsDevelopment()) return providers;
+            if (_hostEnv.IsDevelopment())
+            {
+                return providers;
+            }
+
             return providers.Where(p => !p.Equals("LocalFallback", StringComparison.OrdinalIgnoreCase)).ToArray();
         }
 
+        // Ensures local fallback images exist in dev so offline seeding still works.
         private async Task EnsureFallbackImagesExistAsync(CancellationToken ct)
         {
             var fallbackDir = Path.Combine(_webEnv.WebRootPath, "seed-fallback");
@@ -537,9 +634,17 @@ namespace Marketplace.Utility.Seeding
 
             byte[]? plusBytes = null;
             var plusPath = Path.Combine(_webEnv.WebRootPath, "plusSign.png");
+
             if (File.Exists(plusPath))
             {
-                try { plusBytes = await File.ReadAllBytesAsync(plusPath, ct); } catch { plusBytes = null; }
+                try
+                {
+                    plusBytes = await File.ReadAllBytesAsync(plusPath, ct);
+                }
+                catch
+                {
+                    plusBytes = null;
+                }
             }
 
             var categoryToFile = new Dictionary<string, string>
@@ -556,40 +661,65 @@ namespace Marketplace.Utility.Seeding
             };
 
             var ordered = GetOrderedProviders().Where(p => !p.Equals("LocalFallback", StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (ordered.Length == 0) ordered = ["LoremFlickr", "Picsum"];
+
+            if (ordered.Length == 0)
+            {
+                ordered = ["LoremFlickr", "Picsum"];
+            }
 
             foreach (var kv in categoryToFile)
             {
                 var filePath = Path.Combine(fallbackDir, kv.Value);
                 bool needsGenerate = false;
-                if (!File.Exists(filePath)) needsGenerate = true;
+
+                if (!File.Exists(filePath))
+                {
+                    needsGenerate = true;
+                }
                 else if (plusBytes != null)
                 {
                     try
                     {
                         var existing = await File.ReadAllBytesAsync(filePath, ct);
+
                         if (existing.Length == plusBytes.Length && existing.SequenceEqual(plusBytes))
+                        {
                             needsGenerate = true;
+                        }
                     }
-                    catch { needsGenerate = true; }
+                    catch
+                    {
+                        needsGenerate = true;
+                    }
                 }
 
-                if (!needsGenerate) continue;
+                if (!needsGenerate)
+                {
+                    continue;
+                }
 
                 var title = CategoryContent.TryGetValue(kv.Key, out var cc) ? cc.Titles[0] : kv.Key;
                 var keyword = GetKeyword(title, kv.Key);
                 byte[]? bytes = null;
                 string? usedProvider = null;
+
                 foreach (var providerName in ordered)
                 {
                     var provider = ResolveProvider(providerName);
-                    if (provider == null) continue;
+
+                    if (provider == null)
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         bytes = await provider.FetchAsync(keyword, Random.Shared.Next(1, 100000), ct);
+
                         if (bytes != null && bytes.Length > 0)
                         {
                             usedProvider = provider.Name;
+
                             break;
                         }
                     }
@@ -611,21 +741,35 @@ namespace Marketplace.Utility.Seeding
             }
 
             var genericPath = Path.Combine(fallbackDir, "generic.jpg");
+
             if (!File.Exists(genericPath) || (plusBytes != null && (await File.ReadAllBytesAsync(genericPath, ct)).SequenceEqual(plusBytes)))
             {
                 var keyword = "marketplace";
                 byte[]? bytes = null;
+
                 foreach (var providerName in ordered)
                 {
                     var provider = ResolveProvider(providerName);
-                    if (provider == null) continue;
+
+                    if (provider == null)
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         bytes = await provider.FetchAsync(keyword, Random.Shared.Next(1, 100000), ct);
-                        if (bytes != null && bytes.Length > 0) break;
+
+                        if (bytes != null && bytes.Length > 0)
+                        {
+                            break;
+                        }
                     }
-                    catch { }
+                    catch
+                    {
+                    }
                 }
+
                 if (bytes != null)
                 {
                     await File.WriteAllBytesAsync(genericPath, bytes, ct);
@@ -634,14 +778,22 @@ namespace Marketplace.Utility.Seeding
             }
         }
 
+        // Builds a short friendly description for the ad.
         private static string BuildDescription(string title, string cityName, Random random)
         {
             var condition = ConditionPhrases[random.Next(ConditionPhrases.Length)];
             var baseDesc = $"{title}. {condition} Pick-up preferred in {cityName}, but I can meet somewhere central. Cash on delivery or bank transfer, message me for details.";
+
             if (baseDesc.Length < 20)
+            {
                 baseDesc = baseDesc.PadRight(20, '.');
+            }
+
             if (baseDesc.Length > 250)
+            {
                 baseDesc = baseDesc.Substring(0, 250);
+            }
+
             return baseDesc;
         }
     }

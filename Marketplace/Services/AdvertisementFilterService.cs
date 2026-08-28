@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Services
 {
+    // AdvertisementFilterService - handles filtering and sorting for ad listings.
     public class AdvertisementFilterService
     {
+        // Apply - filters ads by search term, location, category and price range.
         public IQueryable<AdvertisementModel> Apply(
             IQueryable<AdvertisementModel> query,
             string? searchTerm,
@@ -16,6 +18,7 @@ namespace Marketplace.Services
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var term = $"%{searchTerm.Trim()}%";
+
                 query = query.Where(x =>
                     EF.Functions.ILike(x.Title, term) ||
                     EF.Functions.ILike(x.Description, term));
@@ -24,6 +27,7 @@ namespace Marketplace.Services
             if (!string.IsNullOrWhiteSpace(location))
             {
                 var loc = $"%{location.Trim()}%";
+
                 query = query.Where(x => EF.Functions.ILike(x.Location, loc));
             }
 
@@ -32,13 +36,20 @@ namespace Marketplace.Services
                 query = query.Where(x => x.CategoryId == categoryId.Value);
             }
 
+            // Parse price inputs separately so invalid text does not crash.
+
             decimal? min = null;
             decimal? max = null;
 
             if (!string.IsNullOrWhiteSpace(minPriceStr) && decimal.TryParse(minPriceStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var pMin))
+            {
                 min = pMin;
+            }
+
             if (!string.IsNullOrWhiteSpace(maxPriceStr) && decimal.TryParse(maxPriceStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var pMax))
+            {
                 max = pMax;
+            }
 
             if (min.HasValue && max.HasValue && min > max)
             {
@@ -46,16 +57,23 @@ namespace Marketplace.Services
             }
 
             if (min.HasValue)
+            {
                 query = query.Where(x => x.Price >= min.Value);
+            }
+
             if (max.HasValue)
+            {
                 query = query.Where(x => x.Price <= max.Value);
+            }
 
             return query;
         }
 
+        // ApplySorting - orders the query by newest, oldest, cheapest or most expensive.
         public IOrderedQueryable<AdvertisementModel> ApplySorting(IQueryable<AdvertisementModel> query, string filter)
         {
             filter = (filter ?? "new").ToLowerInvariant();
+
             return filter switch
             {
                 "new" => query.OrderByDescending(x => x.DateCreatedOn),

@@ -1,35 +1,45 @@
 ﻿@using Marketplace.Utility
 @model Marketplace.ViewModels.HomeViewModel
+
 @{
     ViewData["Title"] = "Home Page";
 }
 
+@* Main home page layout - shows filters and ad listings *@
 <div>
+    @* Recently browsed strip - filled by JavaScript from local history *@
     <div id="recentlyBrowsedContainer"
          class="hscroll recently-browsed mb-3"
          data-current-user-id="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")"
          hidden>
     </div>
+
+    @* Recommended ads strip - personalized suggestions *@
     <div id="recommendedContainer"
          class="hscroll recs-strip mb-3"
          data-current-user-id="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")"
          hidden>
     </div>
 
+    @* Mobile filters toggle button - shows or hides filters on small screens *@
     <button class="btn btn-outline-secondary d-md-none w-100 mb-2 d-flex align-items-center justify-content-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" style="min-height:44px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="7" cy="6" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg>
         Filters
     </button>
+
+    @* Filters section - search, category, sort, location and price range *@
     <div id="filterCollapse" class="collapse d-md-block">
         <div class="row g-2 align-items-end justify-content-center mb-3">
             <div class="col-12 col-md-5">
                 <input asp-for="SearchTerm" id="searchBar" class="form-control" placeholder="🔍 Search listings" />
             </div>
+
             <div class="col-6 col-md-2">
                 <select id="categoryDropDown" asp-items="@Model.CategoryDropDown" asp-for="CategoryId" class="form-select text-center">
                     <option value="-1">All</option>
                 </select>
             </div>
+
             <div class="col-6 col-md-2">
                 <select id="filterDropDown" asp-for="Filter" class="form-select text-center">
                     <option>New</option>
@@ -38,15 +48,19 @@
                     <option>Most Expensive</option>
                 </select>
             </div>
+
             <div class="col-12 col-md-2">
                 <input id="locationInput" asp-for="Location" class="form-control text-center" placeholder="📍 Location" />
             </div>
+
             <div class="col-6 col-md-2">
                 <input id="minimumPriceInput" asp-for="MinimumPrice" class="form-control text-center" placeholder="Min price (EUR)" type="number" step="0.01" min="0" />
             </div>
+
             <div class="col-6 col-md-2">
                 <input id="maximumPriceInput" asp-for="MaximumPrice" class="form-control text-center" placeholder="Max price (EUR)" type="number" step="0.01" min="0" />
             </div>
+
             <div class="col-12 col-md-2 d-flex gap-2">
                 <a id="searchButton" href="#" class="btn btn-primary fw-semibold flex-grow-1 d-flex align-items-center justify-content-center" aria-label="Search">Go</a>
                 <button type="button" id="clearFiltersButton" class="btn btn-primary fw-semibold flex-shrink-0 d-flex align-items-center justify-content-center" title="Clear filters" aria-label="Clear filters">Clear filters</button>
@@ -54,11 +68,13 @@
         </div>
     </div>
 
+    @* Ad grid container - partial view is swapped via AJAX when filtering *@
     <div id="adGridContainer" class="mt-2" data-page="@Model.PageNumber" data-max-pages="@Model.MaxCountPages">
         <partial name="_AdGrid" model="Model" />
     </div>
 </div>
 
+@* Page scripts - handles search, filtering and pagination without full reload *@
 @section Scripts
 {
     <script defer>
@@ -76,27 +92,69 @@
             const maximumPrice = document.querySelector("#maximumPriceInput").value.trim();
 
             const params = new URLSearchParams();
-            if ((pageNumber ?? 0) > 0) params.set("pageNumber", pageNumber);
-            if (filter && filter !== "New") params.set("filter", filter);
-            if (category && category !== "-1" && category !== "all") params.set("category", category);
-            if (searchTerm) params.set("searchTerm", searchTerm);
-            if (location) params.set("location", location);
-            if (minimumPrice) params.set("minimumPrice", minimumPrice);
-            if (maximumPrice) params.set("maximumPrice", maximumPrice);
+
+            if ((pageNumber ?? 0) > 0)
+            {
+                params.set("pageNumber", pageNumber);
+            }
+
+            if (filter && filter !== "New")
+            {
+                params.set("filter", filter);
+            }
+
+            if (category && category !== "-1" && category !== "all")
+            {
+                params.set("category", category);
+            }
+
+            if (searchTerm)
+            {
+                params.set("searchTerm", searchTerm);
+            }
+
+            if (location)
+            {
+                params.set("location", location);
+            }
+
+            if (minimumPrice)
+            {
+                params.set("minimumPrice", minimumPrice);
+            }
+
+            if (maximumPrice)
+            {
+                params.set("maximumPrice", maximumPrice);
+            }
+
             return params.toString();
         }
 
         async function fetchGrid(pageNumber) {
             const container = document.getElementById("adGridContainer");
             const maxPages = parseInt(container?.dataset.maxPages || "1", 10);
-            if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages)) return;
-            if (currentAbort) currentAbort.abort();
+
+            if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages))
+            {
+                return;
+            }
+
+            if (currentAbort)
+            {
+                currentAbort.abort();
+            }
             currentAbort = new AbortController();
             const query = buildSearchParams(pageNumber);
             const url = "/Home/Search?" + query;
             try {
                 const res = await fetch(url, { signal: currentAbort.signal, headers: { "X-Requested-With": "XMLHttpRequest" } });
-                if (!res.ok) throw new Error(res.statusText);
+
+                if (!res.ok)
+                {
+                    throw new Error(res.statusText);
+                }
+
                 const html = await res.text();
                 container.innerHTML = html;
                 // update data attributes from new pagination if present, else keep
@@ -108,31 +166,60 @@
                 // Update container maxPages after fetch by re-parsing (server will have clamped)
                 // Re-attach maxPages from response: try to find pagination active span
                 const active = temp.querySelector(".pagination-links .active");
-                if (active) {
+
+                if (active)
+                {
                     const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
-                    if (!isNaN(cur)) container.dataset.page = cur;
-                } else {
+
+                    if (!isNaN(cur))
+                    {
+                        container.dataset.page = cur;
+                    }
+                }
+                else
+                {
                     container.dataset.page = pageNumber;
                 }
             } catch (e) {
-                if (e.name !== "AbortError") console.error(e);
+                if (e.name !== "AbortError")
+                {
+                    console.error(e);
+                }
             }
         }
 
         function attachGridHandlers() {
             const container = document.getElementById("adGridContainer");
-            if (!container) return;
+
+            if (!container)
+            {
+                return;
+            }
+
             container.addEventListener("click", function (e) {
                 const link = e.target.closest("a[data-page]");
-                if (!link) return;
-                if (link.classList.contains("disabled") || link.getAttribute("aria-disabled")==="true") {
+
+                if (!link)
+                {
+                    return;
+                }
+
+                if (link.classList.contains("disabled") || link.getAttribute("aria-disabled") === "true")
+                {
                     e.preventDefault();
                     return;
                 }
+
                 e.preventDefault();
+
                 const page = parseInt(link.getAttribute("data-page"), 10);
                 const maxPages = parseInt(container.dataset.maxPages || "1", 10);
-                if (isNaN(page) || page < 0 || (maxPages>0 && page >= maxPages)) return;
+
+                if (isNaN(page) || page < 0 || (maxPages > 0 && page >= maxPages))
+                {
+                    return;
+                }
+
                 fetchGrid(page);
             });
 
@@ -142,26 +229,60 @@
             // browser fires `click` for primary-button activations only.
             container.addEventListener("click", function (e) {
                 const card = e.target.closest("a[data-recent-ad]");
-                if (!card) return;
-                if (!window.RecentlyViewed) return;
+
+                if (!card)
+                {
+                    return;
+                }
+
+                if (!window.RecentlyViewed)
+                {
+                    return;
+                }
+
                 var raw = card.getAttribute("data-recent-ad");
-                if (!raw) return;
+
+                if (!raw)
+                {
+                    return;
+                }
+
                 try {
                     var ad = JSON.parse(raw);
                     window.RecentlyViewed.record(ad);
-                } catch (_) { /* malformed payload - skip */ }
+                } catch (_) {
+                    // malformed payload - skip
+                }
             });
 
             // Also record from Recommended strip (same card shape, same delegation target)
             var recContainer = document.getElementById("recommendedContainer");
-            if (recContainer) {
+
+            if (recContainer)
+            {
                 recContainer.addEventListener("click", function (e) {
                     var card = e.target.closest("a[data-recent-ad]");
-                    if (!card) return;
-                    if (!window.RecentlyViewed) return;
+
+                    if (!card)
+                    {
+                        return;
+                    }
+
+                    if (!window.RecentlyViewed)
+                    {
+                        return;
+                    }
+
                     var raw = card.getAttribute("data-recent-ad");
-                    if (!raw) return;
-                    try { window.RecentlyViewed.record(JSON.parse(raw)); } catch (_) {}
+
+                    if (!raw)
+                    {
+                        return;
+                    }
+
+                    try {
+                        window.RecentlyViewed.record(JSON.parse(raw));
+                    } catch (_) {}
                 });
             }
         }
@@ -171,66 +292,126 @@
 
             // Render the horizontal strips on initial load.
             var recentEl = document.getElementById("recentlyBrowsedContainer");
-            if (recentEl && window.RecentlyViewed) {
+
+            if (recentEl && window.RecentlyViewed)
+            {
                 window.RecentlyViewed.render(recentEl);
             }
+
             var recEl = document.getElementById("recommendedContainer");
-            if (recEl && window.Recommended) {
+
+            if (recEl && window.Recommended)
+            {
                 window.Recommended.render(recEl);
-            } else if (recEl && window.RecentlyViewed) {
+            }
+            else if (recEl && window.RecentlyViewed)
+            {
                 // Recommended script may not have loaded yet; retry shortly
                 setTimeout(function () {
-                    if (window.Recommended) window.Recommended.render(recEl);
+                    if (window.Recommended)
+                    {
+                        window.Recommended.render(recEl);
+                    }
                 }, 300);
             }
 
             document.getElementById("searchButton").addEventListener("click", function (e) {
                 e.preventDefault();
+
                 clearTimeout(searchDebounce);
-                if (currentAbort) currentAbort.abort();
+
+                if (currentAbort)
+                {
+                    currentAbort.abort();
+                }
+
                 fetchGrid(0);
             });
 
             const clearFiltersButton = document.getElementById("clearFiltersButton");
-            if (clearFiltersButton) {
+
+            if (clearFiltersButton)
+            {
                 clearFiltersButton.addEventListener("click", function () {
                     ["searchBar", "locationInput", "minimumPriceInput", "maximumPriceInput"].forEach(id => {
                         const el = document.getElementById(id);
-                        if (el) el.value = "";
+
+                        if (el)
+                        {
+                            el.value = "";
+                        }
                     });
+
                     const categoryDropDown = document.getElementById("categoryDropDown");
-                    if (categoryDropDown) categoryDropDown.value = "-1";
+
+                    if (categoryDropDown)
+                    {
+                        categoryDropDown.value = "-1";
+                    }
+
                     const filterDropDown = document.getElementById("filterDropDown");
-                    if (filterDropDown && filterDropDown.options.length) filterDropDown.selectedIndex = 0;
+
+                    if (filterDropDown && filterDropDown.options.length)
+                    {
+                        filterDropDown.selectedIndex = 0;
+                    }
+
                     clearTimeout(searchDebounce);
-                    if (currentAbort) currentAbort.abort();
+
+                    if (currentAbort)
+                    {
+                        currentAbort.abort();
+                    }
+
                     fetchGrid(0);
                 });
             }
 
             const enterHandler = function (e) {
-                if (e.key === "Enter") {
+                if (e.key === "Enter")
+                {
                     e.preventDefault();
+
                     clearTimeout(searchDebounce);
-                    if (currentAbort) currentAbort.abort();
+
+                    if (currentAbort)
+                    {
+                        currentAbort.abort();
+                    }
+
                     fetchGrid(0);
                 }
             };
+
             ["searchBar", "locationInput", "minimumPriceInput", "maximumPriceInput"].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.addEventListener("keyup", enterHandler);
+
+                if (el)
+                {
+                    el.addEventListener("keyup", enterHandler);
+                }
             });
 
             document.getElementById("searchBar").addEventListener("keyup", function (e) {
-                if (e.key === "Enter") return;
+                if (e.key === "Enter")
+                {
+                    return;
+                }
+
                 clearTimeout(searchDebounce);
                 searchDebounce = setTimeout(() => fetchGrid(0), 400);
             });
 
             ["categoryDropDown", "filterDropDown", "locationInput", "minimumPriceInput", "maximumPriceInput"].forEach(id => {
                 const el = document.getElementById(id);
-                if (!el) return;
+
+                if (!el)
+                {
+                    return;
+                }
+
                 const evt = el.tagName === "SELECT" ? "change" : "input";
+
                 el.addEventListener(evt, function () {
                     clearTimeout(searchDebounce);
                     searchDebounce = setTimeout(() => fetchGrid(0), el.tagName === "SELECT" ? 0 : 400);
@@ -241,15 +422,47 @@
                 const params = new URLSearchParams(location.search);
                 const p = parseInt(params.get("pageNumber") || "0", 10);
                 const maxPages = parseInt(document.getElementById("adGridContainer")?.dataset.maxPages || "1", 10);
-                if (!isNaN(p) && p >=0 && (maxPages===0 || p < maxPages)) fetchGrid(p);
-                else fetchGrid(0);
+
+                if (!isNaN(p) && p >= 0 && (maxPages === 0 || p < maxPages))
+                {
+                    fetchGrid(p);
+                }
+                else
+                {
+                    fetchGrid(0);
+                }
             });
         });
 
-        function backArrow(arrowElement, isBackArrow) { return false; }
-        function changePage() { return false; }
-        function searchFor() { fetchGrid(0); return false; }
-        function getSearchQuery() { return buildSearchParams(0); }
-        function isNullOrWhitespace(input) { if (typeof input === 'undefined' || input == null) return true; return input.replace(/\s/g, '').length < 1; }
+        function backArrow(arrowElement, isBackArrow)
+        {
+            return false;
+        }
+
+        function changePage()
+        {
+            return false;
+        }
+
+        function searchFor()
+        {
+            fetchGrid(0);
+            return false;
+        }
+
+        function getSearchQuery()
+        {
+            return buildSearchParams(0);
+        }
+
+        function isNullOrWhitespace(input)
+        {
+            if (typeof input === 'undefined' || input == null)
+            {
+                return true;
+            }
+
+            return input.replace(/\s/g, '').length < 1;
+        }
     </script>
 }

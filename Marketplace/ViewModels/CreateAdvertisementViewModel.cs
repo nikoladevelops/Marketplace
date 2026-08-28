@@ -4,20 +4,21 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.ViewModels
 {
+    // View model for creating a new ad.
     public class CreateAdvertisementViewModel
     {
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Primary image is required.")]
-        public IFormFile Image { get; set; }
+        public IFormFile Image { get; set; } = null!;
 
         [Required]
-        [StringLength(35,MinimumLength = 3)]
-        public string Title { get; set; }
+        [StringLength(35, MinimumLength = 3)]
+        public string Title { get; set; } = "";
 
         [Required]
         [StringLength(250, MinimumLength = 20)]
-        public string Description { get; set; }
+        public string Description { get; set; } = "";
 
         [Required]
         [Range(1, 1000000)]
@@ -27,9 +28,10 @@ namespace Marketplace.ViewModels
 
         [Required(ErrorMessage = "You need to specify where you are located.")]
         [StringLength(100, MinimumLength = 2)]
-        public string Location { get; set; }
+        public string Location { get; set; } = "";
 
         public double? Latitude { get; set; }
+
         public double? Longitude { get; set; }
 
         [Required(ErrorMessage = "You need to select a category.")]
@@ -38,8 +40,11 @@ namespace Marketplace.ViewModels
 
         public IEnumerable<SelectListItem>? CategoryDropDown { get; set; }
 
+        // Optional extra images
         public IFormFile? AdditionalImage1 { get; set; }
+
         public IFormFile? AdditionalImage2 { get; set; }
+
         public IFormFile? AdditionalImage3 { get; set; }
     }
 }

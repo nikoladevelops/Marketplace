@@ -3,18 +3,24 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.ViewModels
 {
+    // View model for editing your own profile.
     public class MyProfileViewModel
     {
+        // New picture upload
         public IFormFile? ProfilePicture { get; set; }
+
+        // Keep the old one if no new upload
         public string? ExistingProfilePicturePath { get; set; }
 
         [StringLength(250)]
         public string? Description { get; set; }
 
-        // New opt-in flags: default hidden (false). Keep PhoneNumberAgreement as obsolete shim.
+        // Privacy toggles - hidden by default
         public bool ShowPhone { get; set; } = false;
+
         public bool ShowEmail { get; set; } = false;
 
+        // Old name for ShowPhone, kept so older forms still work
         [Obsolete("Use ShowPhone")]
         public bool PhoneNumberAgreement
         {

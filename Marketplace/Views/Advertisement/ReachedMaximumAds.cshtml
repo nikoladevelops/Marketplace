@@ -1,6 +1,9 @@
 ﻿@using Marketplace.Utility
+
+@* Reached limit page - friendly message when user hits ad quota *@
 <div class="container py-5 text-center">
     <h3 class="fw-bold mb-3">You have reached the maximum amount of ads for your account!</h3>
+
     @if (User.IsInRole(Helper.PremiumRole))
     {
         <p class="text-muted mb-0">Consider deleting some of your old advertisements.</p>

@@ -5,6 +5,7 @@
 
 @{
     int unreadCount = 0;
+
     if (_signInManager.IsSignedIn(User))
     {
         var meId = _userManager.GetUserId(User);
@@ -12,15 +13,18 @@
     }
 }
 
+@* Main navigation links - adapts based on sign in state *@
 <ul class="navbar-nav flex-grow-1">
     <li class="nav-item">
         <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
     </li>
+
     @if (_signInManager.IsSignedIn(User))
     {
         <li class="nav-item">
             <a class="nav-link" asp-controller="Account" asp-action="Profile" asp-route-username="@User.Identity?.Name">My Profile</a>
         </li>
+
         <li class="nav-item" id="navbarMessagesItem">
             <a id="navbarMessagesLink" class="nav-link d-flex align-items-center gap-1 position-relative" asp-area="" asp-controller="Chat" asp-action="Inbox" data-unread="@unreadCount" data-username="@User.Identity?.Name">
                 💬 Messages
@@ -28,7 +32,7 @@
             </a>
         </li>
 
-        if (User.IsInRole(Helper.AdminRole))
+        @if (User.IsInRole(Helper.AdminRole))
         {
             <li class="nav-item">
                 <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="AdminPanel">Admin Panel</a>
@@ -37,10 +41,12 @@
     }
 </ul>
 
+@* User account area - shows username and logout or register/login *@
 @if (_signInManager.IsSignedIn(User))
 {
     <div class="navbar-user-cluster mt-2 mt-md-0">
         <span class="navbar-username text-muted fw-medium" title="@(User.Identity?.Name ?? "")">@(User.Identity?.Name ?? "")</span>
+
         <ul class="navbar-nav flex-column flex-md-row align-items-md-center gap-md-2">
             <li class="nav-item">
                 <form asp-action="LogOut" asp-controller="Account" class="m-0">
@@ -49,7 +55,6 @@
             </li>
         </ul>
     </div>
-
 }
 else
 {
@@ -57,6 +62,7 @@ else
         <li class="nav-item">
             <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Register">Register</a>
         </li>
+
         <li class="nav-item">
             <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
         </li>

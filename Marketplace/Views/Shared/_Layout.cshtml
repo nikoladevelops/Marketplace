@@ -14,7 +14,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
 
-    <!-- Apply saved theme before first paint to avoid flashing -->
+    @* Apply saved theme before first paint to avoid flashing *@
     <script>
         (function () {
             var saved = localStorage.getItem("theme");
@@ -23,28 +23,35 @@
     </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
+    @* Top navigation bar with brand, links and theme toggle *@
     <header>
         <nav class="navbar navbar-expand-md navbar-toggleable-md border-bottom box-shadow mb-3 sticky-top">
             <div class="container-fluid position-relative">
                 <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index"><img src="~/img/brand.svg" alt="" width="28" height="28" class="brand-icon" /> Marketplace</a>
+
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-md-flex justify-content-between align-items-center">
                     <partial name="_LogInOrRegisterPartial" />
+
                     <button id="themeToggle" type="button" class="theme-toggle ms-md-2 d-flex align-items-center justify-content-center gap-2"
                             onclick="toggleTheme()" title="Switch between light and dark mode"><span id="themeToggleIcon">🌙</span><span id="themeToggleText">Dark mode</span></button>
                 </div>
             </div>
         </nav>
     </header>
+
+    @* Main content area - each view renders inside here *@
     <main role="main" class="flex-grow-1 pb-3">
         <div class="container">
             @RenderBody()
         </div>
     </main>
 
+    @* Footer with helpful links and branding *@
     <footer class="site-footer border-top text-muted mt-4">
         <div class="container py-4">
             <div class="site-footer-grid">
@@ -55,6 +62,7 @@
                     </a>
                     <p class="small mb-0 mt-2">Buy and sell locally. Discover listings, chat with sellers, and list your own in minutes.</p>
                 </div>
+
                 <div class="site-footer-col">
                     <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">Browse</h6>
                     <ul class="list-unstyled m-0 d-flex flex-column gap-1">
@@ -63,6 +71,7 @@
                         <li><a asp-controller="Chat" asp-action="Inbox" class="site-footer-link">Inbox</a></li>
                     </ul>
                 </div>
+
                 <div class="site-footer-col">
                     <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">Support</h6>
                     <ul class="list-unstyled m-0 d-flex flex-column gap-1">
@@ -71,6 +80,7 @@
                         <li><a asp-controller="Home" asp-action="Index" class="site-footer-link">Report a problem</a></li>
                     </ul>
                 </div>
+
                 <div class="site-footer-col">
                     <h6 class="site-footer-heading text-uppercase small fw-semibold text-body mb-2">About</h6>
                     <ul class="list-unstyled m-0 d-flex flex-column gap-1">
@@ -80,22 +90,26 @@
                     </ul>
                 </div>
             </div>
+
             <div class="site-footer-bottom d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 mt-3 border-top">
                 <small>&copy; @DateTime.UtcNow.Year Marketplace &middot; Built with care</small>
             </div>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/horizontalScroller.js" asp-append-version="true"></script>
     <script src="~/js/recentlyViewed.js" asp-append-version="true"></script>
     <script src="~/js/recommendedAds.js" asp-append-version="true"></script>
+
     @if (User.Identity?.IsAuthenticated == true)
     {
         <script src="~/lib/signalr/dist/browser/signalr.min.js"></script>
         <script src="~/js/navbarMessages.js" asp-append-version="true"></script>
     }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

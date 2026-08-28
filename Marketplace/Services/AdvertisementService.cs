@@ -9,6 +9,7 @@ using System.Security.Claims;
 
 namespace Marketplace.Services
 {
+    // AdvertisementService - does CRUD for ads, images and listing pages.
     public class AdvertisementService
     {
         public const int SellerMaxAds = 20;
@@ -18,28 +19,37 @@ namespace Marketplace.Services
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
+        // AdvertisementService - set up DB and file hosting.
         public AdvertisementService(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // LoadCategoryDropDown - get categories for the create/edit dropdown.
         public IEnumerable<SelectListItem> LoadCategoryDropDown() =>
             _context.Categories
                 .OrderBy(x => x.Name)
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString()))
                 .ToList();
 
+        // HasReachedMaxAds - checks if user hit their ad limit.
         public bool HasReachedMaxAds(string userId, bool isPremium)
         {
             var count = _context.Advertisements.Count(x => x.UserId == userId);
             var max = isPremium ? PremiumMaxAds : SellerMaxAds;
+
             return count >= max;
         }
 
+        // PrepareCreateViewModelAsync - gets an empty create form or null if limit reached.
         public async Task<CreateAdvertisementViewModel?> PrepareCreateViewModelAsync(string userId, bool isPremium)
         {
-            if (HasReachedMaxAds(userId, isPremium)) return null;
+            if (HasReachedMaxAds(userId, isPremium))
+            {
+                return null;
+            }
+
             return new CreateAdvertisementViewModel
             {
                 CategoryDropDown = LoadCategoryDropDown()
@@ -53,18 +63,24 @@ namespace Marketplace.Services
             MaxAdsReached
         }
 
+        // CreateAsync - makes a new ad after checking limits and saving images.
         public async Task<(CreateValidation Result, CreateAdvertisementViewModel? ViewModel)> CreateAsync(
             CreateAdvertisementViewModel viewModel,
             string ownerId,
             bool isPremium,
             CancellationToken cancellationToken)
         {
-            if (HasReachedMaxAds(ownerId, isPremium)) return (CreateValidation.MaxAdsReached, null);
+            if (HasReachedMaxAds(ownerId, isPremium))
+            {
+                return (CreateValidation.MaxAdsReached, null);
+            }
 
             if (viewModel.CategoryId != -1 && !await _context.Categories.AnyAsync(c => c.Id == viewModel.CategoryId, cancellationToken))
             {
                 return (CreateValidation.CategoryInvalid, viewModel);
             }
+
+            // Save main image first.
 
             var mainImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
 
@@ -85,12 +101,16 @@ namespace Marketplace.Services
             await _context.Advertisements.AddAsync(ad, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
+            // Save up to three extra images.
+
             var additionalFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
+
             foreach (var img in additionalFiles)
             {
                 if (img != null && img.Length > 0)
                 {
                     var additionalPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment);
+
                     _context.AdvertisementImages.Add(new AdvertisementImageModel
                     {
                         ImagePath = additionalPath,
@@ -98,11 +118,13 @@ namespace Marketplace.Services
                     });
                 }
             }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return (CreateValidation.Ok, null);
         }
 
+        // PrepareEditViewModelAsync - loads existing ad for editing if owner or admin.
         public async Task<EditAdvertisementViewModel?> PrepareEditViewModelAsync(int id, string requesterId, bool isAdmin)
         {
             var ad = await _context.Advertisements
@@ -122,7 +144,10 @@ namespace Marketplace.Services
                 })
                 .FirstOrDefaultAsync();
 
-            if (ad == null || (requesterId != ad.UserId && !isAdmin)) return null;
+            if (ad == null || (requesterId != ad.UserId && !isAdmin))
+            {
+                return null;
+            }
 
             var additionalImages = await _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
@@ -132,10 +157,15 @@ namespace Marketplace.Services
                 .ToListAsync();
 
             var paths = new List<string> { "", "", "" };
-            for (var i = 0; i < additionalImages.Count; i++) paths[i] = additionalImages[i];
+
+            for (var i = 0; i < additionalImages.Count; i++)
+            {
+                paths[i] = additionalImages[i];
+            }
 
             ad.CategoryDropDown = LoadCategoryDropDown();
             ad.ExistingAdditionalImagePaths = paths;
+
             return ad;
         }
 
@@ -146,6 +176,7 @@ namespace Marketplace.Services
             CategoryInvalid
         }
 
+        // UpdateAsync - updates an ad and handles image add, replace or remove per slot.
         public async Task<EditValidation> UpdateAsync(
             EditAdvertisementViewModel model,
             string requesterId,
@@ -153,28 +184,40 @@ namespace Marketplace.Services
             CancellationToken cancellationToken)
         {
             if (model.Image == null && string.IsNullOrEmpty(model.ExistingImagePath))
+            {
                 return EditValidation.ImageMissing;
+            }
 
             if (model.CategoryId != -1 && !await _context.Categories.AnyAsync(c => c.Id == model.CategoryId, cancellationToken))
+            {
                 return EditValidation.CategoryInvalid;
+            }
 
             var ad = await _context.Advertisements
                 .Include(x => x.AdvertisementImages)
                 .FirstOrDefaultAsync(x => x.Id == model.Id, cancellationToken);
 
-            if (ad == null || (requesterId != ad.UserId && !isAdmin)) return EditValidation.CategoryInvalid; // treat as invalid
+            if (ad == null || (requesterId != ad.UserId && !isAdmin))
+            {
+                return EditValidation.CategoryInvalid;
+            }
 
-            // 1. Main image
+            // 1. Handle main image.
+
             if (model.Image != null)
             {
                 Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
                 ad.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
             }
             else if (string.IsNullOrEmpty(model.ExistingImagePath))
             {
                 Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
                 ad.ImagePath = null;
             }
+
+            // Update text fields and coords.
 
             ad.Title = model.Title;
             ad.Description = model.Description;
@@ -184,9 +227,15 @@ namespace Marketplace.Services
             ad.Longitude = SanitizeCoordinate(model.Longitude, -180, 180);
             ad.CategoryId = model.CategoryId;
 
-            // 2. Slot-by-slot additional images
+            // 2. Handle additional images slot by slot.
+
             var newFiles = new[] { model.AdditionalImage1, model.AdditionalImage2, model.AdditionalImage3 };
-            model.ExistingAdditionalImagePaths ??= new List<string> { "", "", "" };
+
+            if (model.ExistingAdditionalImagePaths == null)
+            {
+                model.ExistingAdditionalImagePaths = new List<string> { "", "", "" };
+            }
+
             var orderedExisting = ad.AdvertisementImages.OrderBy(x => x.Id).ToList();
 
             for (var i = 0; i < MaxAdditionalImages; i++)
@@ -200,11 +249,13 @@ namespace Marketplace.Services
                     if (dbImage != null)
                     {
                         Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+
                         dbImage.ImagePath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
                     }
                     else
                     {
                         var addPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+
                         _context.AdvertisementImages.Add(new AdvertisementImageModel
                         {
                             ImagePath = addPath,
@@ -217,15 +268,18 @@ namespace Marketplace.Services
                     if (dbImage != null)
                     {
                         Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+
                         _context.AdvertisementImages.Remove(dbImage);
                     }
                 }
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+
             return EditValidation.Ok;
         }
 
+        // DeleteAsync - removes ad and its images if owner or admin.
         public async Task<DeleteResult> DeleteAsync(int id, string requesterId, bool isAdmin, CancellationToken cancellationToken)
         {
             var ad = await _context.Advertisements
@@ -233,14 +287,25 @@ namespace Marketplace.Services
                 .Include(x => x.AdvertisementImages)
                 .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-            if (ad == null) return new DeleteResult(DeleteOutcome.NotFound, null);
-            if (requesterId != ad.UserId && !isAdmin) return new DeleteResult(DeleteOutcome.NotFound, null);
+            if (ad == null)
+            {
+                return new DeleteResult(DeleteOutcome.NotFound, null);
+            }
+
+            if (requesterId != ad.UserId && !isAdmin)
+            {
+                return new DeleteResult(DeleteOutcome.NotFound, null);
+            }
 
             Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
             foreach (var img in ad.AdvertisementImages)
+            {
                 Helper.DeleteImage(img.ImagePath, _webHostEnvironment);
+            }
 
             _context.Advertisements.Remove(ad);
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return new DeleteResult(DeleteOutcome.Deleted, ad.User.UserName);
@@ -249,6 +314,7 @@ namespace Marketplace.Services
         public enum DeleteOutcome { Deleted, NotFound }
         public record DeleteResult(DeleteOutcome Outcome, string? OwnerUsername);
 
+        // GetShowViewModelAsync - builds the detail page with contact visibility.
         public async Task<ShowAdvertisementViewModel?> GetShowViewModelAsync(int id, ClaimsPrincipal viewer)
         {
             var ad = await _context.Advertisements
@@ -269,7 +335,10 @@ namespace Marketplace.Services
                 })
                 .FirstOrDefaultAsync();
 
-            if (ad == null) return null;
+            if (ad == null)
+            {
+                return null;
+            }
 
             var additionalImages = await _context.AdvertisementImages
                 .Where(x => x.AdvertisementId == id)
@@ -285,6 +354,7 @@ namespace Marketplace.Services
                 .Where(x => x.Id == int.Parse(ad.CategoryName))
                 .Select(x => x.Name)
                 .SingleAsync();
+
             ad.AdditionalImagePaths = additionalImages;
             ad.UserName = adOwnerData.UserName ?? "";
             ad.ProfilePicturePath = adOwnerData.ProfilePicturePath;
@@ -299,8 +369,10 @@ namespace Marketplace.Services
                 ShowEmail = adOwnerData.ShowEmail,
                 ShowPhone = adOwnerData.ShowPhone
             };
+
             var phoneView = ContactVisibilityHelper.ResolvePhone(ownerForVisibility, viewer);
             var emailView = ContactVisibilityHelper.ResolveEmail(ownerForVisibility, viewer);
+
             ad.DisplayPhone = phoneView.Display;
             ad.CanViewPhone = phoneView.CanView;
             ad.IsCensoredPhone = phoneView.IsCensored;
@@ -314,9 +386,14 @@ namespace Marketplace.Services
             return ad;
         }
 
+        // SanitizeCoordinate - keeps coords in range or returns null if bad.
         private static double? SanitizeCoordinate(double? value, double min, double max)
         {
-            if (value == null || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) return null;
+            if (value == null || double.IsNaN(value.Value) || double.IsInfinity(value.Value))
+            {
+                return null;
+            }
+
             return value.Value >= min && value.Value <= max ? value.Value : null;
         }
     }

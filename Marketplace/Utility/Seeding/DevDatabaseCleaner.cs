@@ -8,11 +8,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Marketplace.Utility.Seeding
 {
-    /// <summary>
-    /// Destructive helper for local development only. Wipes advertisements, images,
-    /// chat, blocks, users, roles, categories and uploaded files. Refuses to run
-    /// outside Development. Requires <c>--force</c>.
-    /// </summary>
+    // Cleans the dev database completely. Dev only, needs --force.
+    // Removes ads, images, chat, blocks, users, roles, categories and uploaded files.
     public class DevDatabaseCleaner
     {
         private readonly IServiceScopeFactory _scopeFactory;
@@ -20,6 +17,7 @@ namespace Marketplace.Utility.Seeding
         private readonly IWebHostEnvironment _webEnv;
         private readonly ILogger<DevDatabaseCleaner> _logger;
 
+        // Creates the cleaner with environment and logging info.
         public DevDatabaseCleaner(
             IServiceScopeFactory scopeFactory,
             IHostEnvironment env,
@@ -32,21 +30,22 @@ namespace Marketplace.Utility.Seeding
             _logger = logger;
         }
 
-        /// <summary>
-        /// Purges the dev database. Returns exit code: 0 success, 2 blocked (wrong env or missing --force).
-        /// </summary>
+        // Wipes the dev database and optionally reseeds it.
+        // Returns 0 on success, 2 if blocked.
         public async Task<int> PurgeAsync(bool force, bool reseed, CancellationToken ct = default)
         {
             if (!_env.IsDevelopment())
             {
                 Console.Error.WriteLine("Refusing to purge: not in Development (ASPNETCORE_ENVIRONMENT != Development). This command is dev-only.");
                 _logger.LogWarning("DevDatabaseCleaner blocked: environment is {Env}, not Development.", _env.EnvironmentName);
+
                 return 2;
             }
 
             if (!force)
             {
                 Console.Error.WriteLine("Refusing to purge: add --force to confirm. Example: dotnet run -- db:reset --force");
+
                 return 2;
             }
 
@@ -72,6 +71,7 @@ namespace Marketplace.Utility.Seeding
             await TryDeleteAsync(db, "\"ChatMessages\"", ct);
             await TryDeleteAsync(db, "\"UserBlocks\"", ct);
             await TryDeleteAsync(db, "\"Advertisements\"", ct);
+
             // Identity tables
             await TryDeleteAsync(db, "\"AspNetUserRoles\"", ct);
             await TryDeleteAsync(db, "\"AspNetUserClaims\"", ct);
@@ -81,6 +81,7 @@ namespace Marketplace.Utility.Seeding
             await TryDeleteAsync(db, "\"AspNetRoleClaims\"", ct);
             await TryDeleteAsync(db, "\"AspNetRoles\"", ct);
             await TryDeleteAsync(db, "\"Categories\"", ct);
+
             // DataProtectionKeys: keep table but clear rows so cookies are invalidated cleanly
             await TryDeleteAsync(db, "\"DataProtectionKeys\"", ct);
 
@@ -107,10 +108,16 @@ namespace Marketplace.Utility.Seeding
                 Path.Combine(_webEnv.WebRootPath, "uploads", "advertisements"),
                 Path.Combine(_webEnv.WebRootPath, "uploads", "profiles"),
             };
+
             int filesDeleted = 0;
+
             foreach (var dir in uploadsToClean)
             {
-                if (!Directory.Exists(dir)) continue;
+                if (!Directory.Exists(dir))
+                {
+                    continue;
+                }
+
                 foreach (var file in Directory.GetFiles(dir))
                 {
                     try
@@ -142,6 +149,7 @@ namespace Marketplace.Utility.Seeding
             return 0;
         }
 
+        // Tries to delete all rows from a table. Ignores errors if table is missing.
         private static async Task TryDeleteAsync(ApplicationDbContext db, string quotedTable, CancellationToken ct)
         {
             try

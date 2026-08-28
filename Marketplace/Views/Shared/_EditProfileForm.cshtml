@@ -3,43 +3,60 @@
     var src = !string.IsNullOrEmpty(Model.ExistingProfilePicturePath) ? Model.ExistingProfilePicturePath : "/noProfilePicture.png";
     var descPh = !string.IsNullOrEmpty(Model.Description) ? Model.Description : "No description. Consider adding one.";
 }
+
+@* Edit profile form - avatar, privacy toggles and description *@
 <form method="post" asp-action="Update" asp-controller="Account" enctype="multipart/form-data" class="text-start">
     <div class="row g-4">
+        @* Avatar column - change or remove profile picture *@
         <div class="col-md-4 text-center">
             <label class="form-label fw-semibold text-secondary mb-2 d-block">Profile Picture</label>
+
             <div class="profile-avatar-wrap mb-3 mx-auto position-relative">
                 <img id="image1" src="@src" data-existing-path="@Model.ExistingProfilePicturePath" class="w-100 h-100 object-fit-cover cursor-pointer" onclick="handleImageClick(1, 'imageInput1')" title="Click to view or change">
                 <input asp-for="ProfilePicture" id="imageInput1" class="d-none" type="file" onchange="handleFileSelected(this, 1)" accept="image/jpeg, image/png" />
                 <span class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px; font-size:0.85rem; border:2px solid var(--surface);">✎</span>
             </div>
+
             <div class="d-flex gap-2 justify-content-center">
                 <button type="button" onclick="triggerInputBrowse('imageInput1')" class="btn btn-sm btn-outline-primary rounded-3 px-3">Change</button>
                 <button id="button1" type="button" onclick="deleteImage(1, 'existingPathInput')" class="btn btn-sm btn-outline-danger rounded-3 px-3" disabled>Remove</button>
             </div>
+
             <small class="text-muted d-block mt-2">Click avatar to view • 1:1 square</small>
         </div>
+
+        @* Contact privacy column - phone and email visibility options *@
         <div class="col-md-8">
             <label class="form-label fw-semibold text-secondary mb-2">Contact Info &amp; Privacy</label>
+
             <div class="border rounded-4 p-3 bg-light h-100">
                 <p class="small text-muted mb-2">Choose what to show on your public profile and ads. <strong>Default: hidden</strong> - nobody sees it until you opt in.</p>
+
                 <label asp-for="PhoneNumber" class="form-label small fw-semibold">Phone number</label>
                 <input asp-for="PhoneNumber" class="form-control mb-2" placeholder="Number (only needed if you want to show it)" />
+
                 <div class="form-check form-switch mb-2">
                     <input asp-for="ShowPhone" class="form-check-input" type="checkbox" role="switch" />
                     <label asp-for="ShowPhone" class="form-check-label small">Show phone number on public profile &amp; ads</label>
                 </div>
+
                 <small class="text-muted d-block mb-2">When on: logged-in users see full number, anonymous sees censored ••• + login CTA. When off: hidden from everyone.</small>
+
                 <div class="form-check form-switch mb-2">
                     <input asp-for="ShowEmail" class="form-check-input" type="checkbox" role="switch" />
                     <label asp-for="ShowEmail" class="form-check-label small">Show email on public profile &amp; ads</label>
                 </div>
+
                 <small class="text-muted d-block mb-2">When on: same as phone. When off: hidden from everyone.</small>
                 <span class="d-block small field-validation-error">@ViewBag.PhoneError</span>
             </div>
         </div>
     </div>
+
+    @* Description textarea *@
     <div class="mt-4">
         <label class="form-label fw-semibold text-secondary">Description</label>
+
         @if (Model.Description == null)
         {
             <textarea name="description" placeholder="@descPh" class="form-control rounded-3" rows="4"></textarea>
@@ -48,13 +65,17 @@
         {
             <textarea name="description" class="form-control rounded-3" rows="4">@Model.Description</textarea>
         }
+
         <div class="text-center mb-3 mt-1">
             <span asp-validation-for="Description" class="field-validation-error"></span>
         </div>
     </div>
+
+    @* Form actions *@
     <div class="d-flex gap-2 pt-3 border-top">
         <button type="submit" class="btn btn-success px-4 fw-semibold rounded-3 shadow-sm">Save</button>
         <a href="@Url.Action("Profile","Account", new{ username = User.Identity?.Name })" class="btn btn-light px-4 rounded-3 border">Cancel</a>
     </div>
+
     <input type="hidden" asp-for="ExistingProfilePicturePath" id="existingPathInput" />
 </form>

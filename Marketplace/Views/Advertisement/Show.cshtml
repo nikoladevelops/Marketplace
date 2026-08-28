@@ -1,5 +1,6 @@
 ﻿@using Marketplace.Utility
 @model Marketplace.ViewModels.ShowAdvertisementViewModel
+
 @{
     var profilePictureSrc = !string.IsNullOrEmpty(Model.ProfilePicturePath) ? Model.ProfilePicturePath : "/noProfilePicture.png";
     var mainImageSrc = !string.IsNullOrEmpty(Model.ImagePath) ? Model.ImagePath : "/plusSign.png";
@@ -7,6 +8,8 @@
     var loginReturnUrl = $"/Advertisement/Show/{Model.Id}";
     var chatReturnUrl = $"/Chat/Thread?with={Uri.EscapeDataString(Model.UserName)}&adId={Model.Id}";
 }
+
+@* Page title - centered listing details header *@
 <div class="container">
     <div class="page-header justify-content-center border-0 pb-0 mb-3">
         <h3>Listing Details</h3>
@@ -15,7 +18,7 @@
 
 <div class="container">
     <div class="row g-4">
-        <!-- Gallery -->
+        @* Left column - image gallery with main image and thumbnails *@
         <div class="col-lg-6">
             <div class="card border-0 rounded-4 shadow-sm overflow-hidden position-relative">
                 <div class="show-gallery-main d-flex align-items-center justify-content-center bg-light rounded-3 overflow-hidden">
@@ -23,6 +26,7 @@
                          class="w-100 h-100 object-fit-cover cursor-pointer" alt="Main advertisement image">
                 </div>
             </div>
+
             @if (additionalPaths.Count > 0)
             {
                 <div class="row g-2 mt-2">
@@ -39,28 +43,32 @@
             }
         </div>
 
-        <!-- Details -->
+        @* Right column - price, description and seller info *@
         <div class="col-lg-6">
             <div class="card border-0 rounded-4 shadow-sm p-4 h-100 d-flex flex-column">
                 <h3 class="fw-bold mb-1">@Model.Title</h3>
                 <p class="ad-price display-6 mb-0">@Model.Price</p>
                 <p class="text-muted small mb-3">📍 @Model.Location · 🏷️ @Model.CategoryName</p>
 
+                @* Show map if seller shared meeting point coordinates *@
                 @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
                 {
                     <div class="mb-3">
                         <h6 class="fw-semibold text-secondary mb-2">📍 Meeting point</h6>
                         <div id="locationMapShow" class="location-map-show rounded-3 border"></div>
                     </div>
+
                     <input type="hidden" id="showLat" value="@Model.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>
                     <input type="hidden" id="showLng" value="@Model.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)"/>
                 }
+
                 <hr>
+
                 <h6 class="fw-semibold text-secondary">Description</h6>
                 <p class="text-body" style="white-space: pre-line;">@Model.Description</p>
                 <p class="text-muted small"><strong>Listed:</strong> @DateFormatter.ToLongLocationDate(Model.DateCreatedOn, Model.Location)</p>
 
-                <!-- Seller -->
+                @* Seller card with avatar and profile link *@
                 <div class="card bg-light border-0 rounded-3 mt-auto p-3 position-relative">
                     <div class="d-flex align-items-center gap-3">
                         <img src="@profilePictureSrc" class="rounded-circle object-fit-cover" style="width: 64px; height: 64px;" alt="Seller profile picture">
@@ -75,6 +83,7 @@
                     var canModify = Model.IsOwner || Model.IsAdmin;
                 }
 
+                @* Edit and delete buttons for owner or admin *@
                 @if (canModify)
                 {
                     <div class="d-flex gap-2 flex-wrap mt-3">
@@ -83,6 +92,7 @@
                     </div>
                 }
 
+                @* Contact options depend on who is viewing the ad *@
                 @if (Model.IsOwner)
                 {
                     <button class="btn btn-outline-secondary fw-semibold py-2 mt-3 w-100" onclick="showModal('contactInfoModal')">Contact info (email/phone)</button>
@@ -93,7 +103,7 @@
                     <button class="btn btn-outline-secondary py-2 mt-2 w-100" onclick="showModal('contactInfoModal')">Contact info (login to reveal)</button>
                     <small class="text-muted text-center d-block mt-1">Anonymous users see censored contact to avoid spam. <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)">Login</a> or <a href="/Account/Register">Register</a> to contact.</small>
                 }
-                else // authenticated, not owner
+                else
                 {
                     <a class="btn btn-success fw-semibold py-2 mt-3 w-100" asp-controller="Chat" asp-action="Thread"
                        asp-route-with="@Model.UserName" asp-route-adId="@Model.Id">Message Seller</a>
@@ -104,7 +114,7 @@
     </div>
 </div>
 
-<!-- Contact Modal -->
+@* Contact info modal - shows email and phone with visibility rules *@
 <div class="modal fade" id="contactInfoModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4">
@@ -112,10 +122,18 @@
                 <h5 class="modal-title">Seller Contact Information</h5>
                 <button onclick="closeModal('contactInfoModal')" type="button" class="btn-close" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
+                @* Email section - different views for owner, logged in and anonymous *@
                 @if (Model.CanViewEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
                 {
-                    <p class="mb-2">Email: <span class="badge bg-success p-2">@Model.DisplayEmail</span> @if (Model.IsAdmin && Model.DisplayEmail != Model.Email) { <small class="text-info">Admin view</small> }</p>
+                    <p class="mb-2">
+                        Email: <span class="badge bg-success p-2">@Model.DisplayEmail</span>
+                        @if (Model.IsAdmin && Model.DisplayEmail != Model.Email)
+                        {
+                            <small class="text-info">Admin view</small>
+                        }
+                    </p>
                 }
                 else if (Model.IsCensoredEmail && !string.IsNullOrEmpty(Model.DisplayEmail))
                 {
@@ -127,9 +145,16 @@
                     <p class="mb-2">Email: <span class="text-muted"><em>Not shared</em></span></p>
                 }
 
+                @* Phone section - similar visibility logic *@
                 @if (Model.CanViewPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
                 {
-                    <p class="mb-0">Phone Number: <span class="badge bg-success p-2">@Model.DisplayPhone</span> @if (Model.IsAdmin && Model.DisplayPhone != Model.PhoneNumber) { <small class="text-info">Admin view</small> }</p>
+                    <p class="mb-0">
+                        Phone Number: <span class="badge bg-success p-2">@Model.DisplayPhone</span>
+                        @if (Model.IsAdmin && Model.DisplayPhone != Model.PhoneNumber)
+                        {
+                            <small class="text-info">Admin view</small>
+                        }
+                    </p>
                 }
                 else if (Model.IsCensoredPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
                 {
@@ -160,6 +185,7 @@
     </div>
 </div>
 
+@* Delete confirmation modal - only for owner or admin *@
 @if (Model.IsOwner || Model.IsAdmin)
 {
     <form method="post" name="deleteAdForm" asp-controller="Advertisement" asp-action="Delete">
@@ -169,9 +195,11 @@
                     <div class="modal-header">
                         <h5 class="modal-title">Delete Advertisement - <span class="adToDeleteTitle"></span></h5>
                     </div>
+
                     <div class="modal-body">
                         <p>You are about to delete "<span class="adToDeleteTitle"></span>". Are you sure?</p>
                     </div>
+
                     <div class="modal-footer">
                         <a onclick="hideDeleteAdModal()" class="btn btn-secondary">Cancel</a>
                         <button type="submit" id="deleteAdButton" class="btn btn-danger">Delete</button>
@@ -187,6 +215,7 @@
 }
 
 @section Scripts {
+    @* Map scripts - only load when location coordinates exist *@
     @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
     {
         <script src="~/lib/leaflet/leaflet.js"></script>
@@ -206,7 +235,9 @@
             })();
         </script>
     }
+
     <script src="~/js/imageManipulation.js"></script>
+
     @if (Model.IsOwner || Model.IsAdmin)
     {
         <script defer src="~/js/deleteAdvertisement.js"></script>

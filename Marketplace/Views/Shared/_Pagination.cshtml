@@ -7,6 +7,8 @@
     string baseUrl = Model.BaseUrl ?? "";
     // Ensure baseUrl contains ? or & for page param handling in caller
 }
+
+@* Pagination component - shows page numbers with prev/next arrows *@
 @if (maxPages > 1)
 {
     <div class="text-center pagination-links mt-4">
@@ -23,7 +25,12 @@
             int maximumDisplayedPages = 10;
             int startingIndex = current - (current % maximumDisplayedPages);
             int endingIndex = (current + maximumDisplayedPages) - (current % maximumDisplayedPages);
-            if (endingIndex > maxPages) endingIndex = maxPages;
+
+            if (endingIndex > maxPages)
+            {
+                endingIndex = maxPages;
+            }
+
             for (var i = startingIndex; i < endingIndex; i++)
             {
                 if (i == current)
@@ -31,8 +38,10 @@
                     <span class="active" aria-current="page" data-page="@i">@i</span>
                     continue;
                 }
+
                 <a href="@($"{baseUrl}{(baseUrl.Contains("?") ? "&" : "?")}pageNumber={i}")" data-page="@i">@i</a>
             }
+
             if (endingIndex < maxPages)
             {
                 var lastPageIndex = maxPages - 1;
