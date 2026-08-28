@@ -6,7 +6,12 @@
 
 <div>
     <div id="recentlyBrowsedContainer"
-         class="recently-browsed mb-3"
+         class="hscroll recently-browsed mb-3"
+         data-current-user-id="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")"
+         hidden>
+    </div>
+    <div id="recommendedContainer"
+         class="hscroll recs-strip mb-3"
          data-current-user-id="@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")"
          hidden>
     </div>
@@ -98,7 +103,7 @@
                 const temp = document.createElement("div");
                 temp.innerHTML = html;
                 const newPag = temp.querySelector("[data-page]");
-                // we rely on server clamped pageNumber – push state after fetch
+                // we rely on server clamped pageNumber - push state after fetch
                 history.pushState(null, "", "/" + (query ? "?" + query : ""));
                 // Update container maxPages after fetch by re-parsing (server will have clamped)
                 // Re-attach maxPages from response: try to find pagination active span
@@ -144,17 +149,39 @@
                 try {
                     var ad = JSON.parse(raw);
                     window.RecentlyViewed.record(ad);
-                } catch (_) { /* malformed payload — skip */ }
+                } catch (_) { /* malformed payload - skip */ }
             });
+
+            // Also record from Recommended strip (same card shape, same delegation target)
+            var recContainer = document.getElementById("recommendedContainer");
+            if (recContainer) {
+                recContainer.addEventListener("click", function (e) {
+                    var card = e.target.closest("a[data-recent-ad]");
+                    if (!card) return;
+                    if (!window.RecentlyViewed) return;
+                    var raw = card.getAttribute("data-recent-ad");
+                    if (!raw) return;
+                    try { window.RecentlyViewed.record(JSON.parse(raw)); } catch (_) {}
+                });
+            }
         }
 
         document.addEventListener("DOMContentLoaded", function () {
             attachGridHandlers();
 
-            // Render the Recently Browsed strip on initial load.
+            // Render the horizontal strips on initial load.
             var recentEl = document.getElementById("recentlyBrowsedContainer");
             if (recentEl && window.RecentlyViewed) {
                 window.RecentlyViewed.render(recentEl);
+            }
+            var recEl = document.getElementById("recommendedContainer");
+            if (recEl && window.Recommended) {
+                window.Recommended.render(recEl);
+            } else if (recEl && window.RecentlyViewed) {
+                // Recommended script may not have loaded yet; retry shortly
+                setTimeout(function () {
+                    if (window.Recommended) window.Recommended.render(recEl);
+                }, 300);
             }
 
             document.getElementById("searchButton").addEventListener("click", function (e) {

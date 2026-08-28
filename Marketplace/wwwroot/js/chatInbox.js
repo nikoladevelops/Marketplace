@@ -1,21 +1,31 @@
-// Live Inbox: unread badges + snippets update in real time via the ChatHub user group.
-// Connection is self-healing: retries forever with backoff, so a laptop that slept
-// resumes live updates on wake without a manual refresh.
+// Live Inbox - keeps the inbox rows fresh without a reload.
+// Uses the same SignalR group as the thread page, so new messages
+// pop to the top instantly. The connection retries forever.
+
 (function () {
     "use strict";
 
     var root = document.getElementById("inboxRoot");
-    if (!root || typeof signalR === "undefined") return;
+
+    if (!root) {
+        return;
+    }
+
+    if (typeof signalR === "undefined") {
+        return;
+    }
 
     var myUserName = root.dataset.myUserName;
     var connection = null;
     var retryDelayMs = 2000;
     var RETRY_DELAY_MAX_MS = 30000;
 
-    // Same transport policy as chat.js: WebSockets first, Long Polling fallback,
-    // no Server-Sent Events (prone to silent half-connects behind proxies).
+    // We try WebSockets first, then Long Polling.
+    // SSE is skipped because it can look connected but not actually push.
     var TRANSPORTS = signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling;
 
+    // buildConnection
+    // Creates the hub connection and sets up the inbox handlers.
     function buildConnection() {
         var c = new signalR.HubConnectionBuilder()
             .withUrl("/hubs/chat", { transport: TRANSPORTS })
@@ -23,39 +33,48 @@
             .build();
 
         c.on("ReceiveMessage", function (data) {
-            if (data.senderName === myUserName) return; // my own outgoing message
+            if (data.senderName === myUserName) {
+                return;
+            }
 
             var key = (data.advertisementId || "") + "|" + data.senderName;
             var snippet = document.querySelector('.inbox-snippet[data-key="' + cssEscape(key) + '"]');
-            var row = snippet ? snippet.closest(".inbox-row") : null;
+            var row = null;
 
-            // Conversation not on the page yet (new thread or on another inbox page) → go to first page to show it.
+            if (snippet) {
+                row = snippet.closest(".inbox-row");
+            }
+
+            // New conversation we did not have on this page.
             if (!row) {
-                // If paginated away from page 1, jump to inbox root; otherwise simple reload.
                 var isPaginated = window.location.search.indexOf("page=") !== -1;
+
                 if (isPaginated) {
                     window.location.href = window.location.pathname;
                 } else {
                     window.location.reload();
                 }
+
                 return;
             }
 
-            // Move the conversation to the top of the list.
+            // Move this chat to the top so the newest is first.
             var card = row.parentNode;
+
             if (card.firstElementChild !== row) {
                 card.insertBefore(row, card.firstElementChild);
             }
 
             snippet.textContent = data.body;
+
             updateBadge(row, key);
         });
 
         c.on("MessagesRead", function (data) {
-            // My badges clear when I opened the thread elsewhere (the broadcast
-            // carries the reader's name).
+            // Someone read the messages, so clear our unread badge.
             document.querySelectorAll(".unread-badge").forEach(function (badge) {
                 var row = badge.closest(".inbox-row");
+
                 if (row && row.dataset.partner === data.byUserName) {
                     badge.remove();
                 }
@@ -69,40 +88,62 @@
         return c;
     }
 
+    // startConnection
+    // Connects to the hub. Builds a fresh connection each time so we
+    // never reuse a dead object after a server restart.
     function startConnection() {
-        // Rebuild each attempt so a stale connection object never lingers.
         connection = buildConnection();
+
         connection.start().then(function () {
-            retryDelayMs = 2000; // reset backoff after success
+            retryDelayMs = 2000;
         }).catch(function (err) {
-            if (console && console.error) console.error("[chat-inbox] start", err);
+            if (console && console.error) {
+                console.error("[chat-inbox] start", err);
+            }
+
             scheduleRetry();
         });
     }
 
+    // scheduleRetry
+    // Waits a bit, then tries again. The wait time grows with each failure.
     function scheduleRetry() {
         setTimeout(startConnection, retryDelayMs);
+
         retryDelayMs = Math.min(retryDelayMs * 2, RETRY_DELAY_MAX_MS);
     }
 
+    // updateBadge
+    // Makes sure the red unread bubble exists and bumps the number by one.
     function updateBadge(row, key) {
         var badge = row.querySelector(".unread-badge");
+
         if (!badge) {
             badge = document.createElement("span");
             badge.className = "badge rounded-pill bg-danger flex-shrink-0 unread-badge";
             badge.dataset.key = key;
             badge.textContent = "0";
+
             var nameSpan = row.querySelector("span.fw-semibold");
+
             if (nameSpan && nameSpan.parentNode) {
                 nameSpan.parentNode.insertBefore(badge, nameSpan.nextSibling);
             }
         }
+
         var current = parseInt(badge.textContent, 10) || 0;
+
         badge.textContent = String(current + 1);
     }
 
+    // cssEscape
+    // Escapes a string for use inside a CSS selector. Uses the built in
+    // CSS.escape when available.
     function cssEscape(value) {
-        if (window.CSS && CSS.escape) return CSS.escape(value);
+        if (window.CSS && CSS.escape) {
+            return CSS.escape(value);
+        }
+
         return value.replace(/"/g, '\\"');
     }
 

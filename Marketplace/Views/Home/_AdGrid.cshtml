@@ -19,9 +19,13 @@ else
                 id = currentAd.Id,
                 title = currentAd.Title,
                 price = PriceFormatter.ToEur(currentAd.Price),
+                priceValue = currentAd.Price,
                 imagePath = currentAd.ImagePath,
                 userId = currentAd.UserId,
-                userName = currentAd.UserName
+                userName = currentAd.UserName,
+                categoryId = currentAd.CategoryId,
+                category = currentAd.Category,
+                location = currentAd.Location
             });
             <div class="col-6 col-md-4 col-lg-3 d-flex flex-column">
                 <a asp-action="Show" asp-controller="Advertisement" asp-route-id="@currentAd.Id" class="text-decoration-none flex-fill d-flex w-100 ad-card-link" data-recent-ad="@recentPayload">

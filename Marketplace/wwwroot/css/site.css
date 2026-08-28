@@ -435,23 +435,31 @@ img { max-width: 100%; }
     margin-top: 0.25rem;
 }
 
-/* ===== Recently browsed (Home page horizontal strip) ===== */
-.recently-browsed {
+/* ===== Horizontal scroller (shared: Recently Browsed + Recommendations) ===== */
+/* Generic classes .hscroll* are the source of truth; .recently-browsed/.recent-* kept as aliases */
+.hscroll,
+.recently-browsed,
+.recs-strip {
     /* Soft container that matches the page surface in both themes. */
     background: color-mix(in srgb, var(--surface-2) 60%, transparent);
     border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 0.75rem 0.85rem;
 }
+.hscroll-header-title,
 .recent-header-title { font-size: 0.95rem; color: var(--text); }
+.hscroll-clear,
 .recent-clear { color: var(--text-muted); text-decoration: none; }
+.hscroll-clear:hover,
 .recent-clear:hover { color: var(--text); }
+.hscroll-nav,
 .recent-nav {
     min-width: 32px;
     height: 32px;
     line-height: 1;
 }
 
+.hscroll-track,
 .recent-track {
     display: flex;
     flex-wrap: nowrap;
@@ -467,10 +475,14 @@ img { max-width: 100%; }
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
 }
+.hscroll-track::-webkit-scrollbar,
 .recent-track::-webkit-scrollbar { height: 6px; }
+.hscroll-track::-webkit-scrollbar-thumb,
 .recent-track::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.hscroll-track::-webkit-scrollbar-track,
 .recent-track::-webkit-scrollbar-track { background: transparent; }
 
+.hscroll-card,
 .recent-card {
     flex: 0 0 auto;
     width: 144px;
@@ -485,12 +497,14 @@ img { max-width: 100%; }
     flex-direction: column;
     gap: 0.3rem;
 }
+.hscroll-card:hover,
 .recent-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow);
     border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
     color: var(--text);
 }
+.hscroll-card-img,
 .recent-card-img {
     width: 100%;
     aspect-ratio: 1 / 1;
@@ -499,6 +513,7 @@ img { max-width: 100%; }
     background: var(--surface-2);
     display: block;
 }
+.hscroll-card-title,
 .recent-card-title {
     font-size: 0.8rem;
     font-weight: 500;
@@ -507,6 +522,7 @@ img { max-width: 100%; }
     /* Single line with ellipsis. */
     max-width: 100%;
 }
+.hscroll-card-price,
 .recent-card-price {
     font-size: 0.78rem;
     color: var(--success);
@@ -514,18 +530,26 @@ img { max-width: 100%; }
 }
 
 @media (min-width: 576px) {
+    .hscroll-card,
     .recent-card { width: 160px; }
 }
 @media (min-width: 768px) {
-    .recently-browsed { padding: 0.85rem 1rem; }
+    .hscroll,
+    .recently-browsed,
+    .recs-strip { padding: 0.85rem 1rem; }
+    .hscroll-card,
     .recent-card { width: 172px; }
+    .hscroll-card-title,
     .recent-card-title { font-size: 0.85rem; }
 }
 @media (min-width: 1200px) {
+    .hscroll-card,
     .recent-card { width: 180px; }
 }
 @media (prefers-reduced-motion: reduce) {
+    .hscroll-track,
     .recent-track { scroll-behavior: auto; }
+    .hscroll-card,
     .recent-card { transition: none; }
 }
 

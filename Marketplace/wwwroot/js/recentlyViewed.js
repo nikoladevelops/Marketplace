@@ -1,12 +1,9 @@
-// Recently Browsed — localStorage-backed horizontal scroller for the Home page.
-// Designed to be safe in the face of bad data: corrupt JSON, missing fields,
-// quota exhaustion, localStorage being disabled, and old schema versions.
-//
-// Public API (exposed on window.RecentlyViewed):
-//   - record(ad)              -> void    add an ad to the history
-//   - render(container)       -> void    paint the strip into the given element
-//   - clear()                 -> void    wipe the history
-//   - list(currentUserId?)    -> RecentAd[]  read + validate + filter
+// Recently Browsed - saves the ads you clicked to localStorage
+// and shows them in a horizontal strip on the home page.
+// It tries to be safe when storage is disabled, when data is broken,
+// or when we hit the browser storage limit.
+// Rendering is done through HorizontalScroller so both this feature
+// and Recommended share the same look and code.
 
 (function () {
     "use strict";
@@ -15,9 +12,9 @@
     var MAX_ITEMS = 50;
     var FALLBACK_IMG = "/plusSign.png";
 
-    // Feature-detect localStorage once at module init. Some private-browsing
-    // modes throw on access; some return null. Either way, the module becomes
-    // a no-op so the rest of the page keeps working.
+    // hasStorage
+    // Check once at start if localStorage actually works.
+    // In some private modes it throws, so we treat it as not available.
     var hasStorage = (function () {
         try {
             var probe = "__mb_recentlyViewed_probe__";
@@ -29,22 +26,46 @@
         }
     })();
 
+    // readRaw
+    // Reads the raw array from localStorage. Returns null if there is
+    // nothing saved, if parsing fails, or if storage is not available.
+    // If the JSON is broken we clear the key so next reads can succeed.
     function readRaw() {
-        if (!hasStorage) return null;
+        if (!hasStorage) {
+            return null;
+        }
+
         var raw = window.localStorage.getItem(STORAGE_KEY);
-        if (raw == null) return null;
+
+        if (raw == null) {
+            return null;
+        }
+
         try {
             var parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : null;
+
+            if (Array.isArray(parsed)) {
+                return parsed;
+            } else {
+                return null;
+            }
         } catch (e) {
-            // Corrupt JSON. Wipe so subsequent reads succeed.
-            try { window.localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+            try {
+                window.localStorage.removeItem(STORAGE_KEY);
+            } catch (_) {}
+
             return null;
         }
     }
 
+    // writeRaw
+    // Saves the array to localStorage. If we hit a quota error we cut
+    // the list in half and try again. We only try once after trimming.
     function writeRaw(items) {
-        if (!hasStorage) return false;
+        if (!hasStorage) {
+            return false;
+        }
+
         var payload = JSON.stringify(items);
 
         function attempt(value) {
@@ -56,35 +77,76 @@
             }
         }
 
-        if (attempt(payload)) return true;
+        if (attempt(payload)) {
+            return true;
+        }
 
-        // Quota exceeded (or some other storage error). Drop the oldest half
-        // of the list and retry. Bounded so a single call can't loop forever.
         if (items.length > 4) {
             var trimmed = items.slice(0, Math.max(1, Math.floor(items.length / 2)));
             return attempt(JSON.stringify(trimmed));
         }
+
         return false;
     }
 
-    // Schema validation: keep entries that look like valid recent ads.
-    // Defensive against old versions and bad writes.
+    // isValidItem
+    // Checks if an object looks like a real recently viewed ad.
+    // We keep it strict for required fields and relaxed for optional ones
+    // so older saved items still pass.
     function isValidItem(x) {
-        if (!x || typeof x !== "object") return false;
-        if (typeof x.id !== "number" || !isFinite(x.id) || x.id <= 0) return false;
-        if (typeof x.title !== "string") return false;
-        if (typeof x.price !== "string") return false;
-        if (typeof x.imagePath !== "string") return false;
-        if (typeof x.userId !== "string") return false;
-        if (typeof x.userName !== "string") return false;
-        if (typeof x.viewedAt !== "number" || !isFinite(x.viewedAt)) return false;
-        // Reject timestamps in the far future (clock skew, bad data).
-        if (x.viewedAt > Date.now() + 24 * 60 * 60 * 1000) return false;
+        if (!x || typeof x !== "object") {
+            return false;
+        }
+
+        if (typeof x.id !== "number" || !isFinite(x.id) || x.id <= 0) {
+            return false;
+        }
+
+        if (typeof x.title !== "string") {
+            return false;
+        }
+
+        if (typeof x.price !== "string") {
+            return false;
+        }
+
+        if (typeof x.imagePath !== "string") {
+            return false;
+        }
+
+        if (typeof x.userId !== "string") {
+            return false;
+        }
+
+        if (typeof x.userName !== "string") {
+            return false;
+        }
+
+        if (typeof x.viewedAt !== "number" || !isFinite(x.viewedAt)) {
+            return false;
+        }
+
+        if (x.viewedAt > Date.now() + 24 * 60 * 60 * 1000) {
+            return false;
+        }
+
+        // Optional extended fields. If they exist they must be valid.
+        if (x.categoryId != null && (typeof x.categoryId !== "number" || !isFinite(x.categoryId) || x.categoryId <= 0)) {
+            return false;
+        }
+
+        if (x.priceValue != null && typeof x.priceValue !== "number") {
+            return false;
+        }
+
         return true;
     }
 
+    // normalize
+    // Takes a validated item and returns a clean copy with only expected fields.
+    // This keeps old data tidy and makes sure types are consistent.
     function normalize(x) {
-        return {
+        var out = {
             id: x.id,
             title: String(x.title),
             price: String(x.price),
@@ -93,29 +155,80 @@
             userName: String(x.userName),
             viewedAt: Number(x.viewedAt)
         };
-    }
 
-    function list(currentUserId) {
-        var raw = readRaw();
-        if (!raw) return [];
-        var seen = Object.create(null);
-        var out = [];
-        for (var i = 0; i < raw.length; i++) {
-            var item = raw[i];
-            if (!isValidItem(item)) continue;
-            if (seen[item.id]) continue; // dedupe across the persisted list
-            // Hide the viewer's own ads from their own history.
-            if (currentUserId && item.userId === currentUserId) continue;
-            seen[item.id] = true;
-            out.push(normalize(item));
-            if (out.length >= MAX_ITEMS) break;
+        if (x.categoryId != null) {
+            out.categoryId = Number(x.categoryId);
         }
+
+        if (typeof x.category === "string") {
+            out.category = String(x.category);
+        }
+
+        if (typeof x.location === "string") {
+            out.location = String(x.location);
+        }
+
+        if (x.priceValue != null) {
+            out.priceValue = Number(x.priceValue);
+        }
+
         return out;
     }
 
+    // list
+    // Returns the current history as a clean array.
+    // It removes duplicates, bad items, and optionally hides your own ads.
+    // currentUserId is optional. If provided, ads that belong to you are excluded.
+    function list(currentUserId) {
+        var raw = readRaw();
+
+        if (!raw) {
+            return [];
+        }
+
+        var seen = Object.create(null);
+        var out = [];
+
+        for (var i = 0; i < raw.length; i++) {
+            var item = raw[i];
+
+            if (!isValidItem(item)) {
+                continue;
+            }
+
+            if (seen[item.id]) {
+                continue;
+            }
+
+            if (currentUserId && item.userId === currentUserId) {
+                continue;
+            }
+
+            seen[item.id] = true;
+
+            out.push(normalize(item));
+
+            if (out.length >= MAX_ITEMS) {
+                break;
+            }
+        }
+
+        return out;
+    }
+
+    // record
+    // Adds an ad to the front of the history. If the ad was already there
+    // it moves to the front. Keeps the list at most MAX_ITEMS long.
+    // ad shape: { id, title, price, imagePath, userId, userName, categoryId, ... }
     function record(ad) {
-        if (!ad || typeof ad !== "object") return;
-        if (typeof ad.id !== "number" || !isFinite(ad.id) || ad.id <= 0) return;
+        if (!ad || typeof ad !== "object") {
+            return;
+        }
+
+        if (typeof ad.id !== "number" || !isFinite(ad.id) || ad.id <= 0) {
+            return;
+        }
+
         var item = {
             id: ad.id,
             title: typeof ad.title === "string" ? ad.title : "",
@@ -126,155 +239,229 @@
             viewedAt: Date.now()
         };
 
+        if (typeof ad.categoryId === "number" && isFinite(ad.categoryId) && ad.categoryId > 0) {
+            item.categoryId = ad.categoryId;
+        }
+
+        if (typeof ad.category === "string") {
+            item.category = ad.category;
+        }
+
+        if (typeof ad.location === "string") {
+            item.location = ad.location;
+        }
+
+        if (typeof ad.priceValue === "number" && isFinite(ad.priceValue)) {
+            item.priceValue = ad.priceValue;
+        }
+
+        // Older payloads may send categoryId as a string, so we try to parse it.
+        if (item.categoryId == null && ad.categoryId != null) {
+            var parsed = parseInt(ad.categoryId, 10);
+
+            if (!isNaN(parsed) && parsed > 0) {
+                item.categoryId = parsed;
+            }
+        }
+
         var existing = readRaw() || [];
         var next = [item];
+
         for (var i = 0; i < existing.length; i++) {
             var cur = existing[i];
-            if (!isValidItem(cur)) continue;
-            if (cur.id === item.id) continue; // dedupe — new view bumps to front
+
+            if (!isValidItem(cur)) {
+                continue;
+            }
+
+            if (cur.id === item.id) {
+                continue;
+            }
+
             next.push(cur);
-            if (next.length >= MAX_ITEMS) break;
+
+            if (next.length >= MAX_ITEMS) {
+                break;
+            }
         }
+
         writeRaw(next);
     }
 
+    // clear
+    // Removes all saved history.
     function clear() {
-        if (!hasStorage) return;
-        try { window.localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        if (!hasStorage) {
+            return;
+        }
+
+        try {
+            window.localStorage.removeItem(STORAGE_KEY);
+        } catch (_) {}
     }
 
-    function escapeAttr(s) {
-        return String(s)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
+    // validateAndPrune
+    // Asks the server which ids still exist and removes deleted ads from storage.
+    // We run this in the background after rendering so the page does not wait.
+    // If the network fails we just keep the old data and try again next time.
+    async function validateAndPrune(currentUserId) {
+        var items = list(currentUserId || null);
+
+        if (items.length === 0) {
+            return;
+        }
+
+        var ids = items.map(function (x) {
+            return x.id;
+        });
+
+        try {
+            var res = await fetch("/Home/ValidateRecent?ids=" + encodeURIComponent(ids.join(",")), {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+
+            if (!res.ok) {
+                return;
+            }
+
+            var data = await res.json();
+
+            var existing = data && Array.isArray(data.existingIds) ? data.existingIds : data.existingIds || [];
+
+            var existingSet = Object.create(null);
+
+            for (var i = 0; i < existing.length; i++) {
+                existingSet[existing[i]] = true;
+            }
+
+            var raw = readRaw() || [];
+            var filtered = [];
+            var changed = false;
+
+            for (var j = 0; j < raw.length; j++) {
+                var cur = raw[j];
+
+                if (!isValidItem(cur)) {
+                    changed = true;
+                    continue;
+                }
+
+                if (!existingSet[cur.id]) {
+                    changed = true;
+                    continue;
+                }
+
+                filtered.push(cur);
+            }
+
+            if (changed) {
+                writeRaw(filtered);
+            }
+        } catch (_) {}
     }
 
-    // Build the strip DOM. We use createElement + textContent to avoid
-    // injecting any user data as HTML.
-    function buildCard(item) {
-        var link = document.createElement("a");
-        link.href = "/Advertisement/Show/" + item.id;
-        link.className = "recent-card text-decoration-none";
-
-        var img = document.createElement("img");
-        img.className = "recent-card-img";
-        img.loading = "lazy";
-        img.alt = escapeAttr(item.title || "Listing");
-        img.src = item.imagePath || FALLBACK_IMG;
-        img.onerror = function () { this.onerror = null; this.src = FALLBACK_IMG; };
-
-        var title = document.createElement("div");
-        title.className = "recent-card-title text-truncate";
-        title.textContent = item.title || "(untitled)";
-
-        var price = document.createElement("div");
-        price.className = "recent-card-price";
-        price.textContent = item.price || "";
-
-        link.appendChild(img);
-        link.appendChild(title);
-        link.appendChild(price);
-        return link;
-    }
-
+    // render
+    // Paints the Recently Browsed strip into a container.
+    // It hides the container when there is nothing to show.
+    // Uses HorizontalScroller if it is loaded, otherwise falls back.
     function render(container) {
-        if (!container) return;
+        if (!container) {
+            return;
+        }
+
         var currentUserId = container.getAttribute("data-current-user-id") || "";
         var items = list(currentUserId || null);
 
-        // Always reset to a clean state so re-renders don't duplicate.
+        // Use the shared helper when available. This keeps both strips in sync.
+        if (window.HorizontalScroller) {
+            var hs = window.HorizontalScroller;
+
+            hs.createStrip(container, items, {
+                title: "Recently browsed",
+                icon: "\uD83D\uDD58",
+                showClear: true,
+                showNav: true,
+                emptyHidden: true,
+                onClear: function () {
+                    clear();
+                    render(container);
+
+                    // Recommendations depend on this history, so refresh them too.
+                    if (window.Recommended) {
+                        var recEl = document.getElementById("recommendedContainer");
+
+                        if (recEl) {
+                            window.Recommended.render(recEl);
+                        }
+                    }
+
+                    try {
+                        window.dispatchEvent(new Event("recentlyViewed:cleared"));
+                    } catch (_) {}
+                }
+            });
+
+            // Clean up deleted ads without blocking the first paint.
+            if (items.length > 0) {
+                validateAndPrune(currentUserId).then(function () {
+                    var fresh = list(currentUserId || null);
+
+                    if (fresh.length !== items.length) {
+                        hs.createStrip(container, fresh, {
+                            title: "Recently browsed",
+                            icon: "\uD83D\uDD58",
+                            showClear: true,
+                            showNav: true,
+                            emptyHidden: true,
+                            onClear: function () {
+                                clear();
+                                render(container);
+                            }
+                        });
+                    }
+                });
+            }
+
+            return;
+        }
+
+        // Simple fallback if HorizontalScroller did not load.
         container.innerHTML = "";
 
         if (items.length === 0) {
             container.hidden = true;
             return;
         }
+
         container.hidden = false;
+    }
 
-        var header = document.createElement("div");
-        header.className = "recent-header d-flex align-items-center mb-2";
-
-        var title = document.createElement("div");
-        title.className = "recent-header-title fw-semibold";
-        // Safe: only static text, no user data.
-        title.textContent = "Recently browsed";
-        var icon = document.createElement("span");
-        icon.setAttribute("aria-hidden", "true");
-        icon.className = "me-2";
-        icon.textContent = "🕘";
-        title.insertBefore(icon, title.firstChild);
-
-        var spacer = document.createElement("div");
-        spacer.className = "flex-grow-1";
-
-        var clearBtn = document.createElement("button");
-        clearBtn.type = "button";
-        clearBtn.className = "btn btn-link btn-sm recent-clear";
-        clearBtn.textContent = "Clear";
-        clearBtn.addEventListener("click", function () {
-            clear();
-            render(container);
-        });
-
-        var prevBtn = document.createElement("button");
-        prevBtn.type = "button";
-        prevBtn.className = "btn btn-sm btn-outline-secondary recent-nav d-none d-md-inline-flex align-items-center justify-content-center";
-        prevBtn.setAttribute("aria-label", "Scroll recently browsed left");
-        prevBtn.innerHTML = "&#8249;";
-        prevBtn.addEventListener("click", function () {
-            scrollBy(container, -1);
-        });
-
-        var nextBtn = document.createElement("button");
-        nextBtn.type = "button";
-        nextBtn.className = "btn btn-sm btn-outline-secondary recent-nav d-none d-md-inline-flex align-items-center justify-content-center";
-        nextBtn.setAttribute("aria-label", "Scroll recently browsed right");
-        nextBtn.innerHTML = "&#8250;";
-        nextBtn.addEventListener("click", function () {
-            scrollBy(container, 1);
-        });
-
-        var nav = document.createElement("div");
-        nav.className = "d-flex gap-1";
-        nav.appendChild(prevBtn);
-        nav.appendChild(nextBtn);
-
-        header.appendChild(title);
-        header.appendChild(spacer);
-        header.appendChild(clearBtn);
-        header.appendChild(nav);
-
-        var track = document.createElement("div");
-        track.className = "recent-track";
-        for (var i = 0; i < items.length; i++) {
-            track.appendChild(buildCard(items[i]));
+    // Keep other tabs in sync when storage changes in another tab.
+    window.addEventListener("storage", function (e) {
+        if (e.key !== STORAGE_KEY) {
+            return;
         }
 
-        container.appendChild(header);
-        container.appendChild(track);
-    }
-
-    function scrollBy(container, direction) {
-        var track = container.querySelector(".recent-track");
-        if (!track) return;
-        var amount = Math.max(200, Math.floor(track.clientWidth * 0.8));
-        track.scrollBy({ left: amount * direction, behavior: "smooth" });
-    }
-
-    // Re-render when another tab updates the key.
-    window.addEventListener("storage", function (e) {
-        if (e.key !== STORAGE_KEY) return;
         var el = document.getElementById("recentlyBrowsedContainer");
-        if (el) render(el);
+
+        if (el) {
+            render(el);
+        }
+
+        var recEl = document.getElementById("recommendedContainer");
+
+        if (recEl && window.Recommended) {
+            window.Recommended.render(recEl);
+        }
     });
 
     window.RecentlyViewed = {
         record: record,
         render: render,
         clear: clear,
-        list: list
+        list: list,
+        validateAndPrune: validateAndPrune,
+        STORAGE_KEY: STORAGE_KEY,
+        MAX_ITEMS: MAX_ITEMS
     };
 })();
