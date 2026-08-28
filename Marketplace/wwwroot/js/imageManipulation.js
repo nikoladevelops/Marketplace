@@ -1,6 +1,11 @@
 ﻿// Image slots for the Create and Edit ad pages.
 // Each page has up to 4 image slots. This file keeps the preview,
-// the remove buttons, and the AI button in sync.
+// the remove buttons, the hidden Base64 carriers and the AI button in sync.
+// We keep image data client side via Base64 so a validation error does not wipe your picks.
+
+// pendingReads tracks how many FileReaders are still turning a picked file into a data URL.
+// We wait for them before letting the form submit, so the hidden Base64 is always ready.
+let pendingReads = 0;
 
 document.addEventListener("DOMContentLoaded", function () {
     // On load, check every slot and enable the remove button if needed.
@@ -26,7 +31,102 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     updateAiButtonState();
+    setupCounters();
+    setupMainImageRequiredCheck();
 });
+
+// setupMainImageRequiredCheck
+// Adds a client side check so you get an instant error if you try to create without a main image.
+// We check the preview, not just the file input, so a Base64 that survived a post-back also counts.
+function setupMainImageRequiredCheck() {
+    var form = document.querySelector("form[enctype='multipart/form-data']");
+
+    if (!form) {
+        return;
+    }
+
+    form.addEventListener("submit", function (e) {
+        // If we are still turning a just-picked file into Base64, wait a moment.
+        // This keeps optional images from disappearing when you pick and immediately hit Save.
+        if (pendingReads > 0) {
+            e.preventDefault();
+
+            var checkAndSubmit = function () {
+                if (pendingReads > 0) {
+                    setTimeout(checkAndSubmit, 50);
+                    return;
+                }
+
+                // Now hidden Base64 is ready, try submitting again.
+                // Use requestSubmit so native validation still runs.
+                form.requestSubmit();
+            };
+
+            setTimeout(checkAndSubmit, 50);
+            return false;
+        }
+
+        var mainImg = document.getElementById("image1");
+        var src = mainImg ? mainImg.getAttribute("src") : "";
+
+        if (isPlaceholderSrc(src)) {
+            var msgSpan = document.querySelector('span[data-valmsg-for="Image"]');
+
+            if (msgSpan) {
+                msgSpan.textContent = "The main advertisement image is mandatory.";
+                msgSpan.classList.add("field-validation-error");
+                msgSpan.classList.remove("field-validation-valid");
+            }
+
+            // Also let the browser focus the image area.
+            if (mainImg) {
+                mainImg.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+
+            e.preventDefault();
+            return false;
+        }
+    });
+}
+
+// setupCounters
+// Shows live character counts for Title and Description so you know the limits before submit.
+function setupCounters() {
+    var titleInput = document.getElementById("Title");
+    var descInput = document.getElementById("Description");
+    var titleCounter = document.getElementById("titleCounter");
+    var descCounter = document.getElementById("descriptionCounter");
+
+    if (titleInput && titleCounter) {
+        var updateTitle = function () {
+            titleCounter.textContent = String(titleInput.value.length);
+
+            if (titleInput.value.length > 35) {
+                titleCounter.classList.add("text-danger");
+            } else {
+                titleCounter.classList.remove("text-danger");
+            }
+        };
+
+        titleInput.addEventListener("input", updateTitle);
+        updateTitle();
+    }
+
+    if (descInput && descCounter) {
+        var updateDesc = function () {
+            descCounter.textContent = String(descInput.value.length);
+
+            if (descInput.value.length > 250) {
+                descCounter.classList.add("text-danger");
+            } else {
+                descCounter.classList.remove("text-danger");
+            }
+        };
+
+        descInput.addEventListener("input", updateDesc);
+        updateDesc();
+    }
+}
 
 // isPlaceholderSrc
 // Returns true if the src is empty or still the default placeholder.
@@ -40,6 +140,41 @@ function isPlaceholderSrc(src) {
     }
 
     return false;
+}
+
+// getBase64HiddenIds
+// Returns the hidden input ids for a given slot index.
+// Handles both Create (mainImageBase64) and Edit (editMainBase64) naming.
+function getBase64HiddenIds(index) {
+    if (index === 1) {
+        return {
+            base64: document.getElementById("mainImageBase64") || document.getElementById("editMainBase64"),
+            fileName: document.getElementById("mainImageFileName") || document.getElementById("editMainFileName")
+        };
+    }
+
+    if (index === 2) {
+        return {
+            base64: document.getElementById("additionalBase64_1") || document.getElementById("editAdditionalBase64_1"),
+            fileName: document.getElementById("additionalFileName1") || document.getElementById("editAdditionalFileName1")
+        };
+    }
+
+    if (index === 3) {
+        return {
+            base64: document.getElementById("additionalBase64_2") || document.getElementById("editAdditionalBase64_2"),
+            fileName: document.getElementById("additionalFileName2") || document.getElementById("editAdditionalFileName2")
+        };
+    }
+
+    if (index === 4) {
+        return {
+            base64: document.getElementById("additionalBase64_3") || document.getElementById("editAdditionalBase64_3"),
+            fileName: document.getElementById("additionalFileName3") || document.getElementById("editAdditionalFileName3")
+        };
+    }
+
+    return { base64: null, fileName: null };
 }
 
 // handleImageClick
@@ -93,9 +228,21 @@ function handleImageClick(index, inputId) {
 }
 
 // handleFileSelected
-// Called when you pick a file. Shows a quick preview right away.
+// Called when you pick a file. Shows a quick preview and stores a Base64 copy
+// in a hidden field so the preview survives a server validation error.
 function handleFileSelected(input, index) {
     if (input.files && input.files[0]) {
+        var file = input.files[0];
+
+        // Keep the POST small and avoid hitting server limits. 5MB is plenty for a listing photo.
+        if (file.size > 5 * 1024 * 1024) {
+            alert("Image is too large. Please pick a file smaller than 5MB.");
+            input.value = "";
+            return;
+        }
+
+        pendingReads++;
+
         var reader = new FileReader();
 
         reader.onload = function (e) {
@@ -103,10 +250,39 @@ function handleFileSelected(input, index) {
 
             if (img) {
                 img.setAttribute("src", e.target.result);
+                img.setAttribute("data-existing-path", e.target.result);
             }
+
+            var hidden = getBase64HiddenIds(index);
+
+            if (hidden.base64) {
+                hidden.base64.value = e.target.result;
+            }
+
+            if (hidden.fileName) {
+                hidden.fileName.value = file.name;
+            }
+
+            // Clear the main image required error once you pick something.
+            if (index === 1) {
+                var msgSpan = document.querySelector('span[data-valmsg-for="Image"]');
+
+                if (msgSpan) {
+                    msgSpan.textContent = "";
+                    msgSpan.classList.remove("field-validation-error");
+                    msgSpan.classList.add("field-validation-valid");
+                }
+            }
+
+            pendingReads--;
+            updateAiButtonState();
         };
 
-        reader.readAsDataURL(input.files[0]);
+        reader.onerror = function () {
+            pendingReads--;
+        };
+
+        reader.readAsDataURL(file);
 
         let btn = document.getElementById("button" + index);
 
@@ -120,7 +296,7 @@ function handleFileSelected(input, index) {
 }
 
 // deleteImage
-// Resets a slot back to the placeholder and clears the hidden inputs.
+// Resets a slot back to the placeholder and clears hidden inputs and Base64 carriers.
 function deleteImage(index, hiddenInputId) {
     let isProfile = window.location.pathname.toLowerCase().includes("profile") && index === 1;
 
@@ -137,6 +313,7 @@ function deleteImage(index, hiddenInputId) {
     if (img) {
         img.setAttribute("src", defaultSrc);
         img.removeAttribute("data-existing-path");
+        img.removeAttribute("data-original-path");
     }
 
     let fileInput = document.getElementById("imageInput" + index);
@@ -153,6 +330,19 @@ function deleteImage(index, hiddenInputId) {
         }
     }
 
+    // Also clear the Base64 hidden for this slot so we do not resubmit the old preview.
+    var hidden = getBase64HiddenIds(index);
+
+    if (hidden.base64) {
+        hidden.base64.value = "";
+    }
+
+    if (hidden.fileName) {
+        hidden.fileName.value = "";
+    }
+
+    // For Edit, if we cleared a slot that had an old existing image, keep the cleared state
+    // so the server knows to delete it. For Create, just clearing is enough.
     let btn = document.getElementById("button" + index);
 
     if (btn) {
@@ -229,27 +419,52 @@ async function triggerSmartListingAI() {
             continue;
         }
 
-        // Otherwise try to fetch the image that is already on the server.
+        // Otherwise try to use the preview we already have, even if it is a Base64 data URL.
         let img = document.getElementById("image" + i);
         let existingPath = null;
 
         if (img) {
-            existingPath = img.getAttribute("data-existing-path");
+            existingPath = img.getAttribute("data-existing-path") || img.getAttribute("src");
         }
 
-        if (existingPath && existingPath.trim() !== "") {
-            try {
-                let response = await fetch(existingPath);
+        if (existingPath && existingPath.trim() !== "" && !isPlaceholderSrc(existingPath)) {
+            // If it is a data URL we already have the bytes, turn it directly into a blob without fetching.
+            if (existingPath.startsWith("data:image")) {
+                try {
+                    let parts = existingPath.split(",");
+                    let mime = parts[0].split(":")[1].split(";")[0];
+                    let bytes = atob(parts[1]);
+                    let ab = new ArrayBuffer(bytes.length);
+                    let ia = new Uint8Array(ab);
 
-                if (response.ok) {
-                    let blob = await response.blob();
-                    formData.append("images", blob, existingPath.split("/").pop());
+                    for (let j = 0; j < bytes.length; j++) {
+                        ia[j] = bytes.charCodeAt(j);
+                    }
+
+                    let blob = new Blob([ab], { type: mime });
+                    formData.append("images", blob, "image" + i + ".jpg");
                     hasImages = true;
-                } else {
-                    console.error("Could not load existing image:", existingPath, response.status);
+                    continue;
+                } catch (e) {
+                    console.error("Could not decode data URL:", e);
                 }
-            } catch (e) {
-                console.error("Could not load existing image:", existingPath, e);
+            }
+
+            // Otherwise it is a real path on the server, fetch it.
+            if (!existingPath.startsWith("data:")) {
+                try {
+                    let response = await fetch(existingPath);
+
+                    if (response.ok) {
+                        let blob = await response.blob();
+                        formData.append("images", blob, existingPath.split("/").pop());
+                        hasImages = true;
+                    } else {
+                        console.error("Could not load existing image:", existingPath, response.status);
+                    }
+                } catch (e) {
+                    console.error("Could not load existing image:", existingPath, e);
+                }
             }
         }
     }
@@ -279,6 +494,18 @@ async function triggerSmartListingAI() {
                 $("#Title").val(response.data.title);
                 $("#Description").val(response.data.description);
                 $("#CategoryId").val(response.data.categoryId).trigger("change");
+
+                // Update counters after AI fills them.
+                var ti = document.getElementById("Title");
+                var di = document.getElementById("Description");
+
+                if (ti) {
+                    ti.dispatchEvent(new Event("input"));
+                }
+
+                if (di) {
+                    di.dispatchEvent(new Event("input"));
+                }
             } else {
                 alert(response.message || "AI could not generate listing details. Check server logs.");
             }

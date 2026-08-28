@@ -12,6 +12,11 @@ namespace Marketplace.ViewModels
         // Optional new main image
         public IFormFile? Image { get; set; }
 
+        // Base64 fallback for a newly picked main image that has not been saved yet.
+        public string? MainImageBase64 { get; set; }
+
+        public string? MainImageFileName { get; set; }
+
         [Required]
         [StringLength(35, MinimumLength = 3)]
         public string Title { get; set; } = "";
@@ -48,6 +53,19 @@ namespace Marketplace.ViewModels
         public IFormFile? AdditionalImage2 { get; set; }
 
         public IFormFile? AdditionalImage3 { get; set; }
+
+        // Base64 fallbacks for newly picked extra images.
+        public string? AdditionalImageBase64_1 { get; set; }
+
+        public string? AdditionalImageBase64_2 { get; set; }
+
+        public string? AdditionalImageBase64_3 { get; set; }
+
+        public string? AdditionalImageFileName1 { get; set; }
+
+        public string? AdditionalImageFileName2 { get; set; }
+
+        public string? AdditionalImageFileName3 { get; set; }
 
         // Current images, shown so user knows what is already there
         public string? ExistingImagePath { get; set; }

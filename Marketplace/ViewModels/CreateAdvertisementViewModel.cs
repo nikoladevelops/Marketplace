@@ -9,8 +9,15 @@ namespace Marketplace.ViewModels
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Primary image is required.")]
-        public IFormFile Image { get; set; } = null!;
+        // Main image file. Required, but we also accept a Base64 fallback
+        // so the preview survives a validation error without re-upload.
+        public IFormFile? Image { get; set; }
+
+        // Base64 data URL for the main image, kept client side and posted back on errors.
+        // Example: "data:image/jpeg;base64,..."
+        public string? MainImageBase64 { get; set; }
+
+        public string? MainImageFileName { get; set; }
 
         [Required]
         [StringLength(35, MinimumLength = 3)]
@@ -46,5 +53,18 @@ namespace Marketplace.ViewModels
         public IFormFile? AdditionalImage2 { get; set; }
 
         public IFormFile? AdditionalImage3 { get; set; }
+
+        // Base64 fallbacks for the three extra slots, same idea as MainImageBase64.
+        public string? AdditionalImageBase64_1 { get; set; }
+
+        public string? AdditionalImageBase64_2 { get; set; }
+
+        public string? AdditionalImageBase64_3 { get; set; }
+
+        public string? AdditionalImageFileName1 { get; set; }
+
+        public string? AdditionalImageFileName2 { get; set; }
+
+        public string? AdditionalImageFileName3 { get; set; }
     }
 }

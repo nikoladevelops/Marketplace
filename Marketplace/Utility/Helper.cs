@@ -74,5 +74,104 @@
                 File.Delete(fullPath);
             }
         }
+
+        // TryDecodeBase64DataUrl
+        // Turns a data URL like "data:image/jpeg;base64,..." into raw bytes.
+        // Returns null if the string is not a valid data URL.
+        public static byte[]? TryDecodeBase64DataUrl(string? dataUrl, out string? extension)
+        {
+            extension = null;
+
+            if (string.IsNullOrWhiteSpace(dataUrl))
+            {
+                return null;
+            }
+
+            var trimmed = dataUrl.Trim();
+
+            if (!trimmed.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var commaIndex = trimmed.IndexOf(',');
+
+            if (commaIndex < 0)
+            {
+                return null;
+            }
+
+            var meta = trimmed.Substring(5, commaIndex - 5);
+            var base64Part = trimmed.Substring(commaIndex + 1);
+
+            // Guess extension from mime type, e.g. "jpeg" or "png".
+            var mime = meta.Split(';')[0];
+
+            if (mime.Contains('/'))
+            {
+                var ext = mime.Split('/')[1].ToLowerInvariant();
+
+                if (ext == "jpeg")
+                {
+                    ext = "jpg";
+                }
+
+                extension = "." + ext;
+            }
+            else
+            {
+                extension = ".jpg";
+            }
+
+            try
+            {
+                return Convert.FromBase64String(base64Part);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // SaveBase64ImageAsync
+        // Saves a Base64 data URL to disk the same way SaveImageAsync does.
+        // Used when the form was re-posted after a validation error and we only have the preview data.
+        public static async Task<string?> SaveBase64ImageAsync(string? dataUrl, string? originalFileName, string subFolder, IWebHostEnvironment webHostEnvironment)
+        {
+            var bytes = TryDecodeBase64DataUrl(dataUrl, out var ext);
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                return null;
+            }
+
+            // Dont allow huge payloads to fill the disk (limit ~5MB per image).
+            if (bytes.Length > 5 * 1024 * 1024)
+            {
+                return null;
+            }
+
+            string uploadsFolder = Path.Combine(webHostEnvironment.WebRootPath, "uploads", subFolder);
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            string safeName = string.IsNullOrWhiteSpace(originalFileName) ? "image" + ext : Path.GetFileName(originalFileName);
+
+            // If the name has no extension, add the one we guessed.
+            if (string.IsNullOrEmpty(Path.GetExtension(safeName)) && !string.IsNullOrEmpty(ext))
+            {
+                safeName += ext;
+            }
+
+            string uniqueFileName = Guid.NewGuid().ToString() + "_" + safeName;
+            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await File.WriteAllBytesAsync(filePath, bytes);
+
+            return $"/uploads/{subFolder}/{uniqueFileName}";
+        }
     }
 }

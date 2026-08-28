@@ -86,6 +86,16 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<ApplicationDbContext>();
 
+// Allow large Base64 image previews to post back after validation errors.
+// We keep images client side as data URLs and post them via hidden fields.
+// A 5MB image becomes ~6.7MB Base64, so we raise the default 4MB ValueLengthLimit.
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+{
+    o.ValueLengthLimit = int.MaxValue;
+    o.MultipartBodyLengthLimit = 20 * 1024 * 1024;
+    o.ValueCountLimit = 4096;
+});
+
 // Forwarded headers for proxy (nginx, caddy), harmless in dev
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {

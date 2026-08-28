@@ -60,7 +60,8 @@ namespace Marketplace.Services
         {
             Ok,
             CategoryInvalid,
-            MaxAdsReached
+            MaxAdsReached,
+            ImageMissing
         }
 
         // CreateAsync - makes a new ad after checking limits and saving images.
@@ -80,9 +81,32 @@ namespace Marketplace.Services
                 return (CreateValidation.CategoryInvalid, viewModel);
             }
 
-            // Save main image first.
+            // Main image is required - accept either a fresh file or the Base64 preview carried over after an error.
+            bool hasMainFile = viewModel.Image != null && viewModel.Image.Length > 0;
+            bool hasMainBase64 = !string.IsNullOrWhiteSpace(viewModel.MainImageBase64);
 
-            var mainImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
+            if (!hasMainFile && !hasMainBase64)
+            {
+                return (CreateValidation.ImageMissing, viewModel);
+            }
+
+            // Save main image first. Prefer the real file, fall back to Base64.
+
+            string? mainImagePath = null;
+
+            if (hasMainFile)
+            {
+                mainImagePath = await Helper.SaveImageAsync(viewModel.Image, "advertisements", _webHostEnvironment);
+            }
+            else
+            {
+                mainImagePath = await Helper.SaveBase64ImageAsync(viewModel.MainImageBase64, viewModel.MainImageFileName, "advertisements", _webHostEnvironment);
+            }
+
+            if (string.IsNullOrEmpty(mainImagePath))
+            {
+                return (CreateValidation.ImageMissing, viewModel);
+            }
 
             var ad = new AdvertisementModel
             {
@@ -101,21 +125,46 @@ namespace Marketplace.Services
             await _context.Advertisements.AddAsync(ad, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Save up to three extra images.
+            // Save up to three extra images - each slot can be a fresh file or a Base64 fallback.
 
             var additionalFiles = new[] { viewModel.AdditionalImage1, viewModel.AdditionalImage2, viewModel.AdditionalImage3 };
+            var additionalBase64 = new[] { viewModel.AdditionalImageBase64_1, viewModel.AdditionalImageBase64_2, viewModel.AdditionalImageBase64_3 };
+            var additionalNames = new[] { viewModel.AdditionalImageFileName1, viewModel.AdditionalImageFileName2, viewModel.AdditionalImageFileName3 };
 
-            foreach (var img in additionalFiles)
+            for (int i = 0; i < additionalFiles.Length; i++)
             {
-                if (img != null && img.Length > 0)
-                {
-                    var additionalPath = await Helper.SaveImageAsync(img, "advertisements", _webHostEnvironment);
+                var file = additionalFiles[i];
 
-                    _context.AdvertisementImages.Add(new AdvertisementImageModel
+                if (file != null && file.Length > 0)
+                {
+                    var additionalPath = await Helper.SaveImageAsync(file, "advertisements", _webHostEnvironment);
+
+                    if (!string.IsNullOrEmpty(additionalPath))
                     {
-                        ImagePath = additionalPath,
-                        AdvertisementId = ad.Id
-                    });
+                        _context.AdvertisementImages.Add(new AdvertisementImageModel
+                        {
+                            ImagePath = additionalPath,
+                            AdvertisementId = ad.Id
+                        });
+                    }
+
+                    continue;
+                }
+
+                var b64 = additionalBase64[i];
+
+                if (!string.IsNullOrWhiteSpace(b64))
+                {
+                    var base64Path = await Helper.SaveBase64ImageAsync(b64, additionalNames[i], "advertisements", _webHostEnvironment);
+
+                    if (!string.IsNullOrEmpty(base64Path))
+                    {
+                        _context.AdvertisementImages.Add(new AdvertisementImageModel
+                        {
+                            ImagePath = base64Path,
+                            AdvertisementId = ad.Id
+                        });
+                    }
                 }
             }
 
@@ -183,7 +232,11 @@ namespace Marketplace.Services
             bool isAdmin,
             CancellationToken cancellationToken)
         {
-            if (model.Image == null && string.IsNullOrEmpty(model.ExistingImagePath))
+            bool hasNewMainFile = model.Image != null && model.Image.Length > 0;
+            bool hasNewMainBase64 = !string.IsNullOrWhiteSpace(model.MainImageBase64);
+            bool hasExistingMain = !string.IsNullOrEmpty(model.ExistingImagePath);
+
+            if (!hasNewMainFile && !hasNewMainBase64 && !hasExistingMain)
             {
                 return EditValidation.ImageMissing;
             }
@@ -202,13 +255,19 @@ namespace Marketplace.Services
                 return EditValidation.CategoryInvalid;
             }
 
-            // 1. Handle main image.
+            // 1. Handle main image. Prefer a fresh file, then Base64, otherwise keep or clear.
 
-            if (model.Image != null)
+            if (hasNewMainFile)
             {
                 Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
 
                 ad.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
+            }
+            else if (hasNewMainBase64)
+            {
+                Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
+                ad.ImagePath = await Helper.SaveBase64ImageAsync(model.MainImageBase64, model.MainImageFileName, "advertisements", _webHostEnvironment);
             }
             else if (string.IsNullOrEmpty(model.ExistingImagePath))
             {
@@ -227,9 +286,11 @@ namespace Marketplace.Services
             ad.Longitude = SanitizeCoordinate(model.Longitude, -180, 180);
             ad.CategoryId = model.CategoryId;
 
-            // 2. Handle additional images slot by slot.
+            // 2. Handle additional images slot by slot. Each slot can be a new file, a Base64 fallback, or cleared.
 
             var newFiles = new[] { model.AdditionalImage1, model.AdditionalImage2, model.AdditionalImage3 };
+            var newBase64 = new[] { model.AdditionalImageBase64_1, model.AdditionalImageBase64_2, model.AdditionalImageBase64_3 };
+            var newNames = new[] { model.AdditionalImageFileName1, model.AdditionalImageFileName2, model.AdditionalImageFileName3 };
 
             if (model.ExistingAdditionalImagePaths == null)
             {
@@ -242,9 +303,13 @@ namespace Marketplace.Services
             {
                 var dbImage = i < orderedExisting.Count ? orderedExisting[i] : null;
                 var newFile = newFiles[i];
+                var b64 = newBase64[i];
                 var existingPathTracker = i < model.ExistingAdditionalImagePaths.Count ? model.ExistingAdditionalImagePaths[i] : "";
 
-                if (newFile != null && newFile.Length > 0)
+                bool hasFile = newFile != null && newFile.Length > 0;
+                bool hasB64 = !string.IsNullOrWhiteSpace(b64);
+
+                if (hasFile)
                 {
                     if (dbImage != null)
                     {
@@ -256,9 +321,36 @@ namespace Marketplace.Services
                     {
                         var addPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
 
+                        if (!string.IsNullOrEmpty(addPath))
+                        {
+                            _context.AdvertisementImages.Add(new AdvertisementImageModel
+                            {
+                                ImagePath = addPath,
+                                AdvertisementId = ad.Id
+                            });
+                        }
+                    }
+                }
+                else if (hasB64)
+                {
+                    var b64Path = await Helper.SaveBase64ImageAsync(b64, newNames[i], "advertisements", _webHostEnvironment);
+
+                    if (string.IsNullOrEmpty(b64Path))
+                    {
+                        continue;
+                    }
+
+                    if (dbImage != null)
+                    {
+                        Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+
+                        dbImage.ImagePath = b64Path;
+                    }
+                    else
+                    {
                         _context.AdvertisementImages.Add(new AdvertisementImageModel
                         {
-                            ImagePath = addPath,
+                            ImagePath = b64Path,
                             AdvertisementId = ad.Id
                         });
                     }
