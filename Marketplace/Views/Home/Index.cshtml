@@ -133,20 +133,40 @@
 
         async function fetchGrid(pageNumber) {
             const container = document.getElementById("adGridContainer");
-            const maxPages = parseInt(container?.dataset.maxPages || "1", 10);
 
-            if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages))
+            // Use shared helper to check bounds, so Home and Admin stay in sync.
+            if (window.Pagination)
             {
-                return;
+                var maxPagesCheck = parseInt(container?.dataset.maxPages || "0", 10);
+
+                if (!window.Pagination.isValidPage(pageNumber, maxPagesCheck))
+                {
+                    // Allow page 0 even when maxPages is 0 (empty results)
+                    if (!(maxPagesCheck === 0 && pageNumber === 0))
+                    {
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                const maxPages = parseInt(container?.dataset.maxPages || "1", 10);
+
+                if (maxPages > 0 && (pageNumber < 0 || pageNumber >= maxPages))
+                {
+                    return;
+                }
             }
 
             if (currentAbort)
             {
                 currentAbort.abort();
             }
+
             currentAbort = new AbortController();
             const query = buildSearchParams(pageNumber);
             const url = "/Home/Search?" + query;
+
             try {
                 const res = await fetch(url, { signal: currentAbort.signal, headers: { "X-Requested-With": "XMLHttpRequest" } });
 
@@ -157,29 +177,35 @@
 
                 const html = await res.text();
                 container.innerHTML = html;
-                // update data attributes from new pagination if present, else keep
-                const temp = document.createElement("div");
-                temp.innerHTML = html;
-                const newPag = temp.querySelector("[data-page]");
-                // we rely on server clamped pageNumber - push state after fetch
-                history.pushState(null, "", "/" + (query ? "?" + query : ""));
-                // Update container maxPages after fetch by re-parsing (server will have clamped)
-                // Re-attach maxPages from response: try to find pagination active span
-                const active = temp.querySelector(".pagination-links .active");
 
-                if (active)
+                // Keep page and maxPages fresh so clicking the last page still shows neighbours.
+                if (window.Pagination)
                 {
-                    const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
-
-                    if (!isNaN(cur))
-                    {
-                        container.dataset.page = cur;
-                    }
+                    window.Pagination.updateContainerPagingFromHtml(container, html, pageNumber);
                 }
                 else
                 {
-                    container.dataset.page = pageNumber;
+                    const temp = document.createElement("div");
+                    temp.innerHTML = html;
+
+                    const active = temp.querySelector(".pagination-links .active");
+
+                    if (active)
+                    {
+                        const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
+
+                        if (!isNaN(cur))
+                        {
+                            container.dataset.page = cur;
+                        }
+                    }
+                    else
+                    {
+                        container.dataset.page = pageNumber;
+                    }
                 }
+
+                history.pushState(null, "", "/" + (query ? "?" + query : ""));
             } catch (e) {
                 if (e.name !== "AbortError")
                 {

@@ -85,29 +85,14 @@
         <div class="alert alert-warning rounded-4 border-0 d-flex gap-2 py-2"><span>🚧</span><span>You blocked this user. Unblock to resume the conversation.</span></div>
     }
 
-    @* Messages area with pagination and list *@
+    @* Messages area with pagination and list - reuses the same bar as Home/Admin/Profile/Inbox *@
     <div class="card shadow-sm border-0 rounded-4 p-0 mb-3 overflow-hidden">
         @if (Model.TotalPages > 1)
         {
             <div class="border-bottom p-2 p-sm-3 d-flex flex-wrap align-items-center justify-content-between gap-2 bg-light bg-opacity-50">
                 <small class="text-muted">Page @Model.CurrentPage of @Model.TotalPages • @Model.TotalCount messages</small>
 
-                <div class="d-flex gap-1">
-                    @if (Model.HasNext)
-                    {
-                        <a asp-action="Thread" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" asp-route-page="@(Model.CurrentPage+1)" class="btn btn-outline-secondary btn-sm rounded-3">‹ Older</a>
-                    }
-
-                    @if (Model.HasPrevious)
-                    {
-                        <a asp-action="Thread" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" asp-route-page="@(Model.CurrentPage-1)" class="btn btn-outline-primary btn-sm rounded-3">Newer ›</a>
-                    }
-
-                    @if (Model.CurrentPage != 1)
-                    {
-                        <a asp-action="Thread" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" asp-route-page="1" class="btn btn-primary btn-sm rounded-3">Latest</a>
-                    }
-                </div>
+                <partial name="_Pagination" model='new Marketplace.ViewModels.PaginationViewModel { PageNumber = Model.CurrentPage - 1, MaxCountPages = Model.TotalPages, BaseUrl = Url.Action("Thread", new { with = Model.PartnerName, adId = Model.AdvertisementId }) ?? $"/Chat/Thread?with={Model.PartnerName}&adId={Model.AdvertisementId}", PageParamName = "page" }' />
             </div>
         }
 

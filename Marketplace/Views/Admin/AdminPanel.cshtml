@@ -454,24 +454,36 @@
 
                 pushUserListUrl(query);
 
-                const temp = document.createElement("div");
-                temp.innerHTML = html;
-                const maxPagesEl = temp.querySelector("#userListMaxPages");
-
-                if (maxPagesEl)
+                if (window.Pagination)
                 {
-                    container.dataset.maxPages = maxPagesEl.getAttribute("data-max-pages") || "0";
+                    window.Pagination.updateContainerPagingFromHtml(container, html, pageNumber);
                 }
+                else
+                {
+                    const temp = document.createElement("div");
+                    temp.innerHTML = html;
+                    const maxPagesEl = temp.querySelector("#userListMaxPages");
 
-                const active = temp.querySelector(".pagination-links .active");
-                if (active) {
-                    const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
-                    if (!isNaN(cur))
+                    if (maxPagesEl)
                     {
-                        container.dataset.page = cur;
+                        container.dataset.maxPages = maxPagesEl.getAttribute("data-max-pages") || "0";
                     }
-                } else {
-                    container.dataset.page = pageNumber;
+
+                    const active = temp.querySelector(".pagination-links .active");
+
+                    if (active)
+                    {
+                        const cur = parseInt(active.getAttribute("data-page") || active.textContent, 10);
+
+                        if (!isNaN(cur))
+                        {
+                            container.dataset.page = cur;
+                        }
+                    }
+                    else
+                    {
+                        container.dataset.page = pageNumber;
+                    }
                 }
             } catch (e) {
                 if (e.name !== "AbortError")
