@@ -21,12 +21,12 @@ namespace Marketplace.Controllers
     [Authorize]
     public class AdvertisementController : Controller
     {
-        private readonly IAiService _aiService;
+        private readonly IAiImageService _aiService;
         private readonly ApplicationDbContext _context;
         private readonly AdvertisementService _ads;
 
         // Constructor - wires up AI, database and ad helpers.
-        public AdvertisementController(IAiService aiService, ApplicationDbContext context, AdvertisementService ads)
+        public AdvertisementController(IAiImageService aiService, ApplicationDbContext context, AdvertisementService ads)
         {
             _aiService = aiService;
             _context = context;

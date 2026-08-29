@@ -1,115 +1,243 @@
 # Marketplace
-Marketplace web app where people display the items they wish to sell alongside their contact information.
 
-Used technologies: ASP.NET Core with .NET 10, Entity Framework Core 10 using Npgsql PostgreSQL provider, Bootstrap 5, SignalR for real-time chat. The project uses MVC without a separate Web API.
+A simple web marketplace where people can post items they want to sell and others can browse them, contact sellers, and chat in real time. You create an account, post ads with photos and location, and browse what others have listed. Admins can manage users, premium users get more listings, and guests can still browse.
 
-## What is supported?
-### 1. Different user roles
-- Seller
-- Premium
-- Admin
-### 2. Different functionality based on user role
-- Example: Admins have admin panel and can manage other users
-### 3. Flexible filtering based on:
-- Category
-- Price
-- Location
-- Min and Max price range
-### 4. User profiles
-Each user has a profile that can be visited at `/Users/{username}`. You can browse the items they have put up for sale and choose to contact them via email or phone. The profile shows paginated advertisements (12 per page) and owner-only controls (Edit Profile, Create, Edit/Delete own ads, admin sees Edit/Delete on all).
-### 5. Real-time chat
-- SignalR hub `/hubs/chat` with live Inbox and Thread
-- Navbar unread badge + toast updates instantly
-- Block/unblock (admins cannot be blocked), paginated Inbox (12) and Thread (50), scrollbars, responsive
-### 6. Contact privacy
-- Email and phone hidden by default. Owner toggles `Show email` and `Show phone` in Edit Profile.
-- When enabled, logged-in users see full contact. Anonymous users see censored value (e.g. `j***n@example.com`, `•••••123`) plus a Login to reveal CTA. Admins see all.
-- Chat requires login. Anonymous clicking Message Seller is redirected to Login with ReturnUrl.
+## What this app does
 
-## How to run (Linux / CachyOS dev, HTTP default)
+The goal is a small but complete marketplace with real features: listing creation, image upload, category and price filtering, user profiles, private contact info, block and report, real time chat, and an admin panel. Everything works without a separate API project. The app is MVC with Razor views, Entity Framework Core, and SignalR.
 
-1. Clone: `git clone https://github.com/nikoladevelops/Marketplace.git && cd Marketplace`
-2. Restore: `dotnet restore`
-3. Create `Marketplace/.env` (next to `Marketplace.csproj`):
-   ```
-   CONNECTION_STRING=Host=localhost;Database=marketplace;Username=postgres;Password=postgres
-   # optional AI
-   AI_API_URL=
-   AI_API_KEY=
-   ```
-4. First-time setup (migrate and seed essential data):
-   ```
-   dotnet run --project Marketplace -- setup
-   # aliases: seed:core, seed-core
-   ```
-   Uses `Utility/Seeding/IdentityAndCatalogSeeder.cs` to seed roles (`Seller`/`Premium`/`Admin`), users (`seller`/`premium`/`admin` with password `aaaaaaA!1`), and categories (`Furniture` ... `Sports & Outdoors`). Idempotent and safe to re-run.
+## Tech stack
 
-5. Demo data (requires setup first):
-   ```
-   dotnet run --project Marketplace -- seed:demo            # 25 ads round-robin demo users
-   dotnet run --project Marketplace -- seed:demo --count 50 # 1..200
-   dotnet run --project Marketplace -- seed:demo --count=50 # same
-   dotnet run --project Marketplace -- seed:demo --user admin --count 20  # 20 ads for specific user
-   # compat: dotnet run --project Marketplace -- --seed-demo=25
-   ```
-   Uses `Utility/Seeding/DemoContentSeeder.cs` to create 8 `demo_*@example.com` users and sample ads. Each ad gets at least 2 images (1 main + 1-2 extras). Images are fetched title and category related via a switchable provider chain with generic fallback, so no ad ever ends up with a placeholder. Missing categories or missing target user abort with a clear message suggesting `setup` or check spelling. Per-user mode seeds only that user, otherwise round-robin demo users.
+* .NET 10.0, C# 14, Nullable enabled, Implicit Usings
+* ASP.NET Core MVC + Razor Views
+* Entity Framework Core 10.0.11 with Npgsql PostgreSQL 10.0.3
+* ASP.NET Core Identity 10.0.11 for users and roles
+* ASP.NET Core DataProtection persisted to Postgres
+* SignalR for real time chat
+* Bootstrap 5 for UI
+* Leaflet 1.9.4 for maps
+* DotNetEnv 3.2.0 for .env support
 
-   Image providers live in `Utility/Seeding/ImageProviders/` (`LoremFlickr`, `Unsplash`, `Picsum`, `LocalFallback`) and are order-configurable via `appsettings.json` key `DemoSeeding:ImageProviders` or env var `DEMO_IMAGE_PROVIDERS` (e.g. `DEMO_IMAGE_PROVIDERS=LoremFlickr,Picsum dotnet run -- seed:demo`). The chain automatically switches on failure or rate limit (429/500) and logs which provider failed for which title/category. A per-category local fallback in `wwwroot/seed-fallback/` guarantees offline operation.
+NuGet packages: `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Design`, `Npgsql.EntityFrameworkCore.PostgreSQL`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore`, `DotNetEnv`.
 
-6. User and role management via CLI (flexible seeder, no em dashes, idempotent and graceful):
-   ```
-   # create user (email required, password defaults to aaaaaaA!1, default role Seller)
-   dotnet run --project Marketplace -- user:create --username newadmin --email newadmin@example.com --role Admin
-   dotnet run --project Marketplace -- user:create --username alice --email alice@example.com --password MyPass123! --role Seller,Premium
+Database: PostgreSQL with `pg_trgm` extension for fuzzy title, description and location search. Auto migration on startup.
 
-   # give or remove roles (username or email, multiple roles comma separated for create)
-   dotnet run --project Marketplace -- user:give-role --user admin --role Premium
-   dotnet run --project Marketplace -- user:remove-role --user premium --role Premium
+## Prerequisites
 
-   # list users
-   dotnet run --project Marketplace -- user:list --search mar --take 10
-   dotnet run --project Marketplace -- user:list
-   ```
-   Implemented in `Utility/Seeding/UserSeeder.cs` (validation for username min 3, valid email, existing user/role checks, idempotent). Errors are printed to stderr with suggestions, never throw. Valid roles: `Seller`, `Premium`, `Admin`.
+* .NET SDK 10 installed (`dotnet --version` should show 10.x)
+* PostgreSQL running locally
+* Git
 
-7. Dev database reset (DEV only):
-   ```
-   dotnet run --project Marketplace -- db:reset --force          # wipe DB and uploads
-   dotnet run --project Marketplace -- db:reset --force --reseed # wipe and re-seed essential data
-   # aliases: reset:dev, db-reset, reset
-   ```
-   Guarded: refuses to run when `ASPNETCORE_ENVIRONMENT != Development` and requires `--force`. Clears `Advertisements`, `AdvertisementImages`, `ChatMessages`, `UserBlocks`, `AspNet*`, `Categories`, `DataProtectionKeys` and `wwwroot/uploads/{advertisements,profiles}`. Also resets Postgres sequences. Implemented in `Utility/Seeding/DevDatabaseCleaner.cs`.
+Works the same on Linux, macOS and Windows. No OS specific steps except the database connection.
 
-8. Start app:
-   ```
-   dotnet run --project Marketplace
-   # opens http://localhost:5256 (dev default, no cert needed)
-   ```
+## Setup step by step
 
-Order matters: **setup -> seed:demo -> run**. Help (no DB needed): `dotnet run --project Marketplace -- help`.
+1. Clone the repo
 
-Seeding implementation lives in `Marketplace/Utility/Seeding/` with `IdentityAndCatalogSeeder.cs`, `DemoContentSeeder.cs`, `UserSeeder.cs`, `DevDatabaseCleaner.cs`, `SeedingCommands.cs` (CLI dispatcher) and `ImageProviders/` (switchable image sources).
+```
+git clone https://github.com/nikoladevelops/Marketplace.git
+cd Marketplace
+```
 
-Windows / manual migrations alternative:
+2. Restore packages
+
+```
+dotnet restore
+```
+
+3. Create your environment file. Copy the example:
+
+```
+cp Marketplace/.env.example Marketplace/.env
+```
+
+Edit `Marketplace/.env` and set your values. At minimum you need `CONNECTION_STRING`. The AI keys are optional if you do not use auto fill.
+
+Example `Marketplace/.env`:
+
+```
+CONNECTION_STRING=Host=localhost;Port=5432;Database=marketplace;Username=marketplace_user;Password=CHANGEME
+AI_API_URL=http://localhost:1234/v1
+AI_API_KEY=lm-studio
+AI_MODEL_NAME=Qwen3-VL-2B-Instruct-GGUF
+```
+
+For OpenRouter or another OpenAI compatible provider, just change the URL and key:
+
+```
+AI_API_URL=https://openrouter.ai/api/v1
+AI_API_KEY=sk-or-v1-your-key
+AI_MODEL_NAME=google/gemini-2.0-flash-001
+```
+
+To switch models locally with LM Studio, just change `AI_MODEL_NAME` to the exact name shown in LM Studio and restart the app.
+
+4. First time setup. This creates the database, runs migrations and seeds roles, users and categories. It is safe to run again.
+
+```
+dotnet run --project Marketplace -- setup
+```
+
+This seeds roles `Seller`, `Premium`, `Admin`, users `seller` / `premium` / `admin` with password `aaaaaaA!1`, and categories like Furniture, Electronics, Vehicles, Clothing, Books, Sports and others. Code lives in `Utility/Seeding/IdentityAndCatalogSeeder.cs`.
+
+5. Optional demo data. Needs setup first.
+
+```
+dotnet run --project Marketplace -- seed:demo
+dotnet run --project Marketplace -- seed:demo --count 50
+dotnet run --project Marketplace -- seed:demo --user admin --count 20
+```
+
+This creates `demo_*@example.com` users and sample ads. Each ad gets at least one main image and one to two extra images. Images are fetched title and category related via a provider chain that tries LoremFlickr, then Unsplash, then Picsum, then a local fallback in `wwwroot/seed-fallback`. The chain switches automatically on failure or rate limit. Order can be changed in `appsettings.json` `DemoSeeding:ImageProviders` or env `DEMO_IMAGE_PROVIDERS`.
+
+6. Run the app
+
+```
+dotnet run --project Marketplace
+```
+
+Open `http://localhost:5256` in your browser. The app listens on HTTP in development so you do not need a certificate.
+
+If you prefer manual migrations:
+
 ```
 dotnet ef database update --project Marketplace
 ```
-But the app also runs `MigrateAsync()` on startup, so `update-database` is optional.
 
-### Test users after setup
-Username: `seller` / pass `aaaaaaA!1` (Seller)  
-Username: `premium` / pass `aaaaaaA!1` (Premium)  
-Username: `admin` / pass `aaaaaaA!1` (Admin)
+The app also runs `MigrateAsync()` on startup, so manual update is optional.
 
-## Troubleshooting chat
+7. Test users after setup
 
-Real-time chat runs over SignalR (`/hubs/chat`) and needs the page and the hub on the same scheme.
+* seller / aaaaaaA!1 (Seller)
+* premium / aaaaaaA!1 (Premium)
+* admin / aaaaaaA!1 (Admin)
 
-* Dev default is `http://localhost:5256` (no cert). Always open the app at that exact URL.
-* If you re-enable `https://localhost:7256` in `Properties/launchSettings.json`, trust the dev cert once: `dotnet dev-certs https --trust` (Linux: also `certutil -d sql:$HOME/.pki/nssdb -A` for Firefox/NSS).
-* If `Connection lost - reconnecting` appears, check browser Console ` [chat] start` and Network `POST /hubs/chat/negotiate` (should be `200` when logged in, `401` anon is normal).
-* Only one `dotnet run` at a time. If you see `Failed to bind to address ... already in use`, kill stale holders: `lsof -ti :5256 | xargs -r kill -9`.
+## Environment variables
+
+* `CONNECTION_STRING` - required. Postgres connection string. Example `Host=localhost;Port=5432;Database=marketplace;Username=marketplace_user;Password=...`
+* `AI_API_URL` - optional. Base URL for AI. Default `http://localhost:1234/v1` for LM Studio. Use `https://openrouter.ai/api/v1` for OpenRouter.
+* `AI_API_KEY` - optional. API key. Default `lm-studio` for local.
+* `AI_MODEL_NAME` - optional. Model name as shown by provider. Default `Qwen3-VL-2B-Instruct-GGUF`. Just change the name in .env to switch models. The service trims quotes and spaces, so both `Qwen3-VL-2B-Instruct-GGUF` and `"Qwen3-VL-2B-Instruct-GGUF"` work.
+* `ASPNETCORE_ENVIRONMENT` - `Development` or `Production`. Dev enables `db:reset` and detailed SignalR errors.
+* `DEMO_IMAGE_PROVIDERS` - optional comma list to override image provider order for demo seeding.
+
+See `Marketplace/.env.example` for a template.
+
+## Maps
+
+The app uses Leaflet for picking a meeting point when you create or edit an ad, and for showing it on the ad details page.
+
+* Library: Leaflet 1.9.4 with `leaflet.css` and `locationPicker.js`
+* Tiles: `https://tile.openstreetmap.org/{z}/{x}/{y}.png` by OpenStreetMap. Free, no API key, requires attribution which is shown on the map.
+* Geocoding: `https://nominatim.openstreetmap.org/reverse` for turning lat and lng into a readable address. Free, no key, rate limited to about one request per second. Used only when you click or drag the pin or use Detect my location.
+* The map always uses the normal light tiles, even in dark mode. This avoids any dark tile provider that would need a key and keeps the map readable for everyone.
+* Leaflet controls (zoom buttons, attribution) are themed with CSS variables so they match the site dark and light themes.
+
+No map API key is needed. No billing. The only limit is the public Nominatim usage policy. If you need commercial or high volume geocoding, you can replace the URL in `wwwroot/js/locationPicker.js` with your own provider.
+
+## AI image service
+
+The ad form has a button Auto Fill Listing Details with AI. You upload a main image, click the button, and the app sends the image to an AI vision model that returns title, description and category.
+
+* Service: `Services/AiImageService.cs` with interface `Services/IAiImageService.cs`
+* Provider: any OpenAI compatible chat completions endpoint. The service builds a request to `POST {AI_API_URL}/chat/completions` with `model: AI_MODEL_NAME`, a system prompt with the list of categories from the database, and the image as `data:image/jpeg;base64,...`.
+* Works with LM Studio locally (`http://localhost:1234/v1`, model like `Qwen3-VL-2B-Instruct-GGUF`) and with hosted providers like OpenRouter (`https://openrouter.ai/api/v1`). Just change `.env` and restart.
+* Timeout: 60 seconds via HttpClient in `Program.cs`.
+* If the service is offline or fails, you get a modal dialog, not a browser popup. The modal explains to check that the service is running and that `AI_API_URL` and `AI_MODEL_NAME` match the loaded model. The controller `AdvertisementController.GenerateListingAI` returns `{ success: false, message: "..." }` in that case.
+
+## Roles and permissions
+
+* Guest (not logged in): browse Home, view ad details, view user profiles, see censored contact info (like `j***n@example.com` or `....123`) with a login prompt, search and filter, see paginated lists. Cannot chat, create, edit, delete, block or report.
+* Seller: all guest plus create up to 20 ads, edit and delete own ads, update own profile and avatar, toggle Show email and Show phone, chat with sellers about ads, block other users (except admins), report chats, share phone with one click if phone is valid (8 to 15 digits).
+* Premium: same as Seller but up to 40 ads. Can be given or removed by admin.
+* Admin: same as Premium plus admin panel at `/Admin/AdminPanel` to search users by name or email, filter by role, reported, blocked, paginate 20 per page, give or remove Premium and Admin roles (cannot change own Admin role), ban and unban with reason (banned users are signed out and cannot log in, their ads are hidden from public), delete accounts permanently (cannot delete self or other admins), view reports per user with counts of available and resolved, open chat logs for reported threads read only, dismiss or ban via report. Admins bypass blocks for sending messages and reading reported chats, and cannot be blocked or reported.
+
+## Admin panel
+
+At `/Admin/AdminPanel` you can search, filter, and manage every account. The user list shows badges for Banned, Admin, Premium, Seller, Reported count and Blocked by count. Selecting a user opens a manage card where you can grant Premium, make admin, ban with optional reason (shown in a confirmation modal with preview), unban, delete (also with confirmation), and load reports. The reports section fetches `GET /Admin/Reports?userId=` and for each report shows reason, description, ad link, and a Show chat button that loads `GET /Admin/ChatLog?reportId=` inline. That chat log is read only and shows the exact messages between reporter and reported user for that ad, even if one side blocked the other. Only admins can call that endpoint and only if the report exists.
+
+## Recently browsed and Recommended
+
+* Recently browsed uses `localStorage` key `mb.recentAds` and `wwwroot/js/recentlyViewed.js` plus `horizontalScroller.js`. Every time you open an ad detail page, the ad payload is saved via `data-recent-ad` attribute, deduped, limited to 50, filtered to exclude your own ads, and synced across tabs via storage events. The strip renders as a horizontal scroller with thumbnails.
+* Recommended uses `HomeController.Recommendations` POST JSON `{ viewedIds, limit }` with `wwwroot/js/recommendedAds.js`. It scores candidates by category affinity (top 2 categories from your history weighted by recency `0.85^i`), price band `median +/- 35 percent`, and location match, with weights `cat 3.0, price 1.0, loc 0.4`, diversifies round robin. It hides viewed ids and own ads and banned users ads. The scroller shows up to 15.
+* Both use AJAX and abort previous requests to stay fast.
+
+## Ajax
+
+The app uses `fetch` with `AbortController` for live updates without full page reload.
+
+* Home: `Views/Home/Index.cshtml` `fetchGrid` calls `GET /Home/Search?searchTerm=&category=&location=&minimumPrice=&maximumPrice=&filter=&pageNumber=` with `X-Requested-With: XMLHttpRequest` and swaps `#adGridContainer` with the returned `_AdGrid` partial. Debounced 400 ms on typing, instant on selects. Pagination is also AJAX and keeps URL via `history.pushState`.
+* Admin: `Views/Admin/AdminPanel.cshtml` `fetchUserList` for user search and `loadReports` plus `attachChatLogHandlers` for chat logs.
+* Chat unread badge: `wwwroot/js/navbarMessages.js` polls `GET /Chat/UnreadCount` and also receives pushes.
+* All `fetch` handlers catch `AbortError` separately and log other errors to console.
+
+Ajax is used to keep the UI responsive, reduce server load by not re-rendering the whole layout, and to allow cancellation when you type fast or switch pages quickly.
+
+## SignalR real time chat
+
+SignalR is at `/hubs/chat` via `Hubs/ChatHub.cs`.
+
+* Methods the client can call: `GetMessagesSince(adId, with, afterMessageId)`, `JoinThread(adId, with)`, `MarkThreadRead(adId, with)`, `SendMessage(adId, with, message)` (1 to 1000 chars, checks ad exists, not self, block bypass only for admins).
+* Events the server sends: `ReceiveMessage` with `{ id, body, sentAt, senderName, advertisementId }` to both user groups, `MessagesRead` with `{ byUserName }` to both groups for the double check marks.
+* Groups are `user-{userId}` added on connect. Config in `Program.cs` has `KeepAlive 15s`, `ClientTimeout 30s`, `Max message 32KB`, `EnableDetailedErrors` only in development.
+* Client files `wwwroot/js/chat.js` (thread), `chatInbox.js` (inbox live move to top, unread badge), `navbarMessages.js` (global badge) all use `WebSockets | LongPolling`, auto reconnect with exponential backoff 2s to 30s, `syncMissing` poll every 20 seconds as safety net, and `visibilitychange` to resync when you return to the tab. Messages are inserted with `textContent`, not `innerHTML`, so they are safe from XSS.
+
+## Database schema
+
+All tables are in `Models/ApplicationDbContext.cs`. Postgres is the provider.
+
+* `AspNetUsers` (Identity `ApplicationUser`): `Id`, `UserName`, `Email`, `PasswordHash`, `ProfilePicturePath`, `Description`, `ShowEmail`, `ShowPhone`, `PhoneNumber`, `Status` (Active or Banned), `BanReason`, `BannedAtUtc`, `BannedByUserId` plus nav `BannedByUser`. Index on `Status`.
+* `Advertisements`: `Id`, `Title`, `Description`, `Price` decimal 18,2, `Location`, `Latitude`, `Longitude`, `DateCreatedOn`, `ImagePath`, `UserId` FK to `AspNetUsers` Cascade, `CategoryId` FK to `Categories`. Indexes GIN trigram on `Title`, `Description`, `Location`, plus `Price`, `DateCreatedOn`, `CategoryId`, composite `CategoryId,Price`.
+* `AdvertisementImages`: `Id`, `AdvertisementId` FK Cascade, `ImagePath`. One to many from ad, holds extra 1 to 3 images.
+* `Categories`: `Id`, `Name`. Seeded.
+* `ChatMessages`: `Id`, `Body` 1 to 1000, `SentAt`, `IsReadByReceiver`, `SenderId` FK Cascade, `ReceiverId` FK Cascade, `AdvertisementId` FK Cascade. Indexes on `ReceiverId,IsReadByReceiver`, `SenderId`, `AdvertisementId`.
+* `ChatReports`: `Id`, `ReporterId` FK Restrict, `ReportedUserId` FK Restrict, `AdvertisementId` FK Restrict, `ThreadKey` string `adId:userA:userB` sorted, `Reason` enum Spam, Harassment, Scam, InappropriateContent, Other, `Description` 20 to 500, `Status` Pending or Resolved, `CreatedAtUtc`, `ReviewedByAdminId` FK SetNull, `ReviewedAtUtc`, `ActionTaken` Dismissed or Banned. Unique index `ReporterId,ThreadKey` for one report per thread, indexes on `ReportedUserId,Status` and `Status`.
+* `UserBlocks`: `Id`, `BlockerId` FK Cascade, `BlockedId` FK Cascade, unique `BlockerId,BlockedId`.
+* `UserBanHistories`: `Id`, `UserId` FK Restrict, `AdminUserId` FK Restrict, `Action` ban or unban, `Reason`, `PerformedAtUtc`. Indexes on `UserId,PerformedAtUtc` and `AdminUserId`.
+* `DataProtectionKeys`: `Id`, `FriendlyName`, `Xml`. Persisted keys so cookies survive restart, mapped in `Program.cs` with `PersistKeysToDbContext` and `ForwardedHeaders` for proxy.
+
+Relationships: a user has many ads, a user has many sent and received messages, an ad has many messages and reports, a user can block many users, a report belongs to one ad and two users plus optional reviewer admin.
+
+## Project structure
+
+* `Controllers/` - `Home`, `Advertisement`, `Account`, `Chat`, `Admin`
+* `Models/` - entities and `ApplicationDbContext`
+* `ViewModels/` - `HomeViewModel`, `Create/Edit/ShowAdvertisement`, `ProfileViewModel`, `ChatThread`, `AdminPanel`, etc.
+* `Services/` - `AdvertisementService`, `AccountService`, `ChatService`, `AdvertisementFilterService`, `UserAdministrationService`, `AiImageService`
+* `Utility/Seeding/` - `IdentityAndCatalogSeeder`, `DemoContentSeeder`, `UserSeeder`, `DevDatabaseCleaner`, `SeedingCommands`, `ImageProviders`
+* `Hubs/ChatHub.cs` - SignalR hub
+* `Middleware/BannedUserMiddleware.cs` - signs out banned users and deleted users
+* `Views/` - Razor views, `Shared/_Layout`, partials like `_AdGrid`, `_ChatLog`, `_ReportList`, `_LocationMapModal`
+* `wwwroot/js/` - `chat.js`, `chatInbox.js`, `navbarMessages.js`, `pagination.js`, `horizontalScroller.js`, `recentlyViewed.js`, `recommendedAds.js`, `locationPicker.js`, `imageManipulation.js`, `site.js`
+* `wwwroot/css/site.css` - theme variables and component styles
+
+## Security notes
+
+* Identity with hashed passwords, DataProtection keys in DB, antiforgery tokens on all POST forms (the ad create and edit forms and admin panel include tokens).
+* Contact privacy via `Utility/ContactVisibilityHelper.cs` - hidden by default, only owner and admin see raw, anonymous sees censored.
+* Banned middleware checks `Status` on every request via `ApplicationDbContext` and signs out banned or deleted users.
+* Chat checks self block, admin bypass only for admins, admin cannot be blocked or reported.
+* Admin endpoints are `[Authorize(Roles=Admin)]`.
+
+## CLI helpers
+
+* `dotnet run -- setup` - migrate and seed essential data
+* `dotnet run -- seed:demo --count 50` - demo ads
+* `dotnet run -- user:create --username x --email x@example.com --role Admin`
+* `dotnet run -- user:give-role --user admin --role Premium`
+* `dotnet run -- user:list --search mar`
+* `dotnet run -- db:reset --force` - wipes dev DB and uploads (dev only)
+* `dotnet run -- help` - shows all commands without needing DB
+
+## Troubleshooting
+
+* `PendingModelChangesWarning` on startup means you changed `ApplicationDbContext` without a migration. Run `dotnet ef migrations add YourName` then `dotnet ef database update`.
+* `Npgsql: Connection refused` means Postgres is not running or `CONNECTION_STRING` is wrong. Check `Marketplace/.env` and `pg_isready -h localhost -p 5432`.
+* Chat `Connection lost` - make sure you open `http://localhost:5256` exactly, not `https`. Check browser console for `[chat] start` and `POST /hubs/chat/negotiate` returning 200 when logged in.
+* Port already in use - `lsof -ti :5256 | xargs -r kill -9` then run again.
+* AI says service offline - check `Marketplace/.env` `AI_API_URL` and `AI_MODEL_NAME` match what LM Studio shows, and that LM Studio server is running.
 
 ## Production
 
-`appsettings.Production.json` binds `http://*:80` behind reverse proxy (nginx/caddy) with `ForwardedHeaders`. Data Protection keys are persisted to Postgres (`DataProtectionKeys` table) so auth cookies survive restarts.
+`appsettings.Production.json` binds `http://*:80` behind a reverse proxy. `ForwardedHeaders` is configured and DataProtection keys stay in Postgres so restarts keep logins valid.
+

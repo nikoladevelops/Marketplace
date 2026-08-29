@@ -15,8 +15,8 @@ using System.Threading.Tasks;
 
 namespace Marketplace.Services
 {
-    // AiService - talks to the AI vision API and turns images into a draft ad.
-    public class AiService(HttpClient httpClient, ApplicationDbContext context) : IAiService
+    // AiImageService - talks to the AI vision API and turns images into a draft ad.
+    public class AiImageService(HttpClient httpClient, ApplicationDbContext context) : IAiImageService
     {
         private readonly HttpClient _httpClient = httpClient;
         private readonly ApplicationDbContext _context = context;
@@ -39,9 +39,26 @@ namespace Marketplace.Services
                 ? string.Join(", ", categories.Select(c => $"{c.Id}: {c.Name}"))
                 : "No categories available";
 
-            string baseUrl = Environment.GetEnvironmentVariable("AI_API_URL") ?? "http://localhost:1234/v1";
-            string apiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? "lm-studio";
-            string modelName = Environment.GetEnvironmentVariable("AI_MODEL_NAME") ?? "qwen";
+            // Trim and strip quotes so user can change model by just editing the name in .env
+            // Examples: AI_MODEL_NAME=Qwen3-VL-2B-Instruct-GGUF or "qwen" both work.
+
+            string rawBaseUrl = Environment.GetEnvironmentVariable("AI_API_URL") ?? "http://localhost:1234/v1";
+            string rawApiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? "lm-studio";
+            string rawModel = Environment.GetEnvironmentVariable("AI_MODEL_NAME") ?? "Qwen3-VL-2B-Instruct-GGUF";
+
+            string baseUrl = rawBaseUrl.Trim().Trim('"').Trim('\'').TrimEnd('/');
+            string apiKey = rawApiKey.Trim().Trim('"').Trim('\'');
+            string modelName = rawModel.Trim().Trim('"').Trim('\'');
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = "http://localhost:1234/v1";
+            }
+
+            if (string.IsNullOrWhiteSpace(modelName))
+            {
+                modelName = "Qwen3-VL-2B-Instruct-GGUF";
+            }
 
             // Use only the first image to keep tokens low and avoid mix-ups.
 

@@ -7,6 +7,28 @@
 // We wait for them before letting the form submit, so the hidden Base64 is always ready.
 let pendingReads = 0;
 
+// showAiErrorModal
+// Shows AI errors in a Bootstrap modal instead of a browser alert.
+function showAiErrorModal(message) {
+    let modalEl = document.getElementById("aiErrorModal");
+
+    if (!modalEl) {
+        // Fallback if modal markup is missing.
+        console.error(message);
+        return;
+    }
+
+    let msgEl = document.getElementById("aiErrorModalMessage");
+
+    if (msgEl) {
+        msgEl.textContent = message;
+    }
+
+    if (window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     // On load, check every slot and enable the remove button if needed.
     for (let i = 1; i <= 4; i++) {
@@ -236,7 +258,7 @@ function handleFileSelected(input, index) {
 
         // Keep the POST small and avoid hitting server limits. 5MB is plenty for a listing photo.
         if (file.size > 5 * 1024 * 1024) {
-            alert("Image is too large. Please pick a file smaller than 5MB.");
+            showAiErrorModal("Image is too large. Please pick a file smaller than 5MB.");
             input.value = "";
             return;
         }
@@ -470,7 +492,7 @@ async function triggerSmartListingAI() {
     }
 
     if (!hasImages) {
-        alert("Please upload at least one image first.");
+        showAiErrorModal("Please upload at least one image first.");
         return;
     }
 
@@ -507,12 +529,12 @@ async function triggerSmartListingAI() {
                     di.dispatchEvent(new Event("input"));
                 }
             } else {
-                alert(response.message || "AI could not generate listing details. Check server logs.");
+                showAiErrorModal(response.message || "AI could not generate listing details. The AI service may be offline. Check that LM Studio is running and AI_API_URL / AI_MODEL_NAME in your .env match your loaded model.");
             }
         },
         error: function (xhr, status, error) {
             console.error("AI Generation Error:", error);
-            alert("Failed to communicate with AI service.");
+            showAiErrorModal("Failed to communicate with AI service. Make sure LM Studio is running, your AI_API_URL is correct, and the model name in .env matches the loaded model. Check browser console for details.");
         },
         complete: function () {
             aiBtn.prop("disabled", false).text(originalText);

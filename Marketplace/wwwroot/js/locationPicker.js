@@ -16,26 +16,10 @@ var LocationPicker = (function () {
         return document.getElementById(id);
     }
 
-    // currentThemeName
-    // Reads the current theme from the html tag.
-    function currentThemeName() {
-        if (document.documentElement.getAttribute("data-theme") === "light") {
-            return "light";
-        }
-
-        return "dark";
-    }
-
     // makeBaseLayer
-    // Creates the map tiles. Uses a dark style when the site is in dark mode.
-    function makeBaseLayer(theme) {
-        if (theme === "dark") {
-            return L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                maxZoom: 19
-            });
-        }
-
+    // Always returns the standard light OSM tiles.
+    // We keep the same tiles for both themes so no API key is needed.
+    function makeBaseLayer() {
         return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             maxZoom: 19
@@ -201,7 +185,7 @@ var LocationPicker = (function () {
             attributionControl: true
         });
 
-        state.inlineBase = makeBaseLayer(currentThemeName()).addTo(state.map);
+        state.inlineBase = makeBaseLayer().addTo(state.map);
 
         if (state.picking) {
             state.map.on("click", function (e) {
@@ -242,7 +226,7 @@ var LocationPicker = (function () {
             scrollWheelZoom: true
         });
 
-        state.bigBase = makeBaseLayer(currentThemeName()).addTo(state.bigMap);
+        state.bigBase = makeBaseLayer().addTo(state.bigMap);
 
         if (state.picking) {
             state.bigMap.on("click", function (e) {
@@ -277,17 +261,10 @@ var LocationPicker = (function () {
     }
 
     // applyTheme
-    // Swaps the map tiles when you toggle light/dark mode.
-    function applyTheme(theme) {
-        if (state.inlineBase && state.map) {
-            state.map.removeLayer(state.inlineBase);
-            state.inlineBase = makeBaseLayer(theme).addTo(state.map);
-        }
-
-        if (state.bigBase && state.bigMap) {
-            state.bigMap.removeLayer(state.bigBase);
-            state.bigBase = makeBaseLayer(theme).addTo(state.bigMap);
-        }
+    // Kept for compatibility but no longer swaps tiles.
+    // Maps stay on the standard light style in both themes.
+    function applyTheme() {
+        return;
     }
 
     // init
@@ -369,10 +346,7 @@ var LocationPicker = (function () {
             }
         }
 
-        // Keep maps in sync with the site theme switch.
-        document.addEventListener("themechange", function () {
-            applyTheme(currentThemeName());
-        });
+        // Theme handling is no longer needed for maps.
     }
 
     return { init: init };

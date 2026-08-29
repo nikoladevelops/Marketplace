@@ -40,7 +40,7 @@ if (connection_string == null)
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connection_string));
 
 // Http clients
-builder.Services.AddHttpClient<IAiService, AiService>(client =>
+builder.Services.AddHttpClient<IAiImageService, AiImageService>(client =>
 {
     // Generous timeout for vision model inference
     client.Timeout = TimeSpan.FromSeconds(60);
