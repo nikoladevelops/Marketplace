@@ -402,6 +402,17 @@
         }
     }
 
+    // Phone quick send - one click to share your phone number.
+    // The button just submits the hidden form, so it works even if SignalR is down.
+    var phoneBtn = document.getElementById("sendPhoneBtn");
+    var phoneForm = document.getElementById("sendPhoneForm");
+
+    if (phoneBtn && phoneForm) {
+        phoneBtn.addEventListener("click", function () {
+            phoneForm.requestSubmit();
+        });
+    }
+
     // Sending - only through the hub, no normal form post.
     if (form) {
         form.addEventListener("submit", function (e) {

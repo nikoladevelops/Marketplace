@@ -67,6 +67,8 @@ namespace Marketplace.Utility.Seeding
             // Delete in FK-safe order: children first
             // Raw SQL is fastest and avoids tracking. Use quoted identifiers for Postgres.
 
+            await TryDeleteAsync(db, "\"ChatReports\"", ct);
+            await TryDeleteAsync(db, "\"UserBanHistories\"", ct);
             await TryDeleteAsync(db, "\"AdvertisementImages\"", ct);
             await TryDeleteAsync(db, "\"ChatMessages\"", ct);
             await TryDeleteAsync(db, "\"UserBlocks\"", ct);

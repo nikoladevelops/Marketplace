@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 
@@ -39,6 +39,8 @@ namespace Marketplace.ViewModels
 
         public double? Longitude { get; set; }
 
+        // Owner id - never bound from client, server keeps original ad.UserId.
+        [BindNever]
         public string? UserId { get; set; }
 
         [Required(ErrorMessage = "You need to select a category.")]

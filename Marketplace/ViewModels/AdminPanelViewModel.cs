@@ -19,6 +19,10 @@ namespace Marketplace.ViewModels
 
         public string RoleFilter { get; set; } = "all";
 
+        public string ReportFilter { get; set; } = "all";
+
+        public string BlockedFilter { get; set; } = "all";
+
         // Paging for search results
         public int PageNumber { get; set; } = 0;
 

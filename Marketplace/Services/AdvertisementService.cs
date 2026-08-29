@@ -256,18 +256,29 @@ namespace Marketplace.Services
             }
 
             // 1. Handle main image. Prefer a fresh file, then Base64, otherwise keep or clear.
+            // Save new file first, then delete old only on success - avoids losing image if save fails.
 
             if (hasNewMainFile)
             {
-                Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+                var newPath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
 
-                ad.ImagePath = await Helper.SaveImageAsync(model.Image, "advertisements", _webHostEnvironment);
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
+                    ad.ImagePath = newPath;
+                }
             }
             else if (hasNewMainBase64)
             {
-                Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+                var newPath = await Helper.SaveBase64ImageAsync(model.MainImageBase64, model.MainImageFileName, "advertisements", _webHostEnvironment);
 
-                ad.ImagePath = await Helper.SaveBase64ImageAsync(model.MainImageBase64, model.MainImageFileName, "advertisements", _webHostEnvironment);
+                if (!string.IsNullOrEmpty(newPath))
+                {
+                    Helper.DeleteImage(ad.ImagePath, _webHostEnvironment);
+
+                    ad.ImagePath = newPath;
+                }
             }
             else if (string.IsNullOrEmpty(model.ExistingImagePath))
             {
@@ -277,6 +288,7 @@ namespace Marketplace.Services
             }
 
             // Update text fields and coords.
+            // Ownership is never changed - ad.UserId stays as original publisher even when admin edits.
 
             ad.Title = model.Title;
             ad.Description = model.Description;
@@ -313,9 +325,14 @@ namespace Marketplace.Services
                 {
                     if (dbImage != null)
                     {
-                        Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+                        var newPath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
 
-                        dbImage.ImagePath = await Helper.SaveImageAsync(newFile, "advertisements", _webHostEnvironment);
+                        if (!string.IsNullOrEmpty(newPath))
+                        {
+                            Helper.DeleteImage(dbImage.ImagePath, _webHostEnvironment);
+
+                            dbImage.ImagePath = newPath;
+                        }
                     }
                     else
                     {
@@ -396,11 +413,33 @@ namespace Marketplace.Services
                 Helper.DeleteImage(img.ImagePath, _webHostEnvironment);
             }
 
+            // Clean related reports and messages that reference this ad (Restrict would block delete).
+
+            var reportsForAd = await _context.ChatReports
+                .Where(r => r.AdvertisementId == id)
+                .ToListAsync(cancellationToken);
+
+            if (reportsForAd.Count > 0)
+            {
+                _context.ChatReports.RemoveRange(reportsForAd);
+            }
+
+            var messagesForAd = await _context.ChatMessages
+                .Where(m => m.AdvertisementId == id)
+                .ToListAsync(cancellationToken);
+
+            if (messagesForAd.Count > 0)
+            {
+                _context.ChatMessages.RemoveRange(messagesForAd);
+            }
+
             _context.Advertisements.Remove(ad);
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new DeleteResult(DeleteOutcome.Deleted, ad.User.UserName);
+            var ownerName = ad.User?.UserName;
+
+            return new DeleteResult(DeleteOutcome.Deleted, ownerName);
         }
 
         public enum DeleteOutcome { Deleted, NotFound }
@@ -439,19 +478,44 @@ namespace Marketplace.Services
 
             var adOwnerData = await _context.Users
                 .Where(x => x.Id == ad.UserId)
-                .Select(x => new { x.UserName, x.ProfilePicturePath, x.Email, x.PhoneNumber, x.ShowEmail, x.ShowPhone })
-                .SingleAsync();
+                .Select(x => new { x.UserName, x.ProfilePicturePath, x.Email, x.PhoneNumber, x.ShowEmail, x.ShowPhone, x.Status })
+                .SingleOrDefaultAsync();
 
-            ad.CategoryName = await _context.Categories
-                .Where(x => x.Id == int.Parse(ad.CategoryName))
-                .Select(x => x.Name)
-                .SingleAsync();
+            if (adOwnerData == null)
+            {
+                // Owner deleted - treat as not found for public, admin can still see via fallback.
+
+                return null;
+            }
+
+            // Hide banned users' ads from public browsing - only owner and admin can still view.
+
+            var isBannedOwner = adOwnerData.Status == AccountStatus.Banned;
+            var viewerIsOwner = ad.UserId == viewer.FindFirstValue(ClaimTypes.NameIdentifier);
+            var viewerIsAdmin = viewer.IsInRole(Helper.AdminRole);
+
+            if (isBannedOwner && !viewerIsOwner && !viewerIsAdmin)
+            {
+                return null;
+            }
+
+            if (!int.TryParse(ad.CategoryName, out var catId))
+            {
+                ad.CategoryName = "Unknown";
+            }
+            else
+            {
+                var catName = await _context.Categories
+                    .Where(x => x.Id == catId)
+                    .Select(x => x.Name)
+                    .SingleOrDefaultAsync();
+
+                ad.CategoryName = catName ?? "Unknown";
+            }
 
             ad.AdditionalImagePaths = additionalImages;
             ad.UserName = adOwnerData.UserName ?? "";
             ad.ProfilePicturePath = adOwnerData.ProfilePicturePath;
-            ad.Email = adOwnerData.Email ?? "";
-            ad.PhoneNumber = adOwnerData.PhoneNumber;
 
             var ownerForVisibility = new ApplicationUser
             {
@@ -462,15 +526,37 @@ namespace Marketplace.Services
                 ShowPhone = adOwnerData.ShowPhone
             };
 
-            var phoneView = ContactVisibilityHelper.ResolvePhone(ownerForVisibility, viewer);
-            var emailView = ContactVisibilityHelper.ResolveEmail(ownerForVisibility, viewer);
+            var phoneViewTmp = ContactVisibilityHelper.ResolvePhone(ownerForVisibility, viewer);
+            var emailViewTmp = ContactVisibilityHelper.ResolveEmail(ownerForVisibility, viewer);
 
-            ad.DisplayPhone = phoneView.Display;
-            ad.CanViewPhone = phoneView.CanView;
-            ad.IsCensoredPhone = phoneView.IsCensored;
-            ad.DisplayEmail = emailView.Display;
-            ad.CanViewEmail = emailView.CanView;
-            ad.IsCensoredEmail = emailView.IsCensored;
+            // Only expose raw contact when CanView is true.
+            // Censored viewers get Display (dots) only; hidden viewers get nothing.
+            // This prevents leaking raw phone/email into page source.
+
+            if (phoneViewTmp.CanView)
+            {
+                ad.PhoneNumber = adOwnerData.PhoneNumber;
+            }
+            else
+            {
+                ad.PhoneNumber = null;
+            }
+
+            if (emailViewTmp.CanView)
+            {
+                ad.Email = adOwnerData.Email ?? "";
+            }
+            else
+            {
+                ad.Email = "";
+            }
+
+            ad.DisplayPhone = phoneViewTmp.Display;
+            ad.CanViewPhone = phoneViewTmp.CanView;
+            ad.IsCensoredPhone = phoneViewTmp.IsCensored;
+            ad.DisplayEmail = emailViewTmp.Display;
+            ad.CanViewEmail = emailViewTmp.CanView;
+            ad.IsCensoredEmail = emailViewTmp.IsCensored;
             ad.ViewerIsAuthenticated = viewer.Identity?.IsAuthenticated == true;
             ad.IsOwner = ad.UserId == viewer.FindFirstValue(ClaimTypes.NameIdentifier);
             ad.IsAdmin = viewer.IsInRole(Helper.AdminRole);

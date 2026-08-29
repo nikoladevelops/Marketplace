@@ -23,6 +23,8 @@ namespace Marketplace.Models
 
         public DbSet<ChatMessage> ChatMessages { get; set; }
 
+        public DbSet<ChatReport> ChatReports { get; set; }
+
         public DbSet<UserBlock> UserBlocks { get; set; }
 
         public DbSet<UserBanHistory> UserBanHistories { get; set; }
@@ -117,6 +119,54 @@ namespace Marketplace.Models
 
             modelBuilder.Entity<ChatMessage>()
                 .HasIndex(m => m.AdvertisementId);
+
+            // Reports: one per reporter per thread, fast lookup for admin
+            modelBuilder.Entity<ChatReport>()
+                .HasIndex(r => new { r.ReporterId, r.ThreadKey })
+                .IsUnique();
+
+            modelBuilder.Entity<ChatReport>()
+                .HasIndex(r => new { r.ReportedUserId, r.Status });
+
+            modelBuilder.Entity<ChatReport>()
+                .HasIndex(r => r.Status);
+
+            modelBuilder.Entity<ChatReport>()
+                .HasIndex(r => r.CreatedAtUtc);
+
+            // Keep reports even if users or ads are deleted, but restrict deletes
+            modelBuilder.Entity<ChatReport>()
+                .HasOne(r => r.Reporter)
+                .WithMany()
+                .HasForeignKey(r => r.ReporterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChatReport>()
+                .HasOne(r => r.ReportedUser)
+                .WithMany()
+                .HasForeignKey(r => r.ReportedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChatReport>()
+                .HasOne(r => r.Advertisement)
+                .WithMany()
+                .HasForeignKey(r => r.AdvertisementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // If the reviewing admin is deleted, keep the report but clear the reviewer.
+
+            modelBuilder.Entity<ChatReport>()
+                .HasOne(r => r.ReviewedByAdmin)
+                .WithMany()
+                .HasForeignKey(r => r.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Helpful for blocked badge counts
+            modelBuilder.Entity<UserBlock>()
+                .HasIndex(b => b.BlockedId);
+
+            modelBuilder.Entity<UserBlock>()
+                .HasIndex(b => b.BlockerId);
         }
     }
 }

@@ -5,7 +5,9 @@
     var selectedUsername = Model?.Username;
     var searchTerm = Model?.SearchTerm ?? "";
     var roleFilter = string.IsNullOrEmpty(Model?.RoleFilter) ? "all" : Model.RoleFilter;
-    var hasFilters = !string.IsNullOrEmpty(searchTerm) || roleFilter != "all";
+    var reportFilter = string.IsNullOrEmpty(Model?.ReportFilter) ? "all" : Model.ReportFilter;
+    var blockedFilter = string.IsNullOrEmpty(Model?.BlockedFilter) ? "all" : Model.BlockedFilter;
+    var hasFilters = !string.IsNullOrEmpty(searchTerm) || roleFilter != "all" || reportFilter != "all" || blockedFilter != "all";
 }
 
 @* Admin panel - search and manage all user accounts *@
@@ -44,7 +46,23 @@
                     </select>
                 </div>
 
-                <div class="col-5 col-md-3 col-lg-3 d-flex gap-2">
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label for="reportFilter" class="form-label fw-semibold mb-1 small text-uppercase text-muted">Reports</label>
+                    <select id="reportFilter" name="reportFilter" class="form-select rounded-3">
+                        <option value="all" selected="@(reportFilter == "all")">All</option>
+                        <option value="reported" selected="@(reportFilter == "reported")">Reported</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-3 col-lg-2">
+                    <label for="blockedFilter" class="form-label fw-semibold mb-1 small text-uppercase text-muted">Blocked</label>
+                    <select id="blockedFilter" name="blockedFilter" class="form-select rounded-3">
+                        <option value="all" selected="@(blockedFilter == "all")">All</option>
+                        <option value="blocked" selected="@(blockedFilter == "blocked")">Blocked</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-3 col-lg-2 d-flex gap-2 align-items-end">
                     <button type="submit" class="btn btn-primary flex-grow-1 d-md-none" aria-label="Search">
                         <span aria-hidden="true">🔍</span>
                     </button>
@@ -60,6 +78,7 @@
             </div>
 
             <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2">
+                <small class="text-muted">Showing reports and blocked counts per user.</small>
                 <a asp-controller="Admin" asp-action="AdminPanel" class="small text-decoration-none d-none d-md-inline">Clear filters</a>
             </div>
         </form>
@@ -75,8 +94,11 @@
     {
         <div id="managePanel" class="card shadow-sm border-0 rounded-4 bg-white p-3 p-md-4 mt-4">
             <form method="post">
+                @Html.AntiForgeryToken()
                 <input type="hidden" name="searchTerm" value="@searchTerm"/>
                 <input type="hidden" name="roleFilter" value="@roleFilter"/>
+                <input type="hidden" name="reportFilter" value="@reportFilter"/>
+                <input type="hidden" name="blockedFilter" value="@blockedFilter"/>
                 <input type="hidden" name="pageNumber" value="@Model.PageNumber"/>
 
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
@@ -104,7 +126,7 @@
                 }
 
                 <div class="mb-3 d-flex gap-2 flex-wrap">
-                    <a asp-controller="Users" asp-action="@selectedUsername" class="btn btn-outline-primary btn-sm">Show Profile</a>
+                    <a href="/Users/@selectedUsername" class="btn btn-outline-primary btn-sm">Show Profile</a>
                 </div>
 
                 <hr>
@@ -175,6 +197,50 @@
                 {
                     <p class="text-muted small mb-0">@(Model.IsTargetSelf ? "You cannot delete your own account." : "Admins cannot be deleted. Demote them first.")</p>
                 }
+
+                @* Reports section - shows all reports for this user *@
+                <hr />
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-semibold text-secondary mb-0 small text-uppercase">Reports</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadReports('@selectedUserId')">Load reports</button>
+                </div>
+                <div id="reportsContainer" class="small text-muted">Click load to see reports for this user.</div>
+
+                @* Hidden fields for report dismissal/ban confirmation flow.
+                   Values are set by JS when a report trigger is clicked, then the hidden submit is clicked. *@
+                <input type="hidden" id="reportActionReportId" name="reportId" value="" />
+                <input type="hidden" id="reportActionType" name="actionType" value="" />
+                <input type="hidden" name="selectedUserId" value="@selectedUserId" />
+
+                <button type="submit" asp-controller="Admin" asp-action="ResolveReport" class="d-none" id="reportActionRealSubmit" tabindex="-1" aria-hidden="true">Resolve Report</button>
+
+                <script>
+                    async function loadReports(userId) {
+                        var container = document.getElementById("reportsContainer");
+
+                        if (!container) {
+                            return;
+                        }
+
+                        container.textContent = "Loading...";
+
+                        try {
+                            var res = await fetch("/Admin/Reports?userId=" + encodeURIComponent(userId), {
+                                headers: { "X-Requested-With": "XMLHttpRequest" }
+                            });
+
+                            if (!res.ok) {
+                                container.textContent = "Failed to load reports.";
+                                return;
+                            }
+
+                            var html = await res.text();
+                            container.innerHTML = html;
+                        } catch (e) {
+                            container.textContent = "Failed to load reports.";
+                        }
+                    }
+                </script>
             </form>
         </div>
 
@@ -237,6 +303,70 @@
                     <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-danger" id="deleteConfirmSubmit">Delete account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Report dismiss confirmation modal - reuses same pattern as other confirms *@
+        <div class="modal fade" id="reportDismissConfirmModal" tabindex="-1" aria-labelledby="reportDismissConfirmModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="reportDismissConfirmModalTitle">
+                            <span class="badge rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">✔</span>
+                            Dismiss report
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Dismiss this report for <strong class="text-break">@selectedUsername</strong>?
+                            <span class="d-block text-muted small mt-1">The report will be marked as dismissed and won't count as pending anymore.</span>
+                        </p>
+
+                        <div class="bg-light rounded-3 p-3 small" style="background-color: var(--surface-2) !important;">
+                            <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 0.7rem; letter-spacing: 0.04em;">Report</div>
+                            <div id="reportDismissPreview" class="text-body">No details.</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-secondary" id="reportDismissConfirmSubmit">Dismiss report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Report ban confirmation modal - reuses ban styling with purple accent *@
+        <div class="modal fade" id="reportBanConfirmModal" tabindex="-1" aria-labelledby="reportBanConfirmModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="reportBanConfirmModalTitle">
+                            <span class="badge rounded-circle bg-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 1.1rem;" aria-hidden="true">🚫</span>
+                            Ban via report
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body pt-2">
+                        <p class="mb-3">
+                            Ban <strong class="text-break">@selectedUsername</strong> based on this report?
+                            <span class="d-block text-muted small mt-1">They will be signed out immediately and the report will be marked as banned.</span>
+                        </p>
+
+                        <div class="bg-light rounded-3 p-3 small" style="background-color: var(--surface-2) !important;">
+                            <div class="text-muted text-uppercase fw-semibold mb-1" style="font-size: 0.7rem; letter-spacing: 0.04em;">Reason</div>
+                            <div id="reportBanPreview" class="text-body">No reason provided.</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="reportBanConfirmSubmit">Ban user</button>
                     </div>
                 </div>
             </div>
@@ -381,9 +511,13 @@
         function buildUserSearchParams(pageNumber) {
             const searchTerm = document.getElementById("userSearchBar")?.value.trim() ?? "";
             const roleFilter = document.getElementById("userRoleFilter")?.value ?? "all";
+            const reportFilter = document.getElementById("reportFilter")?.value ?? "all";
+            const blockedFilter = document.getElementById("blockedFilter")?.value ?? "all";
             const params = new URLSearchParams();
             params.set("pageNumber", pageNumber ?? 0);
             params.set("roleFilter", roleFilter);
+            params.set("reportFilter", reportFilter);
+            params.set("blockedFilter", blockedFilter);
             if (searchTerm)
             {
                 params.set("searchTerm", searchTerm);
@@ -636,6 +770,214 @@
                 realSubmitId: "removeAdminRealSubmit"
             });
 
+            // Wire report dismiss/ban triggers that live inside the dynamically loaded reportsContainer.
+            // We attach a delegated listener so newly fetched HTML is handled without re-binding.
+
+            (function attachReportActionHandlers() {
+                const reportsContainer = document.getElementById("reportsContainer");
+                const reportIdInput = document.getElementById("reportActionReportId");
+                const reportTypeInput = document.getElementById("reportActionType");
+                const reportRealSubmit = document.getElementById("reportActionRealSubmit");
+
+                const dismissModalEl = document.getElementById("reportDismissConfirmModal");
+                const banModalEl = document.getElementById("reportBanConfirmModal");
+
+                const dismissPreview = document.getElementById("reportDismissPreview");
+                const banPreview = document.getElementById("reportBanPreview");
+
+                const dismissConfirmBtn = document.getElementById("reportDismissConfirmSubmit");
+                const banConfirmBtn = document.getElementById("reportBanConfirmSubmit");
+
+                if (!reportsContainer || !reportIdInput || !reportTypeInput || !reportRealSubmit)
+                {
+                    return;
+                }
+
+                let pendingTrigger = null;
+
+                reportsContainer.addEventListener("click", function (e) {
+                    const dismissBtn = e.target.closest(".report-dismiss-trigger");
+                    const banBtn = e.target.closest(".report-ban-trigger");
+
+                    if (dismissBtn)
+                    {
+                        const rid = dismissBtn.getAttribute("data-report-id");
+                        const reason = dismissBtn.getAttribute("data-reason") || "";
+                        const desc = dismissBtn.getAttribute("data-description") || "";
+
+                        reportIdInput.value = rid || "";
+                        reportTypeInput.value = "dismiss";
+                        pendingTrigger = dismissBtn;
+
+                        if (dismissPreview)
+                        {
+                            const text = reason + (desc ? " - " + desc : "");
+                            dismissPreview.textContent = text.trim() || "No details.";
+                        }
+
+                        if (dismissModalEl)
+                        {
+                            bootstrap.Modal.getOrCreateInstance(dismissModalEl).show();
+                        }
+
+                        return;
+                    }
+
+                    if (banBtn)
+                    {
+                        const rid = banBtn.getAttribute("data-report-id");
+                        const reason = banBtn.getAttribute("data-reason") || "";
+                        const desc = banBtn.getAttribute("data-description") || "";
+
+                        reportIdInput.value = rid || "";
+                        reportTypeInput.value = "ban";
+                        pendingTrigger = banBtn;
+
+                        if (banPreview)
+                        {
+                            const text = reason + (desc ? " - " + desc : "");
+                            banPreview.textContent = text.trim() || "No reason provided.";
+                        }
+
+                        if (banModalEl)
+                        {
+                            bootstrap.Modal.getOrCreateInstance(banModalEl).show();
+                        }
+                    }
+                });
+
+                if (dismissConfirmBtn)
+                {
+                    dismissConfirmBtn.addEventListener("click", function () {
+                        if (dismissModalEl)
+                        {
+                            bootstrap.Modal.getOrCreateInstance(dismissModalEl).hide();
+                        }
+
+                        setTimeout(function () {
+                            reportRealSubmit.click();
+                        }, 80);
+                    });
+                }
+
+                if (banConfirmBtn)
+                {
+                    banConfirmBtn.addEventListener("click", function () {
+                        if (banModalEl)
+                        {
+                            bootstrap.Modal.getOrCreateInstance(banModalEl).hide();
+                        }
+
+                        setTimeout(function () {
+                            reportRealSubmit.click();
+                        }, 80);
+                    });
+                }
+
+                if (dismissModalEl)
+                {
+                    dismissModalEl.addEventListener("hidden.bs.modal", function () {
+                        if (pendingTrigger)
+                        {
+                            pendingTrigger.focus();
+                        }
+                    });
+                }
+
+                if (banModalEl)
+                {
+                    banModalEl.addEventListener("hidden.bs.modal", function () {
+                        if (pendingTrigger)
+                        {
+                            pendingTrigger.focus();
+                        }
+                    });
+                }
+            })();
+
+            // Inline chat log toggle - loads the real Reporter<->Reported transcript.
+            // Handles empty threads, already loaded toggle, and fetch errors.
+
+            (function attachChatLogHandlers() {
+                const reportsContainer = document.getElementById("reportsContainer");
+
+                if (!reportsContainer)
+                {
+                    return;
+                }
+
+                reportsContainer.addEventListener("click", async function (e) {
+                    const toggle = e.target.closest(".report-chat-toggle");
+
+                    if (!toggle)
+                    {
+                        return;
+                    }
+
+                    const reportId = toggle.getAttribute("data-report-id");
+                    const targetId = "chatlog-" + reportId;
+                    const target = document.getElementById(targetId);
+
+                    if (!reportId || !target)
+                    {
+                        return;
+                    }
+
+                    const isHidden = target.classList.contains("d-none");
+
+                    if (!isHidden)
+                    {
+                        // Already visible - hide it.
+
+                        target.classList.add("d-none");
+                        target.innerHTML = "";
+                        toggle.textContent = "Show chat";
+                        toggle.setAttribute("aria-expanded", "false");
+
+                        return;
+                    }
+
+                    // Need to load.
+
+                    toggle.disabled = true;
+                    toggle.textContent = "Loading...";
+
+                    try {
+                        const res = await fetch("/Admin/ChatLog?reportId=" + encodeURIComponent(reportId), {
+                            headers: { "X-Requested-With": "XMLHttpRequest" }
+                        });
+
+                        if (!res.ok)
+                        {
+                            target.innerHTML = '<div class="alert alert-warning rounded-3 py-2 px-3 small mb-0">Failed to load chat.</div>';
+                        }
+                        else
+                        {
+                            const html = await res.text();
+
+                            if (!html || html.trim().length === 0)
+                            {
+                                target.innerHTML = '<div class="text-muted small p-2">No chat data returned.</div>';
+                            }
+                            else
+                            {
+                                target.innerHTML = html;
+                            }
+                        }
+
+                        target.classList.remove("d-none");
+                        toggle.textContent = "Hide chat";
+                        toggle.setAttribute("aria-expanded", "true");
+                    } catch (err) {
+                        target.innerHTML = '<div class="alert alert-warning rounded-3 py-2 px-3 small mb-0">Failed to load chat.</div>';
+                        target.classList.remove("d-none");
+                        toggle.textContent = "Hide chat";
+                    } finally {
+                        toggle.disabled = false;
+                    }
+                });
+            })();
+
             const searchInput = document.getElementById("userSearchBar");
             const roleSelect = document.getElementById("userRoleFilter");
 
@@ -669,6 +1011,31 @@
 
             if (roleSelect) {
                 roleSelect.addEventListener("change", function () {
+                    clearTimeout(userSearchDebounce);
+                    if (userListAbort)
+                    {
+                        userListAbort.abort();
+                    }
+                    fetchUserList(0);
+                });
+            }
+
+            const reportSelect = document.getElementById("reportFilter");
+            const blockedSelect = document.getElementById("blockedFilter");
+
+            if (reportSelect) {
+                reportSelect.addEventListener("change", function () {
+                    clearTimeout(userSearchDebounce);
+                    if (userListAbort)
+                    {
+                        userListAbort.abort();
+                    }
+                    fetchUserList(0);
+                });
+            }
+
+            if (blockedSelect) {
+                blockedSelect.addEventListener("change", function () {
                     clearTimeout(userSearchDebounce);
                     if (userListAbort)
                     {

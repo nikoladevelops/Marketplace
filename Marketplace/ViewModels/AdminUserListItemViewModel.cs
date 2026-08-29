@@ -24,5 +24,11 @@ namespace Marketplace.ViewModels
         public string? BanReason { get; set; }
 
         public DateTime? BannedAtUtc { get; set; }
+
+        // How many times this user was reported (total)
+        public int ReportCount { get; set; }
+
+        // How many users blocked this user
+        public int BlockedByCount { get; set; }
     }
 }

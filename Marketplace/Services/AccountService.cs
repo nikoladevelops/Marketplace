@@ -32,9 +32,6 @@ namespace Marketplace.Services
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // IsSignedIn - quick check if someone is logged in right now.
-        public bool IsSignedIn => _signInManager.IsSignedIn(ClaimsPrincipal.Current);
-
         // FindByUsernameAsync - look up a user by name.
         public async Task<ApplicationUser?> FindByUsernameAsync(string username) =>
             await _userManager.FindByNameAsync(username);
@@ -82,7 +79,8 @@ namespace Marketplace.Services
                     x.Email,
                     x.PhoneNumber,
                     x.ShowEmail,
-                    x.ShowPhone
+                    x.ShowPhone,
+                    x.Status
                 })
                 .SingleOrDefaultAsync();
 
@@ -98,8 +96,14 @@ namespace Marketplace.Services
             var isPremium = viewer.IsInRole(Helper.PremiumRole);
 
             // Paging setup for this user's ads.
+            // Banned users' ads are hidden from public - only owner/admin can still see them.
 
             var baseQuery = _context.Advertisements.Where(x => x.UserId == user.Id);
+
+            if (!isAdmin && !isOwner)
+            {
+                baseQuery = baseQuery.Where(x => x.User.Status == AccountStatus.Active);
+            }
 
             var totalCount = baseQuery.Count();
             var maxCountPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)ProfilePageSize);
@@ -140,13 +144,30 @@ namespace Marketplace.Services
             var phoneView = ContactVisibilityHelper.ResolvePhone(hydrated, viewer);
             var emailView = ContactVisibilityHelper.ResolveEmail(hydrated, viewer);
 
+            // Never leak raw contact when the viewer is not allowed to see it.
+            // ResolvePhone/Email already encodes owner/admin, show toggles, and auth state.
+            // Only expose raw when CanView is true. Censored viewers get Display only.
+
+            string? emailToExpose = null;
+            string? phoneToExpose = null;
+
+            if (phoneView.CanView)
+            {
+                phoneToExpose = user.PhoneNumber;
+            }
+
+            if (emailView.CanView)
+            {
+                emailToExpose = user.Email;
+            }
+
             return new ProfileViewModel
             {
                 Username = user.UserName ?? username,
                 ProfilePicturePath = user.ProfilePicturePath,
                 Description = user.Description,
-                Email = user.Email,
-                PhoneNumber = user.PhoneNumber,
+                Email = emailToExpose,
+                PhoneNumber = phoneToExpose,
                 ShowEmail = user.ShowEmail,
                 ShowPhone = user.ShowPhone,
                 DisplayPhone = phoneView.Display,
@@ -291,7 +312,29 @@ namespace Marketplace.Services
         }
 
         // IsValidPhone - simple check, 8 to 15 digits only.
-        private static bool IsValidPhone(string phone) =>
-            phone.Length is >= 8 and <= 15 && phone.All(char.IsDigit);
+        private static bool IsValidPhone(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return false;
+            }
+
+            var trimmed = phone.Trim();
+
+            if (trimmed.Length < 8 || trimmed.Length > 15)
+            {
+                return false;
+            }
+
+            foreach (var ch in trimmed)
+            {
+                if (!char.IsDigit(ch))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

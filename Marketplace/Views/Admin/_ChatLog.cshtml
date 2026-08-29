@@ -1,0 +1,75 @@
+@model Marketplace.ViewModels.AdminChatLogViewModel
+
+@* Admin chat log - read-only transcript between reporter and reported user for a given ad. *@
+
+<div class="admin-chatlog card border rounded-4 overflow-hidden" style="background-color: var(--surface); border-color: var(--border) !important;">
+    @* Header with participants and ad context *@
+    <div class="d-flex align-items-center gap-2 p-2 px-3 border-bottom" style="border-color: var(--border) !important; background-color: var(--surface-2);">
+        <div class="flex-grow-1 min-width-0">
+            <div class="fw-semibold small text-truncate">
+                @Model.ReporterName <span class="text-muted fw-normal">reported</span> @Model.ReportedName
+            </div>
+
+            <div class="small text-muted text-truncate">
+                Ad: @Model.AdTitle
+                <span class="mx-1">-</span>
+                @Model.Report.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+            </div>
+        </div>
+
+        <span class="badge bg-light text-dark border flex-shrink-0">@Model.Report.Reason</span>
+    </div>
+
+    @* Body - scrollable messages or empty state *@
+    @if (Model.Messages == null || Model.Messages.Count == 0)
+    {
+        <div class="p-3 p-md-4 text-center">
+            <div class="text-muted small">No messages exchanged yet.</div>
+            <div class="text-muted small">This thread has no chat history or the messages were removed.</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-chatlog-scroll p-2 p-md-3" style="max-height: clamp(240px, 45vh, 380px); overflow-y: auto; background-color: var(--bg);">
+            @foreach (var m in Model.Messages)
+            {
+                var isReporter = string.Equals(m.SenderName, Model.ReporterName, StringComparison.OrdinalIgnoreCase);
+
+                // Reporter on left in muted, Reported on right in themed bubble for quick scan.
+
+                <div class="d-flex mb-2 @(isReporter ? "justify-content-start" : "justify-content-end")">
+                    <div class="d-flex flex-column" style="max-width: 82%;">
+                        <div class="small fw-semibold mb-1 @(isReporter ? "text-start" : "text-end")" style="color: var(--text-muted); font-size: 0.72rem;">
+                            @m.SenderName
+                        </div>
+
+                        <div class="chat-bubble @(isReporter ? "chat-theirs" : "chat-mine")">
+                            @m.Body
+                        </div>
+
+                        <div class="chat-time @(isReporter ? "text-start" : "text-end")" style="color: var(--text-muted);">
+                            @m.SentAt.ToLocalTime().ToString("dd MMM HH:mm")
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="px-3 py-2 border-top small text-muted d-flex justify-content-between align-items-center" style="border-color: var(--border) !important; background-color: var(--surface);">
+            <span>@Model.Messages.Count message@(Model.Messages.Count == 1 ? "" : "s") shown</span>
+            <span class="d-none d-sm-inline">Oldest at top</span>
+        </div>
+    }
+</div>
+
+<style>
+    /* Admin chat log uses the same bubble theme as user chat, but adapts to admin context. */
+    .admin-chatlog-scroll::-webkit-scrollbar { width: 6px; }
+    .admin-chatlog-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+    .admin-chatlog-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    @@media (max-width: 575.98px) {
+        .admin-chatlog .chat-bubble { font-size: 0.88rem; max-width: 88%; }
+        .admin-chatlog-scroll { max-height: clamp(220px, 50vh, 340px) !important; }
+    }
+</style>

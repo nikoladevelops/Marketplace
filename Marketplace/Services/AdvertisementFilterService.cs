@@ -15,6 +15,10 @@ namespace Marketplace.Services
             string? minPriceStr,
             string? maxPriceStr)
         {
+            // Hide banned users' ads from public feeds - no one will respond anyway.
+
+            query = query.Where(x => x.User.Status == AccountStatus.Active);
+
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 var term = $"%{searchTerm.Trim()}%";

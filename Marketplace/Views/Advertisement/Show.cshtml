@@ -145,7 +145,7 @@
                     <p class="mb-2">Email: <span class="text-muted"><em>Not shared</em></span></p>
                 }
 
-                @* Phone section - similar visibility logic *@
+                @* Phone section - respects ShowPhone setting and viewer rights *@
                 @if (Model.CanViewPhone && !string.IsNullOrEmpty(Model.DisplayPhone))
                 {
                     <p class="mb-0">
@@ -161,14 +161,6 @@
                     <p class="mb-0">Phone Number: <span class="badge bg-secondary p-2">@Model.DisplayPhone</span></p>
                     <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString(loginReturnUrl)" class="btn btn-sm btn-outline-primary mt-1">Login to reveal phone</a>
                     <small class="text-muted d-block mt-1">Censored to protect from bots.</small>
-                }
-                else if (!string.IsNullOrEmpty(Model.PhoneNumber) && Model.ViewerIsAuthenticated && !Model.CanViewPhone)
-                {
-                    <p class="mb-0">Phone Number: <span class="text-muted"><em>Not shared</em></span></p>
-                }
-                else if (!Model.ViewerIsAuthenticated && !string.IsNullOrEmpty(Model.PhoneNumber) && !Model.CanViewPhone && !Model.IsCensoredPhone)
-                {
-                    <p class="mb-0">Phone Number: <span class="text-muted"><em>Not shared</em></span></p>
                 }
                 else
                 {

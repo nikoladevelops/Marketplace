@@ -61,17 +61,32 @@
                 <span id="connStatus" class="badge flex-shrink-0 chat-status chat-status-connecting" title="Live connection status">connecting…</span>
             </div>
 
-            @if (Model.IsBlockedByMe)
-            {
-                <form method="post" asp-action="Unblock" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" class="d-flex">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-success btn-sm rounded-3">✅ Unblock</button>
-                </form>
-            }
-            else if (!Model.IsPartnerAdmin)
-            {
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#blockConfirmModal">🚫 Block</button>
-            }
+            <div class="d-flex gap-2">
+                @if (!Model.AlreadyReportedByMe && !Model.IsPartnerAdmin)
+                {
+                    <button type="button" class="btn btn-outline-warning btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#reportModal">🚩 Report</button>
+                }
+                else if (Model.IsPartnerAdmin)
+                {
+                    <span class="badge bg-light text-muted border align-self-center">Admin - cannot be reported</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark align-self-center">Reported</span>
+                }
+
+                @if (Model.IsBlockedByMe)
+                {
+                    <form method="post" asp-action="Unblock" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" class="d-flex">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-success btn-sm rounded-3">✅ Unblock</button>
+                    </form>
+                }
+                else if (!Model.IsPartnerAdmin)
+                {
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#blockConfirmModal">🚫 Block</button>
+                }
+            </div>
         </div>
     </div>
 
@@ -137,6 +152,18 @@
             <input type="text" name="message" id="messageInput" class="form-control rounded-3" maxlength="1000"
                    placeholder="Write a message…" autocomplete="off" required />
             <button type="submit" id="sendButton" class="btn btn-primary px-3 px-sm-4 flex-shrink-0 rounded-3">Send ➤</button>
+            @if (Model.HasValidPhone)
+            {
+                <button type="button" id="sendPhoneBtn" class="btn btn-outline-success flex-shrink-0 rounded-3" title="Share your phone number">📞 Phone</button>
+            }
+            else
+            {
+                <a href="/Users/@Model.MyUserName?edit=true" class="btn btn-outline-secondary flex-shrink-0 rounded-3 disabled" title="Add a phone in your profile first">📞 Phone</a>
+            }
+        </form>
+
+        <form id="sendPhoneForm" method="post" asp-action="SendPhone" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId" class="d-none">
+            @Html.AntiForgeryToken()
         </form>
 
         <div class="text-muted small mt-1 d-flex justify-content-between"><span class="d-none d-sm-inline">Press Enter to send • 1000 chars max</span><span class="d-sm-none">1000 chars max</span><span id="charCount" class="ms-auto"></span></div>
@@ -160,6 +187,43 @@
                     @Html.AntiForgeryToken()
                     <button type="button" class="btn btn-outline-secondary rounded-3 px-4" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger rounded-3 px-4">Block user</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Report modal - pick reason and describe the issue *@
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-body p-4">
+                <h5 class="fw-bold mb-3" id="reportModalLabel">Report chat with @Model.PartnerName</h5>
+                <p class="text-muted small">You can report this chat once. An admin will review it.</p>
+
+                <form method="post" asp-action="ReportThread" asp-route-with="@Model.PartnerName" asp-route-adId="@Model.AdvertisementId">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Reason <span class="text-danger">*</span></label>
+                        <select name="reason" class="form-select rounded-3" required>
+                            <option value="">-- pick a reason --</option>
+                            <option value="Spam">Spam</option>
+                            <option value="Harassment">Harassment</option>
+                            <option value="Scam">Scam</option>
+                            <option value="InappropriateContent">Inappropriate content</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description <span class="text-danger">*</span> <small class="text-muted">(20-500 chars)</small></label>
+                        <textarea name="description" class="form-control rounded-3" rows="4" maxlength="500" minlength="20" required placeholder="Describe what happened..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary rounded-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning rounded-3">Send report</button>
+                    </div>
                 </form>
             </div>
         </div>

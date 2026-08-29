@@ -1,0 +1,78 @@
+@model List<Marketplace.Models.ChatReport>
+
+@* Reports for a user - shown inside the admin manage panel *@
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="text-muted small">No reports for this user.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var r in Model)
+        {
+            var isPending = r.Status == Marketplace.Models.ReportStatus.Pending;
+
+            // Distinct badge: purple for pending (Reported), grey for resolved
+            var badgeClass = isPending ? "bg-reported" : "bg-secondary";
+
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="flex-grow-1 min-width-0">
+                        <div class="fw-semibold small">From @r.Reporter?.UserName on @r.CreatedAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+
+                        <div class="small">Reason: <span class="badge bg-light text-dark border">@r.Reason</span></div>
+
+                        <div class="small text-muted mt-1 text-break">@r.Description</div>
+
+                        <div class="small mt-1">Ad: <a href="/Advertisement/Show/@r.AdvertisementId" target="_blank" rel="noopener">@(r.Advertisement?.Title ?? "(deleted)")</a></div>
+                    </div>
+
+                    <span class="badge @badgeClass flex-shrink-0">@r.Status</span>
+                </div>
+
+                @* Inline chat log toggle - loads the real Reporter <-> Reported thread via Admin/ChatLog. *@
+                <div class="mt-2">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-primary report-chat-toggle"
+                            data-report-id="@r.Id"
+                            aria-expanded="false"
+                            aria-controls="chatlog-@r.Id">
+                        Show chat
+                    </button>
+
+                    <div id="chatlog-@r.Id" class="mt-2 d-none"></div>
+                </div>
+
+                @if (isPending)
+                {
+                    // Use trigger buttons that open confirmation modals.
+                    // Real submits live in AdminPanel and are clicked programmatically.
+
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary report-dismiss-trigger"
+                                data-report-id="@r.Id"
+                                data-reason="@r.Reason"
+                                data-description="@r.Description">
+                            Dismiss
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-sm btn-danger report-ban-trigger"
+                                data-report-id="@r.Id"
+                                data-reason="@r.Reason"
+                                data-description="@r.Description"
+                                data-reported-user-id="@r.ReportedUserId">
+                            Ban user
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="small text-muted mt-2">Reviewed: @r.ActionTaken on @r.ReviewedAtUtc?.ToLocalTime().ToString("dd MMM yyyy")</div>
+                }
+            </div>
+        }
+    </div>
+}

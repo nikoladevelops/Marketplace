@@ -29,6 +29,14 @@ namespace Marketplace.ViewModels
 
         public bool CanSend { get; set; }
 
+        // Reporting
+        public bool AlreadyReportedByMe { get; set; }
+
+        // Phone quick share
+        public string? MyPhoneNumber { get; set; }
+
+        public bool HasValidPhone { get; set; }
+
         // Paging for long threads
         public int CurrentPage { get; set; } = 1;
 

@@ -63,7 +63,7 @@ namespace Marketplace.Controllers
             }
 
             var existing = _context.Advertisements.AsNoTracking()
-                .Where(a => parsed.Contains(a.Id))
+                .Where(a => parsed.Contains(a.Id) && a.User.Status == AccountStatus.Active)
                 .Select(a => a.Id)
                 .ToList();
 
@@ -166,7 +166,8 @@ namespace Marketplace.Controllers
 
             IQueryable<AdvertisementModel> q = _context.Advertisements.AsNoTracking()
                 .Where(a => topCategoryIds.Contains(a.CategoryId))
-                .Where(a => !viewedIds.Contains(a.Id));
+                .Where(a => !viewedIds.Contains(a.Id))
+                .Where(a => a.User.Status == AccountStatus.Active);
 
             // Hide own ads when logged in (mirrors RecentlyViewed filtering)
             if (!string.IsNullOrEmpty(currentUserId))
@@ -176,8 +177,6 @@ namespace Marketplace.Controllers
 
             // Fetch candidates (price band is soft, we prefer band but fallback if too few)
             var candidates = q
-                .Include(a => a.User)
-                .Include(a => a.Category)
                 .OrderByDescending(a => a.DateCreatedOn)
                 .Take(60)
                 .Select(a => new SimplifiedAdvertisementViewModel
@@ -194,11 +193,11 @@ namespace Marketplace.Controllers
                     DateCreatedOn = a.DateCreatedOn
                 }).ToList();
 
-            // Score and sort candidates, weights are explicit so we can tune later
+            // Score and sort candidates, weights are explicit so we can tune later.
+
             const double wCat = 3.0;
             const double wPrice = 1.0;
             const double wLoc = 0.4;
-            const double wRecencyCat = 1.0;
 
             double maxCatScore = catScores.Values.DefaultIfEmpty(1).Max();
 
@@ -210,9 +209,7 @@ namespace Marketplace.Controllers
 
                 double locScore = (!string.IsNullOrEmpty(dominantLocation) && c.Location != null && c.Location.Equals(dominantLocation, StringComparison.OrdinalIgnoreCase)) ? 1.0 : 0.0;
 
-                double freshness = 0;
-
-                double total = wCat * catScore + wPrice * priceScore + wLoc * locScore + freshness;
+                double total = wCat * catScore + wPrice * priceScore + wLoc * locScore;
 
                 return new { ad = c, score = total };
             })
@@ -331,8 +328,6 @@ namespace Marketplace.Controllers
             pageNumber = Math.Clamp(pageNumber, 0, Math.Max(0, maxCountPages - 1));
 
             var adsResult = query
-                .Include(x => x.User)
-                .Include(x => x.Category)
                 .Skip(pageNumber * loadAdsPerPage)
                 .Take(loadAdsPerPage)
                 .Select(x => new SimplifiedAdvertisementViewModel()

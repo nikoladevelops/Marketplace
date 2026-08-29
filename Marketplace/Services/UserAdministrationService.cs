@@ -33,9 +33,9 @@ namespace Marketplace.Services
         }
 
         // SearchAsync - search users and also load the selected user detail.
-        public async Task<AdminPanelViewModel> SearchAsync(string? searchTerm, string? roleFilter, int pageNumber, string? selectedUserId, string? viewerId = null)
+        public async Task<AdminPanelViewModel> SearchAsync(string? searchTerm, string? roleFilter, int pageNumber, string? selectedUserId, string? viewerId = null, string? reportFilter = "all", string? blockedFilter = "all")
         {
-            var list = await BuildUserListAsync(searchTerm, roleFilter, pageNumber);
+            var list = await BuildUserListAsync(searchTerm, roleFilter, pageNumber, reportFilter, blockedFilter);
 
             await PopulateSelectedAsync(list, selectedUserId, viewerId);
 
@@ -43,11 +43,54 @@ namespace Marketplace.Services
         }
 
         // SearchListAsync - search users for AJAX, list only, no selected user.
-        public async Task<AdminPanelViewModel> SearchListAsync(string? searchTerm, string? roleFilter, int pageNumber)
+        public async Task<AdminPanelViewModel> SearchListAsync(string? searchTerm, string? roleFilter, int pageNumber, string? reportFilter = "all", string? blockedFilter = "all")
         {
             // AJAX endpoint: only the list, no selected-user hydration.
 
-            return await BuildUserListAsync(searchTerm, roleFilter, pageNumber);
+            return await BuildUserListAsync(searchTerm, roleFilter, pageNumber, reportFilter, blockedFilter);
+        }
+
+        // GetReportsForUserAsync - returns all reports for a user, newest first.
+        public async Task<List<ChatReport>> GetReportsForUserAsync(string userId)
+        {
+            return await _context.ChatReports
+                .AsNoTracking()
+                .Where(r => r.ReportedUserId == userId)
+                .OrderByDescending(r => r.CreatedAtUtc)
+                .Include(r => r.Reporter)
+                .Include(r => r.ReportedUser)
+                .Include(r => r.Advertisement)
+                .ToListAsync();
+        }
+
+        public async Task<ChatReport?> GetReportByIdAsync(int reportId)
+        {
+            return await _context.ChatReports.FindAsync(reportId);
+        }
+
+        // ResolveReportAsync - admin resolves a report with an action.
+        public async Task<bool> ResolveReportAsync(int reportId, string adminId, ReportAction action)
+        {
+            var report = await _context.ChatReports.FindAsync(reportId);
+
+            if (report == null)
+            {
+                return false;
+            }
+
+            if (report.Status == ReportStatus.Resolved)
+            {
+                return false;
+            }
+
+            report.Status = ReportStatus.Resolved;
+            report.ReviewedByAdminId = adminId;
+            report.ReviewedAtUtc = DateTime.UtcNow;
+            report.ActionTaken = action;
+
+            await _context.SaveChangesAsync();
+
+            return true;
         }
 
         // ChangeRoleAsync - give a user a new role.
@@ -156,11 +199,21 @@ namespace Marketplace.Services
         // UnbanAsync - lift a ban and log it.
         public async Task<AdminActionOutcome> UnbanAsync(string targetUserId, string adminUserId)
         {
+            if (targetUserId == adminUserId)
+            {
+                return new(AdminActionResult.SelfModificationBlocked, "You cannot unban your own account.");
+            }
+
             var target = await _userManager.FindByIdAsync(targetUserId);
 
             if (target == null)
             {
                 return new(AdminActionResult.UserNotFound);
+            }
+
+            if (await _userManager.IsInRoleAsync(target, Helper.AdminRole))
+            {
+                return new(AdminActionResult.TargetIsAdmin, "Admins cannot be unbanned - they are never banned.");
             }
 
             if (target.Status == AccountStatus.Active)
@@ -211,27 +264,102 @@ namespace Marketplace.Services
 
             var deletedUserName = target.UserName;
 
-            var banHistoryRows = await _context.UserBanHistories
-                .Where(h => h.UserId == targetUserId || h.AdminUserId == targetUserId)
-                .ToListAsync();
+            // Use a transaction so we never leave orphaned audit rows if the user delete fails.
+            await using var tx = await _context.Database.BeginTransactionAsync();
 
-            if (banHistoryRows.Count > 0)
+            try
             {
-                _context.UserBanHistories.RemoveRange(banHistoryRows);
+                // Clean ban history first (Restrict).
+
+                var banHistoryRows = await _context.UserBanHistories
+                    .Where(h => h.UserId == targetUserId || h.AdminUserId == targetUserId)
+                    .ToListAsync();
+
+                if (banHistoryRows.Count > 0)
+                {
+                    _context.UserBanHistories.RemoveRange(banHistoryRows);
+                }
+
+                // If the deleted user was an admin who reviewed reports, clear the reviewer reference (SetNull).
+
+                var reviewedReports = await _context.ChatReports
+                    .Where(r => r.ReviewedByAdminId == targetUserId)
+                    .ToListAsync();
+
+                foreach (var r in reviewedReports)
+                {
+                    r.ReviewedByAdminId = null;
+                }
+
+                // Clean chat reports that reference this user directly or via their ads (Restrict on Reporter/Reported/Advertisement).
+
+                var adIdsForUser = await _context.Advertisements
+                    .Where(a => a.UserId == targetUserId)
+                    .Select(a => a.Id)
+                    .ToListAsync();
+
+                var reportsForUser = await _context.ChatReports
+                    .Where(r => r.ReporterId == targetUserId || r.ReportedUserId == targetUserId || adIdsForUser.Contains(r.AdvertisementId))
+                    .ToListAsync();
+
+                if (reportsForUser.Count > 0)
+                {
+                    _context.ChatReports.RemoveRange(reportsForUser);
+                }
+
+                // Clean chat messages where user participated (Cascade would wipe but we do explicitly for clarity).
+
+                var messagesForUser = await _context.ChatMessages
+                    .Where(m => m.SenderId == targetUserId || m.ReceiverId == targetUserId)
+                    .ToListAsync();
+
+                if (messagesForUser.Count > 0)
+                {
+                    _context.ChatMessages.RemoveRange(messagesForUser);
+                }
+
+                // Clean blocks where user is blocker or blocked.
+
+                var blocksForUser = await _context.UserBlocks
+                    .Where(b => b.BlockerId == targetUserId || b.BlockedId == targetUserId)
+                    .ToListAsync();
+
+                if (blocksForUser.Count > 0)
+                {
+                    _context.UserBlocks.RemoveRange(blocksForUser);
+                }
 
                 await _context.SaveChangesAsync();
-            }
 
-            await _userManager.DeleteAsync(target);
+                // Finally delete the user - advertisements will cascade via UserId.
+                var deleteResult = await _userManager.DeleteAsync(target);
+
+                if (!deleteResult.Succeeded)
+                {
+                    await tx.RollbackAsync();
+
+                    return new(AdminActionResult.UserNotFound, $"Could not delete \"{deletedUserName}\".");
+                }
+
+                await tx.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await tx.RollbackAsync();
+
+                throw;
+            }
 
             return new(AdminActionResult.Success, $"Account \"{deletedUserName}\" was permanently deleted.");
         }
 
-        // BuildUserListAsync - builds paged user list with search and role filter.
-        private async Task<AdminPanelViewModel> BuildUserListAsync(string? searchTerm, string? roleFilter, int pageNumber)
+        // BuildUserListAsync - builds paged user list with search, role, report and blocked filters.
+        private async Task<AdminPanelViewModel> BuildUserListAsync(string? searchTerm, string? roleFilter, int pageNumber, string? reportFilter = "all", string? blockedFilter = "all")
         {
             searchTerm = (searchTerm ?? "").Trim();
             roleFilter = NormalizeRoleFilter(roleFilter);
+            reportFilter = NormalizeReportFilter(reportFilter);
+            blockedFilter = NormalizeBlockedFilter(blockedFilter);
 
             IQueryable<ApplicationUser> query = _context.Users.AsNoTracking();
 
@@ -252,6 +380,17 @@ namespace Marketplace.Services
                         join r in _context.Roles on ur.RoleId equals r.Id
                         where r.Name == roleName
                         select u;
+            }
+
+            // Filter by reported state - total reports count is used later, but we filter here.
+            if (reportFilter == "reported")
+            {
+                query = query.Where(u => _context.ChatReports.Any(r => r.ReportedUserId == u.Id));
+            }
+
+            if (blockedFilter == "blocked")
+            {
+                query = query.Where(u => _context.UserBlocks.Any(b => b.BlockedId == u.Id));
             }
 
             query = query.Distinct();
@@ -277,10 +416,25 @@ namespace Marketplace.Services
                     (ur, r) => new { ur.UserId, r.Name })
                 .ToListAsync();
 
+            // Counts for badges - total reports and blocked by count
+            var reportCounts = await _context.ChatReports
+                .Where(r => pagedUserIds.Contains(r.ReportedUserId))
+                .GroupBy(r => r.ReportedUserId)
+                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+            var blockedCounts = await _context.UserBlocks
+                .Where(b => pagedUserIds.Contains(b.BlockedId))
+                .GroupBy(b => b.BlockedId)
+                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
             return new AdminPanelViewModel
             {
                 SearchTerm = searchTerm,
                 RoleFilter = roleFilter,
+                ReportFilter = reportFilter,
+                BlockedFilter = blockedFilter,
                 PageNumber = pageNumber,
                 MaxCountPages = maxCountPages,
                 PageSize = UsersPerPage,
@@ -295,7 +449,9 @@ namespace Marketplace.Services
                     IsSeller = roleAssignments.Any(ra => ra.UserId == u.Id && ra.Name == Helper.SellerRole),
                     Status = u.Status,
                     BanReason = u.BanReason,
-                    BannedAtUtc = u.BannedAtUtc
+                    BannedAtUtc = u.BannedAtUtc,
+                    ReportCount = reportCounts.GetValueOrDefault(u.Id, 0),
+                    BlockedByCount = blockedCounts.GetValueOrDefault(u.Id, 0)
                 }).ToList()
             };
         }
@@ -327,6 +483,18 @@ namespace Marketplace.Services
         private static string NormalizeRoleFilter(string? roleFilter) => roleFilter switch
         {
             "admin" or "premium" or "seller" => roleFilter,
+            _ => "all"
+        };
+
+        private static string NormalizeReportFilter(string? reportFilter) => reportFilter switch
+        {
+            "reported" => "reported",
+            _ => "all"
+        };
+
+        private static string NormalizeBlockedFilter(string? blockedFilter) => blockedFilter switch
+        {
+            "blocked" => "blocked",
             _ => "all"
         };
 

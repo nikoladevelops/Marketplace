@@ -61,7 +61,12 @@ namespace Marketplace.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateAdvertisementViewModel viewModel, CancellationToken cancellationToken)
         {
-            var meId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new InvalidOperationException("User not authenticated");
+            var meId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (meId == null)
+            {
+                return Challenge();
+            }
 
             var isPremium = User.IsInRole(Helper.PremiumRole);
 
@@ -147,8 +152,20 @@ namespace Marketplace.Controllers
         // Edit (POST) - saves changes to an ad. Keeps your typed data and image previews if validation fails.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(EditAdvertisementViewModel model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(int id, EditAdvertisementViewModel model, CancellationToken cancellationToken)
         {
+            // Ensure route id and body id agree - prevents over-post tampering.
+
+            if (id != 0 && model.Id != 0 && id != model.Id)
+            {
+                return NotFound();
+            }
+
+            if (model.Id == 0)
+            {
+                model.Id = id;
+            }
+
             var meId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
 
             var isAdmin = User.IsInRole(Helper.AdminRole);
@@ -188,7 +205,20 @@ namespace Marketplace.Controllers
                 return View(model);
             }
 
-            return RedirectToAction("Profile", "Account", new { username = User.Identity?.Name ?? "me" });
+            // Redirect to the ad owner's profile, not the editor's.
+            // This matters when an admin edits someone else's ad.
+
+            var ownerUsername = await _context.Advertisements
+                .AsNoTracking()
+                .Where(a => a.Id == model.Id)
+                .Select(a => a.User.UserName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var redirectUsername = isAdmin
+                ? (ownerUsername ?? User.Identity?.Name ?? "me")
+                : (User.Identity?.Name ?? ownerUsername ?? "me");
+
+            return RedirectToAction("Profile", "Account", new { username = redirectUsername });
         }
 
         // PreserveImagesForReRenderAsync (Create)
@@ -293,6 +323,7 @@ namespace Marketplace.Controllers
 
         // Delete - removes an ad, owner or admin can do it, then redirects to the right profile.
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
         {
             var meId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";

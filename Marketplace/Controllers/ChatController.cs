@@ -69,6 +69,73 @@ namespace Marketplace.Controllers
             return View(vm);
         }
 
+        // ReportThread - report a chat thread for review, once per thread.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReportThread(string with, int adId, string reason, string description)
+        {
+            var meId = _userManager.GetUserId(User) ?? "";
+
+            if (!Enum.TryParse<ReportReason>(reason, out var parsedReason))
+            {
+                TempData["ChatError"] = "Please pick a valid reason.";
+                return RedirectToAction(nameof(Thread), new { with, adId });
+            }
+
+            var outcome = await _chat.ReportThreadAsync(meId, with, adId, parsedReason, description);
+
+            if (outcome == ChatService.ReportOutcome.Ok)
+            {
+                TempData["ChatNotice"] = "Report sent. An admin will review this chat.";
+            }
+            else if (outcome == ChatService.ReportOutcome.AlreadyReported)
+            {
+                TempData["ChatError"] = "You already reported this chat.";
+            }
+            else if (outcome == ChatService.ReportOutcome.InvalidInput)
+            {
+                TempData["ChatError"] = "Description must be 20-500 characters.";
+            }
+            else if (outcome == ChatService.ReportOutcome.SelfReport)
+            {
+                TempData["ChatError"] = "You cannot report yourself.";
+            }
+            else if (outcome == ChatService.ReportOutcome.AdminTarget)
+            {
+                TempData["ChatError"] = "Administrators cannot be reported.";
+            }
+            else
+            {
+                TempData["ChatError"] = "Could not report this chat.";
+            }
+
+            return RedirectToAction(nameof(Thread), new { with, adId });
+        }
+
+        // SendPhone - shares your phone number as a chat message, one click.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendPhone(string with, int adId)
+        {
+            var meId = _userManager.GetUserId(User) ?? "";
+
+            var result = await _chat.SendPhoneAsync(meId, with, adId);
+
+            if (result == ChatService.PhoneShareOutcome.NoPhone)
+            {
+                TempData["ChatError"] = "Add a phone number in your profile first.";
+                return RedirectToAction(nameof(Thread), new { with, adId });
+            }
+
+            if (result == ChatService.PhoneShareOutcome.Blocked)
+            {
+                TempData["ChatError"] = "Messaging is blocked.";
+                return RedirectToAction(nameof(Thread), new { with, adId });
+            }
+
+            return RedirectToAction(nameof(Thread), new { with, adId });
+        }
+
         // Block - blocks another user so they cannot message you anymore.
         [HttpPost]
         [ValidateAntiForgeryToken]

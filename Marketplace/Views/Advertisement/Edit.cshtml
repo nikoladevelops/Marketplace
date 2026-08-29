@@ -10,7 +10,9 @@
                     <h3 class="fw-bold text-primary mb-0">✏️ Edit Advertisement</h3>
                 </div>
 
-                <form method="post" asp-action="Edit" asp-controller="Advertisement" enctype='multipart/form-data'>
+                <form method="post" asp-action="Edit" asp-controller="Advertisement" asp-route-id="@Model.Id" enctype='multipart/form-data'>
+                    <input type="hidden" asp-for="Id" />
+
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <span class="text-danger d-block mb-2" asp-validation-for="Image"></span>
 

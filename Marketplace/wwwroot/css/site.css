@@ -623,6 +623,42 @@ img { max-width: 100%; }
 
 .field-validation-error { color: var(--danger); }
 
+/* ===== Reported badge - distinct purple so it does not clash with Premium yellow ===== */
+.badge.bg-reported {
+    background-color: #a78bfa !important;
+    color: #1e1b4b !important;
+    border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="dark"] .badge.bg-reported {
+    background-color: #7c3aed !important;
+    color: #ffffff !important;
+    border-color: rgba(167, 139, 250, 0.35) !important;
+}
+
+/* Make list-group respect dark mode - used by _ReportList */
+[data-theme] .list-group-item {
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
+[data-theme] .list-group-item .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Report list responsive tweaks */
+@media (max-width: 575.98px) {
+    .list-group-item {
+        font-size: 0.92rem;
+        padding: 0.75rem;
+    }
+
+    .list-group-item .badge {
+        font-size: 0.7rem;
+    }
+}
+
 /* ============================================================
    Lightbox (fullscreen zoom with pan + wheel/pinch zoom)
    ============================================================ */

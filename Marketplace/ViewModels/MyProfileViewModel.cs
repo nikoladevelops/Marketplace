@@ -20,14 +20,6 @@ namespace Marketplace.ViewModels
 
         public bool ShowEmail { get; set; } = false;
 
-        // Old name for ShowPhone, kept so older forms still work
-        [Obsolete("Use ShowPhone")]
-        public bool PhoneNumberAgreement
-        {
-            get => ShowPhone;
-            set => ShowPhone = value;
-        }
-
         [DataType(DataType.PhoneNumber)]
         public string? PhoneNumber { get; set; }
     }

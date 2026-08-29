@@ -4,13 +4,15 @@
     var selectedUserId = Model?.UserId;
     var searchTerm = Model?.SearchTerm ?? "";
     var roleFilter = string.IsNullOrEmpty(Model?.RoleFilter) ? "all" : Model.RoleFilter;
+    var reportFilter = string.IsNullOrEmpty(Model?.ReportFilter) ? "all" : Model.ReportFilter;
+    var blockedFilter = string.IsNullOrEmpty(Model?.BlockedFilter) ? "all" : Model.BlockedFilter;
     var pageNumber = Model?.PageNumber ?? 0;
     var pageSize = Model?.PageSize > 0 ? Model.PageSize : 20;
     var total = Model?.TotalCount ?? 0;
     var from = total == 0 ? 0 : (pageNumber * pageSize) + 1;
     var to = Math.Min(total, (pageNumber + 1) * pageSize);
     var hasResults = Model != null && Model.SearchResults != null && Model.SearchResults.Count > 0;
-    var paginationBaseUrl = Url.Action("AdminPanel", "Admin", new { searchTerm, roleFilter, selectedUserId }) ?? "/Admin/AdminPanel";
+    var paginationBaseUrl = Url.Action("AdminPanel", "Admin", new { searchTerm, roleFilter, reportFilter, blockedFilter, selectedUserId }) ?? "/Admin/AdminPanel";
     var headerSuffix = string.IsNullOrEmpty(searchTerm) && roleFilter == "all" ? "all users" : (roleFilter != "all" ? $"{char.ToUpper(roleFilter[0])}{roleFilter.Substring(1)} users" : $"matching \"{searchTerm}\"");
 }
 
@@ -44,6 +46,8 @@
                     <a asp-controller="Admin" asp-action="AdminPanel"
                        asp-route-searchTerm="@searchTerm"
                        asp-route-roleFilter="@roleFilter"
+                       asp-route-reportFilter="@reportFilter"
+                       asp-route-blockedFilter="@blockedFilter"
                        asp-route-pageNumber="@pageNumber"
                        asp-route-selectedUserId="@user.UserId"
                        class="admin-user-link d-flex align-items-center gap-3 p-2 rounded-3 text-decoration-none @(isSelected ? "active" : "")">
@@ -77,6 +81,16 @@
                             {
                                 <span class="badge rounded-pill bg-info text-dark">Seller</span>
                             }
+
+                            @if (user.ReportCount > 0)
+                            {
+                                <span class="badge rounded-pill bg-reported">Reported @user.ReportCount</span>
+                            }
+
+                            @if (user.BlockedByCount > 0)
+                            {
+                                <span class="badge rounded-pill bg-secondary">Blocked by @user.BlockedByCount</span>
+                            }
                         </div>
 
                         <span class="admin-user-cta btn btn-sm @(isSelected ? "btn-primary" : "btn-outline-primary") flex-shrink-0">
@@ -104,6 +118,16 @@
                         @if (user.IsSeller)
                         {
                             <span class="badge rounded-pill bg-info text-dark">Seller</span>
+                        }
+
+                        @if (user.ReportCount > 0)
+                        {
+                            <span class="badge rounded-pill bg-reported">Reported @user.ReportCount</span>
+                        }
+
+                        @if (user.BlockedByCount > 0)
+                        {
+                            <span class="badge rounded-pill bg-secondary">Blocked by @user.BlockedByCount</span>
                         }
                     </div>
                 </li>
