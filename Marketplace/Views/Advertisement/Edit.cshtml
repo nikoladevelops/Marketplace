@@ -16,9 +16,9 @@
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <span class="text-danger d-block mb-2" asp-validation-for="Image"></span>
 
-                    @* Image gallery - main plus three extra images.
+                    @* Image gallery - 1 main image (required, slot 1) plus 3 optional extra images (slots 2 to 4), 4 total.
                        We keep both the old persisted path and the new Base64 preview so a validation error does not wipe your picks. *@
-                    <label class="form-label fw-semibold text-secondary mb-2">Product Images <span class="text-muted small">(Main required, extras optional)</span></label>
+                    <label class="form-label fw-semibold text-secondary mb-2">Product Images <span class="text-muted small">(Main required, 3 extras optional - 4 total)</span></label>
 
                     <div class="row g-3 mb-4">
                         @* Main image slot *@
@@ -123,12 +123,12 @@
                     <input type="hidden" asp-for="AdditionalImageBase64_3" id="editAdditionalBase64_3" />
                     <input type="hidden" asp-for="AdditionalImageFileName3" id="editAdditionalFileName3" />
 
-                    @* AI helper - scan images to refresh title and description *@
+                    @* AI helper - scan main image for Title and Category plus optional extras for Description enrichment *@
                     <div class="p-3 mb-4 bg-light rounded-3 border border-primary-subtle text-center">
                         <button type="button" id="aiGenerateBtn" onclick="triggerSmartListingAI()" class="btn btn-primary fw-semibold px-4 shadow-sm" disabled>
                             ✨ Re-Scan and Refresh Details with AI
                         </button>
-                        <small class="text-muted d-block mt-1">AI will analyze your images to update your title and description.</small>
+                        <small class="text-muted d-block mt-1">Main image decides Title and Category. Extra images only add details to the Description.</small>
                     </div>
 
                     @* Title - required, 3 to 35 chars *@
@@ -214,20 +214,20 @@
 
 <partial name="_LocationMapModal" />
 
-@* AI error modal - shown instead of browser alert when AI is unavailable *@
+@* AI error modal - user friendly, no scary technical details *@
 <div class="modal fade" id="aiErrorModal" tabindex="-1" aria-labelledby="aiErrorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4">
             <div class="modal-header border-0">
-                <h5 class="modal-title" id="aiErrorModalLabel">AI Service Notice</h5>
+                <h5 class="modal-title" id="aiErrorModalLabel">We could not generate details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p id="aiErrorModalMessage" class="mb-0"></p>
-                <p class="small text-muted mt-2 mb-0">Tip: Check your <code>.env</code> <code>AI_API_URL</code>, <code>AI_API_KEY</code> and <code>AI_MODEL_NAME</code>. For LM Studio use <code>http://localhost:1234/v1</code> and the exact model name shown in LM Studio.</p>
+                <p class="small text-muted mt-2 mb-0">Tip: Try a clearer, well-lit photo. You can still fill the title and category manually - your extra photos will still enrich the description.</p>
             </div>
             <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Got it</button>
             </div>
         </div>
     </div>

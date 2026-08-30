@@ -372,7 +372,10 @@ namespace Marketplace.Controllers
 
             if (result == null)
             {
-                return Json(new { success = false, message = "AI generation failed or LM Studio is unresponsive." });
+                // Friendly message for sellers. Detailed diagnostics go to server console and browser console, not the popup.
+                Console.WriteLine($"AI GenerateListingAI: service returned null for {images.Count} images. Check server logs and ensure AI_API_URL and AI_MODEL_NAME are reachable.");
+
+                return Json(new { success = false, message = "We could not generate details for this photo. The image might be unclear, too dark, or in an unusual format. Try again with a clearer photo or fill in the title and category manually - your extra photos will still enrich the description." });
             }
 
             return Json(new { success = true, data = result });

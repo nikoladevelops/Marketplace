@@ -42,8 +42,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql
 // Http clients
 builder.Services.AddHttpClient<IAiImageService, AiImageService>(client =>
 {
-    // Generous timeout for vision model inference
-    client.Timeout = TimeSpan.FromSeconds(60);
+    // Generous timeout for vision model inference with up to 4 images
+    client.Timeout = TimeSpan.FromSeconds(120);
 });
 
 builder.Services.AddHttpClient("LoremFlickr", client => client.Timeout = TimeSpan.FromSeconds(30));
@@ -88,11 +88,11 @@ builder.Services.AddDataProtection()
 
 // Allow large Base64 image previews to post back after validation errors.
 // We keep images client side as data URLs and post them via hidden fields.
-// A 5MB image becomes ~6.7MB Base64, so we raise the default 4MB ValueLengthLimit.
+// A 5MB image becomes ~6.7MB Base64, 4 images would be ~27MB, so we raise limits.
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
 {
     o.ValueLengthLimit = int.MaxValue;
-    o.MultipartBodyLengthLimit = 20 * 1024 * 1024;
+    o.MultipartBodyLengthLimit = 30 * 1024 * 1024;
     o.ValueCountLimit = 4096;
 });
 

@@ -1,6 +1,6 @@
 ﻿// Image slots for the Create and Edit ad pages.
-// Each page has up to 4 image slots. This file keeps the preview,
-// the remove buttons, the hidden Base64 carriers and the AI button in sync.
+// Each page has 1 main image slot (required, slot 1) plus up to 3 optional extra slots (slots 2 to 4), 4 total.
+// This file keeps the preview, the remove buttons, the hidden Base64 carriers and the AI button in sync.
 // We keep image data client side via Base64 so a validation error does not wipe your picks.
 
 // pendingReads tracks how many FileReaders are still turning a picked file into a data URL.
@@ -376,7 +376,9 @@ function deleteImage(index, hiddenInputId) {
 }
 
 // updateAiButtonState
-// The AI button should only be clickable when at least one real image exists.
+// The AI button should only be clickable when the main image (slot 1) exists.
+// The main image is required for Title and Category. Extra images (slots 2 to 4) are optional
+// and only enrich the Description, so they never enable the button alone.
 function updateAiButtonState() {
     let aiBtn = document.getElementById("aiGenerateBtn");
 
@@ -384,28 +386,23 @@ function updateAiButtonState() {
         return;
     }
 
-    let hasValidImage = false;
+    let img = document.getElementById("image1");
+    let fileInput = document.getElementById("imageInput1");
+    let hasMainImage = false;
 
-    for (let i = 1; i <= 4; i++) {
-        let img = document.getElementById("image" + i);
-        let fileInput = document.getElementById("imageInput" + i);
+    if (img) {
+        let src = img.getAttribute("src");
+        let existingPath = img.getAttribute("data-existing-path");
+        let hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+        let hasStored = existingPath && existingPath.trim() !== "";
+        let hasRealImage = src && !src.endsWith("plusSign.png") && !src.endsWith("noProfilePicture.png");
 
-        if (img) {
-            let src = img.getAttribute("src");
-            let existingPath = img.getAttribute("data-existing-path");
-            let hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
-
-            let hasStored = existingPath && existingPath.trim() !== "";
-            let hasRealImage = src && !src.endsWith("plusSign.png") && !src.endsWith("noProfilePicture.png");
-
-            if (hasFile || hasStored || hasRealImage) {
-                hasValidImage = true;
-                break;
-            }
+        if (hasFile || hasStored || hasRealImage) {
+            hasMainImage = true;
         }
     }
 
-    if (hasValidImage) {
+    if (hasMainImage) {
         aiBtn.removeAttribute("disabled");
         aiBtn.classList.remove("disabled");
     } else {
@@ -425,9 +422,23 @@ function triggerInputBrowse(inputId) {
 }
 
 // triggerSmartListingAI
-// Gathers up to 4 images and sends them to the AI endpoint.
+// Gathers the main image (slot 1, required) plus up to 3 optional extra images (slots 2 to 4) and sends them
+// to the AI endpoint in slot order. The main image always goes first and decides Title and Category.
 // Tries to reuse already uploaded files when possible to save work.
 async function triggerSmartListingAI() {
+    // Guard: require the main image. Extras alone must not be analyzed as if they were the main product.
+    let mainImg = document.getElementById("image1");
+    let mainSrc = mainImg ? mainImg.getAttribute("src") : "";
+    let mainPath = mainImg ? mainImg.getAttribute("data-existing-path") : "";
+    let mainInput = document.getElementById("imageInput1");
+    let hasMainFile = mainInput && mainInput.files && mainInput.files.length > 0;
+    let hasMainStored = mainPath && mainPath.trim() !== "";
+    let hasMainReal = mainSrc && !mainSrc.endsWith("plusSign.png") && !mainSrc.endsWith("noProfilePicture.png");
+    if (!hasMainFile && !hasMainStored && !hasMainReal) {
+        showAiErrorModal("Please upload the main image first. The main image is required for AI analysis. Extra images are optional and only add details to the Description.");
+        return;
+    }
+
     let formData = new FormData();
     let hasImages = false;
 
@@ -515,7 +526,39 @@ async function triggerSmartListingAI() {
             if (response.success && response.data) {
                 $("#Title").val(response.data.title);
                 $("#Description").val(response.data.description);
-                $("#CategoryId").val(response.data.categoryId).trigger("change");
+
+                // Category handling respects keep-previous logic.
+                // The AI service fetches live categories from the database via CategoryModel and prompts the model
+                // with the exact dropdown options. If the AI returns an invalid category (for example a hallucinated id
+                // or a misspelled name like furnite), the service returns CategoryId = -1 so we keep the user's
+                // previous dropdown selection instead of hardcoding to the first category.
+                var newCategoryId = response.data.categoryId;
+
+                if (newCategoryId !== null && newCategoryId !== undefined && newCategoryId !== -1 && newCategoryId !== 0) {
+                    var categoryExists = false;
+                    var categorySelect = document.getElementById("CategoryId");
+
+                    if (categorySelect) {
+                        for (var c = 0; c < categorySelect.options.length; c++) {
+                            if (categorySelect.options[c].value === String(newCategoryId)) {
+                                categoryExists = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (categoryExists) {
+                        $("#CategoryId").val(newCategoryId).trigger("change");
+                    } else {
+                        console.warn("AI returned CategoryId " + newCategoryId + " which is not in the dropdown, keeping previous selection");
+                    }
+                } else {
+                    // Keep previous selection. This happens when the AI could not pick a valid category.
+                    // We do not overwrite the dropdown so the user's prior choice stays.
+                    if (newCategoryId === -1) {
+                        console.log("AI could not determine a valid category, keeping previous dropdown selection");
+                    }
+                }
 
                 // Update counters after AI fills them.
                 var ti = document.getElementById("Title");
@@ -529,12 +572,17 @@ async function triggerSmartListingAI() {
                     di.dispatchEvent(new Event("input"));
                 }
             } else {
-                showAiErrorModal(response.message || "AI could not generate listing details. The AI service may be offline. Check that LM Studio is running and AI_API_URL / AI_MODEL_NAME in your .env match your loaded model.");
+                // Friendly fallback. The controller already returns a helpful message. We log the raw response for debugging.
+                console.warn("AI GenerateListingAI returned success=false", response);
+
+                showAiErrorModal(response.message || "We could not generate details for this photo. Try again with a clearer photo or fill in the title and category manually.");
             }
         },
         error: function (xhr, status, error) {
-            console.error("AI Generation Error:", error);
-            showAiErrorModal("Failed to communicate with AI service. Make sure LM Studio is running, your AI_API_URL is correct, and the model name in .env matches the loaded model. Check browser console for details.");
+            // Network or server error. Keep popup friendly, details go to console for developers.
+            console.error("AI GenerateListingAI ajax error:", status, error, xhr ? xhr.responseText : "");
+
+            showAiErrorModal("We could not reach the image helper right now. Please check your connection and try again, or continue by filling the fields manually.");
         },
         complete: function () {
             aiBtn.prop("disabled", false).text(originalText);
