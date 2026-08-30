@@ -68,11 +68,20 @@ namespace Marketplace.Services
 
                 string rawBaseUrl = Environment.GetEnvironmentVariable("AI_API_URL") ?? "http://localhost:1234/v1";
                 string rawApiKey = Environment.GetEnvironmentVariable("AI_API_KEY") ?? "lm-studio";
-                string rawModel = Environment.GetEnvironmentVariable("AI_MODEL_NAME") ?? "Qwen3-VL-2B-Instruct-GGUF";
+                string rawModel = Environment.GetEnvironmentVariable("AI_MODEL_NAME") ?? "qwen3-vl-2b-instruct";
 
                 string baseUrl = rawBaseUrl.Trim().Trim('"').Trim('\'').TrimEnd('/');
                 string apiKey = rawApiKey.Trim().Trim('"').Trim('\'');
-                string modelName = rawModel.Trim().Trim('"').Trim('\'');
+                string modelName = rawModel.Trim().Trim('"').Trim('\'').Trim();
+
+                // Normalize model name for LM Studio. LM Studio reports lower case ids like qwen3-vl-2b-instruct
+                // while users often put the HuggingFace repo name like Qwen3-VL-2B-Instruct-GGUF in .env.
+                // We keep the raw value for logging but also prepare a normalized fallback.
+                string normalizedModel = modelName.ToLowerInvariant().Replace("-gguf", "").Replace("_", "-").Trim();
+                if (string.IsNullOrWhiteSpace(normalizedModel))
+                {
+                    normalizedModel = "qwen3-vl-2b-instruct";
+                }
 
                 if (string.IsNullOrWhiteSpace(baseUrl))
                 {
@@ -184,6 +193,22 @@ namespace Marketplace.Services
                 object mainPayload = BuildPayload(modelName, systemPrompt, mainUserContent.ToArray(), MaxTokensMain, 0.0);
 
                 GeneratedListingDto? baseResult = await SendAiRequestAsync(baseUrl, apiKey, mainPayload, categories, cancellationToken);
+
+                // If the model name from .env is wrong (e.g. Qwen3-VL-2B-Instruct-GGUF vs qwen3-vl-2b-instruct),
+                // LM Studio will return 400 model_not_found. Retry once with the normalized lower case id.
+                // This keeps every request isolated as a new chat, just with a different model string.
+                if (baseResult == null)
+                {
+                    if (!string.Equals(modelName, normalizedModel, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"AI main request with model '{modelName}' returned null, retrying once with normalized model '{normalizedModel}' as new chat");
+
+                        object retryPayload = BuildPayload(normalizedModel, systemPrompt, mainUserContent.ToArray(), MaxTokensMain, 0.0);
+
+                        baseResult = await SendAiRequestAsync(baseUrl, apiKey, retryPayload, categories, cancellationToken);
+                    }
+                }
+
                 GeneratedListingDto? validatedBase = ValidateAndFix(baseResult, categories);
 
                 if (validatedBase == null)
@@ -193,11 +218,23 @@ namespace Marketplace.Services
                 }
 
                 // If category is still marked as keep previous, try a dedicated category-only call to get best match.
+                // This is a new isolated chat that only asks for category, so it cannot be confused by previous answers.
                 if (validatedBase.CategoryId == KeepPreviousCategoryId)
                 {
                     if (categories.Count > 0)
                     {
                         int fallbackCategory = await TrySelectBestCategoryViaAiAsync(baseUrl, apiKey, modelName, mainImage, categories, cancellationToken);
+
+                        // If the first model string was wrong, retry the category-only chat with normalized id.
+                        if (fallbackCategory == KeepPreviousCategoryId)
+                        {
+                            if (!string.Equals(modelName, normalizedModel, StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"AI category-only fallback with model '{modelName}' failed, retrying with normalized model '{normalizedModel}' as new chat");
+
+                                fallbackCategory = await TrySelectBestCategoryViaAiAsync(baseUrl, apiKey, normalizedModel, mainImage, categories, cancellationToken);
+                            }
+                        }
 
                         if (fallbackCategory != KeepPreviousCategoryId)
                         {
@@ -1022,11 +1059,26 @@ namespace Marketplace.Services
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                 // Every request is a new chat - no history is sent, only the system and single user message in payload.
+                // This isolation prevents the model from getting confused by previous images or answers.
                 HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"AI request failed with status {response.StatusCode}");
+                    string errorBody = "";
+
+                    try
+                    {
+                        errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    }
+                    catch
+                    {
+                        errorBody = "";
+                    }
+
+                    // Log for developers in server console, but the user will see a friendly message.
+                    Console.WriteLine($"AI request failed with status {response.StatusCode} body: {errorBody}");
+
+                    // Also log to browser console via the controller's friendly path will handle it.
                     return null;
                 }
 
